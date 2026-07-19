@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, X, Circle as XCircle, CircleCheck as CheckCircle, RefreshCw, Coins, MessageCircle, TriangleAlert as AlertTriangle, Trophy, Layers, ChevronRight } from 'lucide-react';
+import {
+  Play, Pause, X, XCircle, CheckCircle, RefreshCw, Coins,
+  MessageCircle, AlertTriangle, Trophy, Layers, ChevronRight,
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -15,11 +18,33 @@ import { SONG_PACKS } from './data';
 // ============================================================
 const T = 'https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/models/gltf';
 const K = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0';
+// ============================================================
+//  KARAKTEREK
+//  A dims ertekek GEPPEL MERT valodi meretek (magassag, talppont,
+//  kozeppont) - igy minden karakter pontosan egyforma magas.
+//
+//  SAJAT KARAKTER HOZZAADASA (pl. Quaternius csomagbol):
+//  1. A projektben hozz letre egy  public/models  mappat
+//     (a gyokerben: public mappa, azon belul models mappa)
+//  2. Masold bele a letoltott .glb fajlokat (CSAK .glb!)
+//  3. Vegyel fel ide egy uj sort, pl.:
+//     { name: 'Kalandor Kevin', url: '/models/Adventurer.glb',
+//       idle: ['Idle'], win: ['Dance'], color: '#ff8c42' },
+//     (dims nelkul automatikusan bemeri - ha megsem jo a meret,
+//      irj ide kezzel: dims: { h: 2, minY: 0, cx: 0, cz: 0 } ahol
+//      h = a modell magassaga a sajat egysegeben)
+// ============================================================
 const CHARACTERS = [
-  { url: `${T}/RobotExpressive/RobotExpressive.glb`, idle: ['Idle'], win: ['Dance'], color: '#00eaff' },
-  { url: `${T}/Soldier.glb`, idle: ['Idle'], win: ['Run'], color: '#00ff87' },
-  { url: `${K}/CesiumMan/glTF-Binary/CesiumMan.glb`, idle: [], win: [], color: '#ffd700' },
-  { url: `${K}/BrainStem/glTF-Binary/BrainStem.glb`, idle: [], win: [], color: '#b385ff' },
+  { name: 'Robi, a DJ-robot',  url: `${T}/RobotExpressive/RobotExpressive.glb`, idle: ['Idle'], win: ['Dance'], color: '#00eaff',
+    dims: { h: 4.46, minY: -0.02, cx: 0, cz: 0.07 } },
+  { name: 'Kommandós Karcsi',  url: `${T}/Soldier.glb`, idle: ['Idle'], win: ['Run'], color: '#00ff87',
+    dims: { h: 1.83, minY: 0, cx: 0, cz: 0 } },
+  { name: 'Tánci Tóni',        url: `${T}/Xbot.glb`, idle: ['idle'], win: ['run'], color: '#ff5d8a',
+    dims: { h: 1.83, minY: 0, cx: 0, cz: 0 } },
+  { name: 'Melós Miki',        url: `${K}/CesiumMan/glTF-Binary/CesiumMan.glb`, idle: [], win: [], color: '#ffd700',
+    dims: { h: 1.51, minY: 0, cx: 0, cz: 0.03 } },
+  { name: 'Diszkó Dönci',      url: `${K}/BrainStem/glTF-Binary/BrainStem.glb`, idle: [], win: [], color: '#b385ff',
+    dims: { h: 1.83, minY: 0, cx: -0.04, cz: -0.04 } },
 ];
 
 // Valodi hatarolo doboz szamitasa - csontvazas (skinned) modelleknel is pontos!
@@ -30,51 +55,74 @@ const computeRealBounds = (root) => {
   const box = new THREE.Box3();
   const tmp = new THREE.Box3();
   root.traverse((o) => {
-    if (o.isMesh || o.isSkinnedMesh) {
-      o.geometry.computeBoundingBox(); // mindig ujraszamoljuk: a glTF loader cache-eit elofordul, hogy rossz
-      if (o.geometry.boundingBox) {
-        tmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
-        box.union(tmp);
-      }
+    if (o.isSkinnedMesh) {
+      o.computeBoundingBox();
+      if (o.boundingBox) { tmp.copy(o.boundingBox).applyMatrix4(o.matrixWorld); box.union(tmp); }
+    } else if (o.isMesh) {
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      tmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+      box.union(tmp);
     }
   });
   return box;
 };
 
-function CharModel({ url, prefer, mood }) {
+function CharModel({ url, prefer, mood, dims }) {
   const group = useRef();
   const gltf = useLoader(GLTFLoader, url);
 
   // Klonozas + EGYSEGES meretezes: minden karakter pontosan ugyanolyan
-  // magas (2 egyseg), talppal a talajon, kozepre igazitva
+  // magas (2 egyseg), talppal a talajon, kozepre igazitva.
+  // Ha van bemert dims, azt hasznaljuk (100% pontos); ha nincs
+  // (sajat letoltott modell), futasidoben merjuk be.
   const { cloned, fit } = useMemo(() => {
     const c = skeletonClone(gltf.scene);
-    const box = computeRealBounds(c);
-    const size = new THREE.Vector3();
-    const center = new THREE.Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-    const height = size.y || 1;
-    const scale = 2.0 / height;
+    let h, minY, cx, cz;
+    if (dims) {
+      ({ h, minY, cx, cz } = dims);
+    } else {
+      c.updateWorldMatrix(true, true);
+      // A csontvaz-matrixokat frissiteni KELL meres elott, kulonben
+      // a skinned modellek hamis (apro) dobozt adnak -> oriasira skalaz
+      c.traverse((o) => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.update(); });
+      const box = computeRealBounds(c);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+      h = size.y || 1;
+      minY = box.min.y;
+      cx = center.x;
+      cz = center.z;
+    }
+    const scale = 2.0 / (h || 1);
     return {
       cloned: c,
       fit: {
         scale,
-        x: -center.x * scale,
-        y: -box.min.y * scale - 1.0, // talp a -1.0 szinten -> senki nem log ki
-        z: -center.z * scale,
+        x: -(cx || 0) * scale,
+        y: -(minY || 0) * scale - 1.0, // talp a -1.0 szinten
+        z: -(cz || 0) * scale,
       },
     };
-  }, [gltf]);
+  }, [gltf, dims]);
 
   const mixer = useMemo(() => new THREE.AnimationMixer(cloned), [cloned]);
 
-  // Animacio kivalasztasa es lejatszasa
+  // Animacio kivalasztasa: pontos nev VAGY reszleges egyezes
+  // (a Quaternius-fele "CharacterArmature|Idle" nevekhez is jo)
   useEffect(() => {
     const clips = gltf.animations || [];
     if (!clips.length) return undefined;
     const names = clips.map((cl) => cl.name);
-    const pick = (prefer || []).find((n) => names.includes(n)) || names[0];
+    const wanted = (prefer || []).map((n) => n.toLowerCase());
+    let pick = null;
+    for (const w of wanted) {
+      pick = names.find((n) => n.toLowerCase() === w)
+          || names.find((n) => n.toLowerCase().includes(w));
+      if (pick) break;
+    }
+    if (!pick) pick = names[0];
     const clip = clips.find((cl) => cl.name === pick);
     const action = mixer.clipAction(clip, cloned);
     action.reset();
@@ -134,14 +182,14 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
       onPointerUp={onUp}
       onPointerLeave={onUp}
     >
-      <Canvas dpr={[1, 1.75]} camera={{ position: [0, 0.15, 4.6], fov: 40 }} gl={{ alpha: true, antialias: true }}>
+      <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.15, 4.6], fov: 40 }} gl={{ alpha: true, antialias: true }}>
         <ambientLight intensity={0.85} />
         <directionalLight position={[4, 6, 4]} intensity={2.4} />
         <directionalLight position={[-5, 3, -4]} intensity={1.2} color="#7fdcff" />
         <pointLight position={[0, -2, 3]} intensity={0.7} color="#ff4d8a" />
         <Suspense fallback={null}>
           <SpinGroup spinRef={spinRef}>
-            <CharModel url={c.url} prefer={prefer} mood={mood} />
+            <CharModel url={c.url} prefer={prefer} mood={mood} dims={c.dims} />
           </SpinGroup>
         </Suspense>
       </Canvas>
@@ -391,6 +439,8 @@ export default function App() {
   const [feedback, setFeedback] = useState(null);
   const [wrongIndex, setWrongIndex] = useState(null);
   const [shake, setShake] = useState(false);
+  const [tripleMiss, setTripleMiss] = useState(false); // 3 hiba egymas utan
+  const missStreakRef = useRef(0);
   const [endReason, setEndReason] = useState('win');
 
   const [showBetModal, setShowBetModal] = useState(false);
@@ -645,6 +695,7 @@ export default function App() {
     if (index < tl.length && tl[index].y < y) valid = false;
 
     if (valid) {
+      missStreakRef.current = 0;
       setFeedback('correct');
       fireConfetti(2);
       confetti({ particleCount: 60, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors: ['#ffd700', '#00eaff', '#ffffff'] });
@@ -670,6 +721,12 @@ export default function App() {
       if (index < tl.length && tl[index].y < y) d = Math.max(d, y - tl[index].y);
       setPlayers(players.map((p, i) => (i === turnIndex ? { ...p, worstMiss: Math.max(p.worstMiss || 0, d) } : p)));
       setFeedback('wrong');
+      missStreakRef.current += 1;
+      if (missStreakRef.current >= 3) {
+        missStreakRef.current = 0;
+        setTripleMiss(true);
+        setTimeout(() => setTripleMiss(false), 2200);
+      }
       setShake(true);
       setTimeout(() => setShake(false), 650);
       setWrongIndex(ci);
@@ -720,6 +777,7 @@ export default function App() {
               <Pedestal charIndex={charIndex} size={170} />
               <button className="arrow-btn" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
             </div>
+            <div className="avatar-name" style={{ color: cur.color }}>{cur.name}</div>
             <div className="avatar-tip">Forgasd meg az ujjaddal! 👆</div>
 
             <div className="setup-form">
@@ -761,7 +819,7 @@ export default function App() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.85, opacity: 0 }}
               >
-                <button className="close-modal" onClick={() => setShowPackSelection(false)}><X size={26} /></button>
+                <button type="button" className="close-modal" onClick={() => setShowPackSelection(false)}><X size={26} /></button>
                 <h2 className="text-chrome">VÁLASSZ STÍLUST</h2>
                 <div className="pack-grid">
                   {Object.keys(SONG_PACKS).map((packKey) => (
@@ -931,6 +989,9 @@ export default function App() {
 
       {/* ---------- SZINPAD ---------- */}
       <div className="main-arena">
+        <div className="game-char">
+          <CharacterStage charIndex={activePlayer.char} size={118} mood={isPlaying ? 'win' : 'idle'} />
+        </div>
         <div className="music-stage">
           <div className="tt-column">
             <Turntable isPlaying={isPlaying} isLoading={isLoading} onToggle={toggleMusic} />
@@ -966,6 +1027,20 @@ export default function App() {
           </motion.button>
         )}
 
+        <AnimatePresence>
+          {tripleMiss && (
+            <motion.div
+              className="triple-miss"
+              initial={{ scale: 0.2, opacity: 0, rotate: -18 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ scale: 2.4, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+            >
+              <span className="tm-face">🤡</span>
+              <span className="tm-text">HÁROM MELLÉ!</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <AnimatePresence>
           {feedback && (
             <motion.div
@@ -1016,14 +1091,15 @@ export default function App() {
       {/* ---------- TIPP MODAL ---------- */}
       <AnimatePresence>
         {showBetModal && (
-          <div className="modal-overlay">
+          <div className="modal-overlay" onClick={() => setShowBetModal(false)}>
             <motion.div
+              onClick={(e) => e.stopPropagation()}
               className="modal-box glass"
               initial={{ scale: 0.85, opacity: 0, y: 24 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.85, opacity: 0 }}
             >
-              <button className="close-modal" onClick={() => setShowBetModal(false)}><X size={22} /></button>
+              <button type="button" className="close-modal" onClick={() => setShowBetModal(false)}><X size={22} /></button>
               <h2 className="text-chrome">MI A TIPPED?</h2>
               <p className="modal-sub">
                 Év ±{YEAR_TOLERANCE}: 1🪙 · pontos év: 2🪙 · előadó / cím: 1-1🪙
