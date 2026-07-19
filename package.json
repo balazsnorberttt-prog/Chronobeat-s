@@ -1,0 +1,23 @@
+{
+  "name": "chronobeats",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "framer-motion": "10.18.0",
+    "lucide-react": "0.383.0",
+    "canvas-confetti": "1.9.2",
+    "three": "0.160.1",
+    "@react-three/fiber": "8.17.10"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.3.4",
+    "vite": "5.4.11"
+  }
+}
