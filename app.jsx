@@ -214,7 +214,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v8.1';
+const APP_VERSION = 'v9';
 
 // ============================================================
 //  JATEKSZABALY-KONSTANSOK
@@ -500,10 +500,15 @@ export default function App() {
   const [snap, setSnap] = useState(null);              // kliens: jatekallapot-pillanatkep
   const [myPeerId, setMyPeerId] = useState(null);
   const [clientBet, setClientBet] = useState(null);    // kliens tipp-ablak
+  const [audioMode, setAudioMode] = useState(() => {
+    try { return localStorage.getItem('cb_audiomode') || 'own'; } catch (e) { return 'own'; }
+  }); // 'own' = sajat telefonon szol | 'speaker' = a hazigazda telefonjan
+  const [prankFx, setPrankFx] = useState(null);        // szivatas-effekt a MI kepernyonkon
   const peerRef = useRef(null);
   const connsRef = useRef({});                          // host: peerId -> conn
   const hostConnRef = useRef(null);                     // kliens: kapcsolat a hosthoz
   const actRef = useRef({});                            // friss fuggvenyek a peer-hendlereknek
+  const myPeerIdRef = useRef(null);
   const [activeModes, setActiveModes] = useState({ blind: false, speed: false, gold: false, reverse: false });
   const [, setCharTick] = useState(0); // ujrarender, ha sajat figurak toltodnek be
   const [tutStep, setTutStep] = useState(-1);      // -1 = nincs tanulokor
@@ -823,7 +828,9 @@ export default function App() {
     if (goldCard) earned *= 2; // Arany Kartya: dupla tippnyeremeny
     if (earned > 0) {
       fireConfetti(Math.min(earned, 3));
-      setPlayers(players.map((p, i) => (i === turnIndex ? { ...p, tokens: p.tokens + earned } : p)));
+      const prankPlus = ys === 2 ? 1 : 0;
+      if (prankPlus) showToast('🃏 +1 szívatás-token a pontos évért!');
+      setPlayers(players.map((p, i) => (i === turnIndex ? { ...p, tokens: p.tokens + earned, pranks: (p.pranks || 0) + prankPlus } : p)));
       setBetResult({ total: earned, exactYear: ys === 2 });
     } else {
       setBetResult({ total: 0 });
@@ -911,7 +918,7 @@ export default function App() {
   // ============================================================
   // Minden rendernel frissitjuk, igy a peer-esemenyek mindig a
   // legfrissebb allapotot es fuggvenyeket erik el (nincs "beragadas")
-  actRef.current = { players, turnIndex, status, handlePlace, handleSwap, currentCard, showToast, setPlayers, setBetResult, fireConfetti, goldCard };
+  actRef.current = { players, turnIndex, status, handlePlace, handleSwap, currentCard, showToast, setPlayers, setBetResult, fireConfetti, goldCard, toggleMusic, firePrank };
 
   const makeCode = () => {
     const AB = 'ABCDEFGHJKLMNPRSTUVWXYZ';
@@ -923,7 +930,7 @@ export default function App() {
   const netSnapshot = () => ({
     type: 'state',
     status,
-    players: players.map((p) => ({ id: p.id, peerId: p.peerId || null, name: p.name, char: p.char, tokens: p.tokens || 0, timeline: p.timeline || [] })),
+    players: players.map((p) => ({ id: p.id, peerId: p.peerId || null, name: p.name, char: p.char, tokens: p.tokens || 0, pranks: p.pranks || 0, timeline: p.timeline || [] })),
     turnIndex,
     cardsLeft,
     flipped,
@@ -935,6 +942,8 @@ export default function App() {
     card: currentCard ? (flipped || feedback ? currentCard : { masked: true }) : null,
     audioUrl: audioUrl || null,
     audioLoading: isLoading,
+    audioMode,
+    playing: isPlaying,
   });
 
   const broadcast = () => {
@@ -947,7 +956,7 @@ export default function App() {
   useEffect(() => {
     if (netRole === 'host') broadcast();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [netRole, players, turnIndex, currentCard, flipped, feedback, wrongIndex, status, cardsLeft, timeLeft, goldCard, activeModes, audioUrl, isLoading]);
+  }, [netRole, players, turnIndex, currentCard, flipped, feedback, wrongIndex, status, cardsLeft, timeLeft, goldCard, activeModes, audioUrl, isLoading, audioMode, isPlaying]);
 
   const hostHandleAction = (fromPeer, msg) => {
     const A = actRef.current;
@@ -959,6 +968,20 @@ export default function App() {
     } else if (msg.a === 'swap') {
       if (idx !== A.turnIndex || A.status !== 'game') return;
       A.handleSwap();
+    } else if (msg.a === 'music') {
+      if (idx !== A.turnIndex || A.status !== 'game') return;
+      A.toggleMusic();
+    } else if (msg.a === 'prank') {
+      if (idx === A.turnIndex) return; // sajat magat nem szivatja
+      const sender = A.players[idx];
+      if (!sender || (sender.pranks || 0) < 1) return;
+      const targetIdx = A.turnIndex;
+      const target = A.players[targetIdx];
+      A.setPlayers(A.players.map((p, i) => (i === idx ? { ...p, pranks: (p.pranks || 0) - 1 } : p)));
+      const ev = { type: 'prank', kind: msg.kind === 'heartbeat' ? 'heartbeat' : 'scramble', targetIdx, from: sender.name };
+      Object.values(connsRef.current).forEach((c) => { try { if (c.open) c.send(ev); } catch (e) {} });
+      A.showToast(`😈 ${sender.name} rászívatta ${target.name}-t!`);
+      if (!target.peerId) A.firePrank(ev.kind); // a celpont a hazigazda keszuleken jatszik
     } else if (msg.a === 'bet') {
       if (idx !== A.turnIndex || A.status !== 'game' || !A.currentCard) return;
       const d = msg.data || {};
@@ -969,7 +992,9 @@ export default function App() {
       if (A.goldCard) earned *= 2;
       if (earned > 0) {
         A.fireConfetti(Math.min(earned, 3));
-        A.setPlayers(A.players.map((p, i) => (i === idx ? { ...p, tokens: (p.tokens || 0) + earned } : p)));
+        const prankPlus = ys === 2 ? 1 : 0;
+        if (prankPlus) A.showToast('🃏 +1 szívatás-token a pontos évért!');
+        A.setPlayers(A.players.map((p, i) => (i === idx ? { ...p, tokens: (p.tokens || 0) + earned, pranks: (p.pranks || 0) + prankPlus } : p)));
         A.setBetResult({ total: earned, exactYear: ys === 2 });
       } else {
         A.setBetResult({ total: 0 });
@@ -1037,6 +1062,7 @@ export default function App() {
     peerRef.current = peer;
     peer.on('open', (pid) => {
       setMyPeerId(pid);
+      myPeerIdRef.current = pid;
       const conn = peer.connect(`cbeats-${code}`, { reliable: true });
       hostConnRef.current = conn;
       const failT = setTimeout(() => { setNetBusy(false); showToast('Nincs ilyen szoba, vagy nem elérhető. 😕'); }, 8000);
@@ -1057,6 +1083,16 @@ export default function App() {
           showToast(msg.why || 'Nem sikerült csatlakozni.');
         } else if (msg.type === 'state') {
           setSnap(msg);
+        } else if (msg.type === 'prank') {
+          const st = msg;
+          setSnap((prev) => prev); // allapot valtozatlan
+          showToast(`😈 ${st.from} bevetett egy szívatást!`);
+          setTimeout(() => {
+            setSnap((prev) => {
+              if (prev && prev.players && prev.players[st.targetIdx] && prev.players[st.targetIdx].peerId === myPeerIdRef.current) firePrank(st.kind);
+              return prev;
+            });
+          }, 0);
         }
       });
       conn.on('close', () => { showToast('📡 A kapcsolat megszakadt.'); setStatus('setup'); setNetRole(null); setSnap(null); });
@@ -1071,7 +1107,7 @@ export default function App() {
     const st = snap;
     const active = st && st.players && st.players[st.turnIndex];
     const mine = !!(st && active && active.peerId === myPeerId && st.status === 'game');
-    if (mine && st.audioUrl) {
+    if (mine && st.audioUrl && st.audioMode !== 'speaker') {
       if (audioRef.current.src !== st.audioUrl) {
         audioRef.current.src = st.audioUrl;
         setIsPlaying(false);
@@ -1083,7 +1119,9 @@ export default function App() {
   }, [snap, status, myPeerId]);
 
   const clientToggleMusic = () => {
-    if (!audioRef.current || !snap || !snap.audioUrl) return;
+    if (!snap) return;
+    if (snap.audioMode === 'speaker') { sendAction('music'); return; } // a hazigazdanal szol
+    if (!audioRef.current || !snap.audioUrl) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
@@ -1092,6 +1130,15 @@ export default function App() {
         .then(() => setIsPlaying(true))
         .catch(() => showToast('Koppints még egyszer a lejátszáshoz!'));
     }
+  };
+
+  // Szivatas-effekt a SAJAT kepernyon (ha minket szivattak meg)
+  const firePrank = (kind) => {
+    setPrankFx({ kind, id: Date.now() });
+    if (kind === 'heartbeat' && navigator.vibrate) {
+      try { navigator.vibrate([180, 90, 180, 90, 260, 70, 260, 70, 380, 60, 380]); } catch (e) {}
+    }
+    setTimeout(() => setPrankFx(null), kind === 'scramble' ? 5000 : 4200);
   };
 
   const sendAction = (a, extra = {}) => {
@@ -1263,6 +1310,7 @@ export default function App() {
         <Backdrop />
         <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
+        {prankFx && prankFx.kind === 'heartbeat' && <div className="fx-heartbeat" />}
         <div className="top-hud">
           <div className="player-info glass" style={{ '--pc': myChar.color }}>
             <div className="hud-avatar"><span>{me ? me.name.charAt(0).toUpperCase() : '?'}</span></div>
@@ -1270,7 +1318,7 @@ export default function App() {
               <div className="hud-label">TE VAGY</div>
               <div className="hud-name">{me ? me.name : '…'}</div>
             </div>
-            <span className="hud-tokens"><Coins size={15} /> {me ? me.tokens : 0}</span>
+            <span className="hud-tokens"><Coins size={15} /> {me ? me.tokens : 0}{me && (me.pranks || 0) > 0 ? ` · ${me.pranks}🃏` : ''}</span>
           </div>
           <div className="hud-right">
             <div className="deck-chip glass">🚪 {roomCode}</div>
@@ -1286,10 +1334,22 @@ export default function App() {
           {!st && <div className="client-banner glass">📡 Kapcsolódva! Várakozás a házigazdára…</div>}
           {st && st.status === 'setup' && <div className="client-banner glass">🛋️ A házigazda még állítgat… mindjárt indulunk!</div>}
           {st && (st.status === 'handoff' || st.status === 'game') && !myTurn && active && (
-            <div className="client-banner glass">
-              <span className="cb-big">🎧 {active.name} játszik…</span>
-              <span className="cb-sub">Figyeld a zenét a házigazda készülékén!</span>
-            </div>
+            <>
+              <div className="client-banner glass">
+                <span className="cb-big">🎧 {active.name} játszik…</span>
+                <span className="cb-sub">{st.audioMode === 'speaker' ? 'A zene a hangfalon szól!' : `A zene ${active.name} telefonján szól!`}</span>
+              </div>
+              <Pedestal charIndex={active.char} size={150} mood={st.playing ? 'win' : 'idle'} />
+              {me && (me.pranks || 0) > 0 && st.status === 'game' && (
+                <div className="prank-bar glass">
+                  <span className="pb-title">😈 Szívatás ({me.pranks} 🃏)</span>
+                  <div className="pb-btns">
+                    <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'scramble' })}>⚡ Rövidzárlat</button>
+                    <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'heartbeat' })}>📳 Frász</button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
           {st && st.status === 'win' && (
             <div className="client-banner glass">
@@ -1299,23 +1359,34 @@ export default function App() {
           )}
           {myTurn && (
             <>
-              <div className="client-banner glass mine">
-                <span className="cb-big">🎤 TE JÖSSZ!</span>
-                <span className="cb-sub">{st.card && !st.card.masked ? `${st.card.y} · ${st.card.t}` : 'Játszd le a dalt, aztán tedd az idővonaladra!'}</span>
+              <div className="turn-banner">
+                <span className="tb-big">🎤 TE JÖSSZ!</span>
                 {st.goldCard && <span className="gold-badge">✨ ARANY KÁRTYA ✨</span>}
-                {st.audioLoading && <span className="cb-sub">🎵 A dal betöltése…</span>}
-                {canAct && st.audioUrl && (
-                  <button type="button" className="btn-3d gold wide" onClick={clientToggleMusic}>
-                    {isPlaying ? <><Pause size={17} /> SZÜNET</> : <><Play size={17} /> ZENE INDÍTÁSA ITT</>}
-                  </button>
-                )}
+              </div>
+              {/* Ugyanaz a szinpad, mint a hazigazdanal: lemezjatszo + rejtelykartya */}
+              <div className="music-stage">
+                <div className="tt-column">
+                  <Turntable
+                    isPlaying={st.audioMode === 'speaker' ? !!st.playing : isPlaying}
+                    isLoading={!!st.audioLoading}
+                    onToggle={clientToggleMusic}
+                  />
+                  <Equalizer active={st.audioMode === 'speaker' ? !!st.playing : isPlaying} />
+                  {st.audioMode === 'speaker' && <span className="cb-sub">🔊 A hangfalon szól</span>}
+                </div>
+                <div className={`card-column ${st.goldCard ? 'gold' : ''}`}>
+                  <MysteryCard
+                    flipped={!!(st.card && !st.card.masked)}
+                    card={st.card && !st.card.masked ? st.card : { y: '', t: '', a: '' }}
+                  />
+                </div>
               </div>
               {canAct && (
                 <div className="client-actions">
                   <motion.button className="bet-fab" whileTap={{ scale: 0.94 }} onClick={() => setClientBet({ year: '', artist: '', title: '' })}>
                     <MessageCircle size={17} /> TIPPELJ ZSETONÉRT!
                   </motion.button>
-                  <button type="button" className="btn-3d swap" onClick={() => sendAction('swap')}>
+                  <button type="button" className={`btn-3d swap ${st.audioUrl ? '' : 'error'}`} onClick={() => sendAction('swap')}>
                     <RefreshCw size={16} /> CSERE {SWAP_COST}🪙
                   </button>
                 </div>
@@ -1337,7 +1408,7 @@ export default function App() {
             <div className="tl-progress"><div style={{ width: `${me ? Math.min(100, Math.round((tl.length / WIN_CARDS) * 100)) : 0}%` }} /></div>
             <span className="tl-count">{tl.length}/{WIN_CARDS}</span>
           </div>
-          <div className="timeline-track" ref={scrollRef}>
+          <div className={`timeline-track ${prankFx && prankFx.kind === 'scramble' ? 'scrambled' : ''}`} ref={scrollRef}>
             {canAct && <button className="slot-btn" onClick={() => sendAction('place', { index: 0 })}>+</button>}
             {tl.map((card, i) => (
               <React.Fragment key={`${card.a}-${card.t}-${i}`}>
@@ -1409,7 +1480,25 @@ export default function App() {
                 {netRole === 'host' ? (
                   <>
                     <div className="room-code-big">{roomCode}</div>
-                    <p className="modal-sub">Ezt a kódot írják be a többiek a saját telefonjukon!<br />A zene ezen a készüléken fog szólni. 🔊</p>
+                    <p className="modal-sub">Ezt a kódot írják be a többiek a saját telefonjukon!</p>
+                    <div className="audio-mode-row">
+                      <button
+                        type="button"
+                        className={`am-btn ${audioMode === 'own' ? 'on' : ''}`}
+                        onClick={() => { setAudioMode('own'); try { localStorage.setItem('cb_audiomode', 'own'); } catch (e) {} }}
+                      >
+                        📱 SAJÁT TELEFON MÓD
+                        <small>a soros játékos telefonján szól a zene</small>
+                      </button>
+                      <button
+                        type="button"
+                        className={`am-btn ${audioMode === 'speaker' ? 'on' : ''}`}
+                        onClick={() => { setAudioMode('speaker'); try { localStorage.setItem('cb_audiomode', 'speaker'); } catch (e) {} }}
+                      >
+                        🔊 KIHANGOSÍTÓ MÓD
+                        <small>a házigazda telefonján szól — a soros játékos indítja a sajátjáról</small>
+                      </button>
+                    </div>
                     <div className="room-players">
                       {players.filter((p) => p.peerId).length === 0
                         ? <span className="room-wait">Várakozás a csatlakozókra…</span>
@@ -1667,6 +1756,7 @@ export default function App() {
       <div className="ver-tag">{APP_VERSION}</div>
       {ToastView}
       {feedback && <div className={`fx-overlay ${feedback === 'correct' ? 'good' : 'bad'}`} />}
+      {prankFx && prankFx.kind === 'heartbeat' && <div className="fx-heartbeat" />}
       {TutorialView}
       {SettingsView}
 
@@ -1793,7 +1883,7 @@ export default function App() {
           <span className="tl-count">{tl.length}/{WIN_CARDS}</span>
         </div>
         <div className="tl-perspective">
-          <div className="timeline-track" ref={scrollRef}>
+          <div className={`timeline-track ${prankFx && prankFx.kind === 'scramble' ? 'scrambled' : ''}`} ref={scrollRef}>
             {feedback !== 'wrong' && (
               <button className="slot-btn" disabled={slotsDisabled} onClick={() => handlePlace(0)}>+</button>
             )}
