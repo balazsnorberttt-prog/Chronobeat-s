@@ -530,7 +530,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v25';
+const APP_VERSION = 'v26';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -747,6 +747,20 @@ const fetchDeezerUrl = (artist, title) => {
   });
 };
 
+// BETUVADASZAT: kiszuri a dalokat az elado keresztneve (elso szo) alapjan.
+// Ha az elso-szo talalat keves, automatikusan tagul az egesz elado-nevre.
+// Ekezet-fuggetlen (a = á = à), es sose "csresel be" ures eredmenynel.
+const huntFilter = (list, raw) => {
+  const ch = normText(raw || '').charAt(0);
+  if (!ch) return { data: list, ch: '', mode: 'off' };
+  const firstName = (a) => normText(String(a || '').split(/\s+/)[0]);
+  const byFirst = list.filter((s) => firstName(s.a).includes(ch));
+  if (byFirst.length >= 24) return { data: byFirst, ch, mode: 'first' };
+  const byAny = list.filter((s) => normText(s.a).includes(ch));
+  if (byAny.length >= 24) return { data: byAny, ch, mode: 'any' };
+  return { data: byAny, ch, mode: 'few' };
+};
+
 const shuffleDeck = (array) => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -854,6 +868,8 @@ function MenuCarousel({ items, active, setActive, onSelect }) {
   const [w, setW] = useState(340);
   const [drag, setDrag] = useState(0);
   const S = useRef({ down: false, x0: 0, y0: 0, dx: 0, moved: false, dir: 0 });
+  const rafRef = useRef(0);
+  const pendRef = useRef(0);
   const activeRef = useRef(active);
   activeRef.current = active;
   const spacingRef = useRef(200);
@@ -886,12 +902,16 @@ function MenuCarousel({ items, active, setActive, onSelect }) {
       if (s.dir === 0 && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) s.dir = Math.abs(dx) > Math.abs(dy) ? 1 : -1;
       if (s.dir === 1) {
         if (e.cancelable) e.preventDefault();
-        s.moved = true; s.dx = dx; setDrag(dx);
+        s.moved = true; s.dx = dx; pendRef.current = dx;
+        if (!rafRef.current) {
+          rafRef.current = requestAnimationFrame(() => { rafRef.current = 0; setDrag(pendRef.current); });
+        }
       }
     };
     const onUp = () => {
       if (!s.down) return;
       s.down = false;
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
       const th = spacingRef.current * 0.28;
       if (s.dx > th) setActive(clamp(activeRef.current - 1));
       else if (s.dx < -th) setActive(clamp(activeRef.current + 1));
@@ -923,7 +943,7 @@ function MenuCarousel({ items, active, setActive, onSelect }) {
     <div className="cf-stage" ref={stageRef}>
       <div className="cf-track">
         {items.map((it, i) => {
-          const off = i - active - shift;
+          const off = i - active + shift;
           const abs = Math.abs(off);
           const hidden = abs > 2.4;
           const style = {
@@ -1134,6 +1154,7 @@ export default function App() {
   const [newName, setNewName] = useState('');
   const [charIndex, setCharIndex] = useState(0);
   const [menuIndex, setMenuIndex] = useState(0);
+  const [letterHunt, setLetterHunt] = useState('');   // BETUVADASZAT: eloado keresztnevenek kezdo szurobetuje
   const [selectedPack, setSelectedPack] = useState('mix');
   const [showPackSelection, setShowPackSelection] = useState(false);
   const [toast, setToast] = useState(null);
@@ -1809,11 +1830,27 @@ export default function App() {
       showToast('Hiba: a választott csomag üres. Válassz másikat!');
       return;
     }
+    // BETUVADASZAT szuro (ha be van allitva)
+    let poolData = pack.data;
+    if (letterHunt.trim()) {
+      const need = WIN_CARDS + roster.length + 4; // legyen elég lap egy meccsre
+      const res = huntFilter(pack.data, letterHunt);
+      if (!res.ch) {
+        // ervenytelen betu -> figyelmen kivul hagyjuk
+      } else if (res.data.length < need) {
+        showToast(`Csak ${res.data.length} dal van a(z) „${res.ch.toUpperCase()}” betűvel — próbálj gyakoribbat (pl. A, E, S)!`);
+        return;
+      } else {
+        poolData = res.data;
+        if (res.mode === 'any') showToast(`Betűvadászat: kevés keresztnév, így minden „${res.ch.toUpperCase()}”-t tartalmazó előadó jön! (${poolData.length} dal)`);
+        else showToast(`Betűvadászat: csak „${res.ch.toUpperCase()}” keresztnevű előadók! (${poolData.length} dal)`);
+      }
+    }
     if (audioRef.current) {
       audioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAGZGF0YQQAAAAAAA==';
       audioRef.current.play().then(() => audioRef.current.pause()).catch(() => {});
     }
-    const shuffled = shuffleDeck([...pack.data]);
+    const shuffled = shuffleDeck([...poolData]);
     const initialized = roster.map((p) => ({
       ...p,
       timeline: [shuffled.pop()],
@@ -2588,6 +2625,33 @@ export default function App() {
               ))}
             </div>
             <div className="settings-note">A módok a meccs INDÍTÁSAKOR rögzülnek — játék közben már nem változnak.</div>
+
+            <h3 className="modal-title small">BETŰVADÁSZAT</h3>
+            <div className="hunt-row">
+              <input
+                type="text"
+                inputMode="text"
+                maxLength={1}
+                className="hunt-input"
+                placeholder="?"
+                value={letterHunt}
+                onChange={(e) => setLetterHunt(e.target.value.slice(0, 1))}
+                aria-label="Betű vagy szám a betűvadászathoz"
+              />
+              <div className="hunt-info">
+                {letterHunt.trim()
+                  ? (() => {
+                      const res = huntFilter(SONG_PACKS[selectedPack].data, letterHunt);
+                      const need = WIN_CARDS + 6;
+                      if (res.data.length < need) return <span className="hunt-warn">Csak {res.data.length} ilyen dal — válassz gyakoribb betűt!</span>;
+                      return <span>Csak „{res.ch.toUpperCase()}” {res.mode === 'any' ? '(előadó nevében bárhol)' : 'keresztnevű előadók'} — {res.data.length} dal.</span>;
+                    })()
+                  : <span>Adj meg egy betűt vagy számot: csak azok a dalok jönnek, ahol az előadó keresztneve tartalmazza. Üresen hagyva mindenki játszik.</span>}
+              </div>
+              {letterHunt.trim() && (
+                <button type="button" className="hunt-clear" onClick={() => setLetterHunt('')} aria-label="Törlés"><X size={15} /></button>
+              )}
+            </div>
 
             <h3 className="modal-title small">HANG ÉS REZGÉS</h3>
             <div className="sfx-row">

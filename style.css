@@ -2306,3 +2306,38 @@ button:active { transform: scale(0.96); }
   color: var(--text-3);
   margin-top: -2px;
 }
+
+/* ============================================================
+   v26 — BETUVADASZAT
+   ============================================================ */
+.hunt-row {
+  display: flex; align-items: center; gap: var(--s3);
+  margin: 8px 0 4px;
+  padding: var(--s3);
+  border-radius: var(--r2);
+  background: rgba(0, 234, 255, 0.06);
+  border: 1px solid rgba(0, 234, 255, 0.25);
+}
+.hunt-input {
+  flex: 0 0 auto;
+  width: 52px; height: 52px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(10, 8, 26, 0.7);
+  border: 2px solid var(--blue);
+  border-radius: var(--r2);
+  box-shadow: var(--glow-blue);
+}
+.hunt-input::placeholder { color: rgba(255,255,255,0.35); }
+.hunt-info { flex: 1; font-size: 0.68rem; line-height: 1.4; color: var(--text-2); }
+.hunt-warn { color: #ffb7cd; font-weight: 700; }
+.hunt-clear {
+  flex: 0 0 auto;
+  background: rgba(255,255,255,0.08); border: 1px solid var(--line);
+  border-radius: 50%; width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-2);
+}
