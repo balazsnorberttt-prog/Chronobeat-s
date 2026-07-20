@@ -213,7 +213,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v7.2';
+const APP_VERSION = 'v7.3';
 
 // ============================================================
 //  JATEKSZABALY-KONSTANSOK
