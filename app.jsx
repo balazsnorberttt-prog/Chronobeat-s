@@ -20,34 +20,27 @@ import { SONG_PACKS } from './data';
 //  IGAZI 3D KARAKTEREK (professzionalis, animalt glTF modellek
 //  a three.js hivatalos keszletebol - szabadon hasznalhatoak)
 // ============================================================
-const T = 'https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/models/gltf';
-const K = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0';
 // ============================================================
-//  KARAKTEREK
-//  A dims ertekek GEPPEL MERT valodi meretek (magassag, talppont,
-//  kozeppont) - igy minden karakter pontosan egyforma magas.
+//  CHRONOBUDDY - sajat, kodbol epitett 12 fos karaktergarda
+//  (Fall Guys-osan gombolyded, vicces figurak, sajat animacioval.
+//   Nincs kulso modell-fugges, nincs licensz-kerdes: 100% sajat!)
 //
-//  SAJAT FIGURAK - EGYSZERU RENDSZER:
-//  1. A projekt GYOKEREBEN hozz letre egy  public  mappat,
-//     azon belul egy  models  mappat  ->  public/models
-//  2. Masold bele a figuraidat SORSZAMOZVA:  1.glb, 2.glb, 3.glb ...
-//     (kihagyas nelkul; az elso hianyzo szamnal megall a kereses)
-//  3. KESZ! Inditaskor automatikusan megtalalja, bemeri es
-//     hozzaadja oket a valaszthato karakterekhez.
+//  SAJAT .GLB FIGURAK TOVABBRA IS MENNEK:
+//  public/models/1.glb, 2.glb, ... - inditaskor automatikusan bekerulnek.
 // ============================================================
-const CUSTOM_COLORS = ['#ff8c42', '#7dff6a', '#ff5dde', '#5da9ff', '#fff35d', '#ff6a6a', '#6affd8', '#c46aff', '#ffa1c9', '#9dff5d'];
-
 const CHARACTERS = [
-  { name: 'Robi, a DJ-robot',  url: `${T}/RobotExpressive/RobotExpressive.glb`, idle: ['Idle'], win: ['Dance'], color: '#00eaff',
-    dims: { h: 4.46, minY: -0.02, cx: 0, cz: 0.07 } },
-  { name: 'Kommandós Karcsi',  url: `${T}/Soldier.glb`, idle: ['Idle'], win: ['Run'], color: '#00ff87',
-    dims: { h: 1.83, minY: 0, cx: 0, cz: 0 } },
-  { name: 'Tánci Tóni',        url: `${T}/Xbot.glb`, idle: ['idle'], win: ['run'], color: '#ff5d8a',
-    dims: { h: 1.83, minY: 0, cx: 0, cz: 0 } },
-  { name: 'Melós Miki',        url: `${K}/CesiumMan/glTF-Binary/CesiumMan.glb`, idle: [], win: [], color: '#ffd700',
-    dims: { h: 1.51, minY: 0, cx: 0, cz: 0.03 } },
-  { name: 'Diszkó Dönci',      url: `${K}/BrainStem/glTF-Binary/BrainStem.glb`, idle: [], win: [], color: '#b385ff',
-    dims: { h: 1.83, minY: 0, cx: -0.04, cz: -0.04 } },
+  { name: 'DJ',        color: '#00eaff', buddy: { skin: '#ffd9b3', shirt: '#00b8d4', pants: '#1a1440', hat: 'headphones', glasses: 'none',   extra: 'none' } },
+  { name: 'Rocker',    color: '#ff0055', buddy: { skin: '#ffd9b3', shirt: '#1c1c24', pants: '#33334a', hat: 'mohawk',     glasses: 'shades', extra: 'none', hair: '#ff0055' } },
+  { name: 'Díva',      color: '#ffd700', buddy: { skin: '#8a5a3b', shirt: '#ffd700', pants: '#7b2dff', hat: 'afro',       glasses: 'star',   extra: 'none', hair: '#2b1a12' } },
+  { name: 'Rapper',    color: '#00ff87', buddy: { skin: '#6f4a2f', shirt: '#0f8a4f', pants: '#101018', hat: 'cap',        glasses: 'none',   extra: 'chain', hair: '#101010' } },
+  { name: 'Metálos',   color: '#b385ff', buddy: { skin: '#e8c39e', shirt: '#181820', pants: '#181820', hat: 'longhair',   glasses: 'none',   extra: 'none', hair: '#241a30' } },
+  { name: 'Nagyi',     color: '#ff9ad1', buddy: { skin: '#f2c9a0', shirt: '#c46aff', pants: '#4a2a6e', hat: 'bun',        glasses: 'round',  extra: 'bow',  hair: '#d9d9e8' } },
+  { name: 'Kocka',     color: '#5da9ff', buddy: { skin: '#ffd9b3', shirt: '#2f6fdd', pants: '#26304a', hat: 'flat',       glasses: 'square', extra: 'bowtie', hair: '#6b4a2a' } },
+  { name: 'Punk',      color: '#7dff6a', buddy: { skin: '#e8c39e', shirt: '#243024', pants: '#182018', hat: 'spikes',     glasses: 'none',   extra: 'chain', hair: '#7dff6a' } },
+  { name: 'Kingsztár', color: '#fff35d', buddy: { skin: '#f0c9a0', shirt: '#f4f4ff', pants: '#c9a227', hat: 'quiff',      glasses: 'gold',   extra: 'none', hair: '#1a1a22' } },
+  { name: 'Rasta',     color: '#ffb020', buddy: { skin: '#7a5236', shirt: '#c8102e', pants: '#0a6a2f', hat: 'dreads',     glasses: 'none',   extra: 'none', hair: '#2b1a12' } },
+  { name: 'Robó',      color: '#9be9ff', buddy: { skin: '#b9c6d9', shirt: '#8fa1bd', pants: '#5b6a85', hat: 'antenna',    glasses: 'visor',  extra: 'none' } },
+  { name: 'Popsztár',  color: '#ff5dde', buddy: { skin: '#ffd9b3', shirt: '#ff5dde', pants: '#3a1440', hat: 'crown',      glasses: 'none',   extra: 'mic',  hair: '#5a3a1a' } },
 ];
 
 // Valodi hatarolo doboz szamitasa - csontvazas (skinned) modelleknel is pontos!
@@ -176,6 +169,296 @@ function SpinGroup({ spinRef, children }) {
   return <group ref={ref}>{children}</group>;
 }
 
+
+// ============================================================
+//  BUDDYMODEL - a kodbol epitett figura
+//  Magassag pontosan 2 egyseg, talp a -1.0 szinten (mint a glb-knel)
+// ============================================================
+function BuddyModel({ cfg, mood }) {
+  const body = useRef();
+  const head = useRef();
+  const armL = useRef();
+  const armR = useRef();
+
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    const dance = mood === 'win';
+    const sp = dance ? 6.4 : 2.1;
+    const bob = dance ? 0.085 : 0.03;
+    if (body.current) {
+      body.current.position.y = Math.sin(t * sp) * bob;
+      body.current.rotation.z = Math.sin(t * sp * 0.5) * (dance ? 0.09 : 0.03);
+    }
+    if (head.current) {
+      head.current.rotation.x = dance ? Math.sin(t * sp) * 0.22 : Math.sin(t * sp) * 0.06;
+      head.current.rotation.z = Math.sin(t * sp * 0.5) * 0.08;
+    }
+    if (armL.current && armR.current) {
+      if (dance) {
+        armL.current.rotation.z = 2.5 + Math.sin(t * sp) * 0.45;
+        armR.current.rotation.z = -2.5 - Math.cos(t * sp) * 0.45;
+      } else {
+        armL.current.rotation.z = 0.28 + Math.sin(t * sp) * 0.12;
+        armR.current.rotation.z = -0.28 - Math.sin(t * sp) * 0.12;
+      }
+    }
+  });
+
+  const C = cfg;
+  const hair = C.hair || '#3a2a1a';
+
+  return (
+    <group ref={body} position={[0, 0, 0]}>
+      {/* Labak */}
+      <mesh position={[-0.2, -0.74, 0]}>
+        <capsuleGeometry args={[0.13, 0.34, 6, 12]} />
+        <meshStandardMaterial color={C.pants} roughness={0.7} />
+      </mesh>
+      <mesh position={[0.2, -0.74, 0]}>
+        <capsuleGeometry args={[0.13, 0.34, 6, 12]} />
+        <meshStandardMaterial color={C.pants} roughness={0.7} />
+      </mesh>
+      {/* Cipok */}
+      <mesh position={[-0.2, -0.95, 0.06]} scale={[1, 0.55, 1.5]}>
+        <sphereGeometry args={[0.14, 14, 12]} />
+        <meshStandardMaterial color="#f4f4ff" roughness={0.5} />
+      </mesh>
+      <mesh position={[0.2, -0.95, 0.06]} scale={[1, 0.55, 1.5]}>
+        <sphereGeometry args={[0.14, 14, 12]} />
+        <meshStandardMaterial color="#f4f4ff" roughness={0.5} />
+      </mesh>
+      {/* Torzs */}
+      <mesh position={[0, -0.12, 0]}>
+        <capsuleGeometry args={[0.4, 0.42, 8, 18]} />
+        <meshStandardMaterial color={C.shirt} roughness={0.55} />
+      </mesh>
+      {/* Poci-folt */}
+      <mesh position={[0, -0.16, 0.31]} scale={[0.8, 1, 0.5]}>
+        <sphereGeometry args={[0.26, 16, 14]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.65} transparent opacity={0.22} />
+      </mesh>
+      {/* Karok */}
+      <group ref={armL} position={[-0.44, 0.12, 0]}>
+        <mesh position={[0, -0.2, 0]}>
+          <capsuleGeometry args={[0.1, 0.3, 6, 12]} />
+          <meshStandardMaterial color={C.shirt} roughness={0.55} />
+        </mesh>
+        <mesh position={[0, -0.42, 0]}>
+          <sphereGeometry args={[0.11, 12, 10]} />
+          <meshStandardMaterial color={C.skin} roughness={0.6} />
+        </mesh>
+      </group>
+      <group ref={armR} position={[0.44, 0.12, 0]}>
+        <mesh position={[0, -0.2, 0]}>
+          <capsuleGeometry args={[0.1, 0.3, 6, 12]} />
+          <meshStandardMaterial color={C.shirt} roughness={0.55} />
+        </mesh>
+        <mesh position={[0, -0.42, 0]}>
+          <sphereGeometry args={[0.11, 12, 10]} />
+          <meshStandardMaterial color={C.skin} roughness={0.6} />
+        </mesh>
+        {C.extra === 'mic' && (
+          <group position={[0, -0.5, 0.1]}>
+            <mesh>
+              <cylinderGeometry args={[0.035, 0.045, 0.22, 10]} />
+              <meshStandardMaterial color="#22222c" roughness={0.4} />
+            </mesh>
+            <mesh position={[0, 0.16, 0]}>
+              <sphereGeometry args={[0.075, 12, 10]} />
+              <meshStandardMaterial color="#8a90b8" roughness={0.3} metalness={0.6} />
+            </mesh>
+          </group>
+        )}
+      </group>
+      {/* Nyaklanc / csokornyakkendo / maslI */}
+      {C.extra === 'chain' && (
+        <mesh position={[0, 0.16, 0.3]} rotation={[1.25, 0, 0]}>
+          <torusGeometry args={[0.2, 0.035, 10, 22]} />
+          <meshStandardMaterial color="#ffd700" metalness={0.85} roughness={0.25} />
+        </mesh>
+      )}
+      {C.extra === 'bowtie' && (
+        <group position={[0, 0.22, 0.36]}>
+          <mesh position={[-0.09, 0, 0]} rotation={[0, 0, 0.5]} scale={[1.4, 0.8, 0.5]}>
+            <sphereGeometry args={[0.07, 8, 8]} />
+            <meshStandardMaterial color="#ff0055" roughness={0.5} />
+          </mesh>
+          <mesh position={[0.09, 0, 0]} rotation={[0, 0, -0.5]} scale={[1.4, 0.8, 0.5]}>
+            <sphereGeometry args={[0.07, 8, 8]} />
+            <meshStandardMaterial color="#ff0055" roughness={0.5} />
+          </mesh>
+        </group>
+      )}
+      {/* Fej */}
+      <group ref={head} position={[0, 0.55, 0]}>
+        <mesh>
+          <sphereGeometry args={[0.42, 24, 20]} />
+          <meshStandardMaterial color={C.skin} roughness={0.6} />
+        </mesh>
+        {/* Szemek */}
+        {C.glasses !== 'visor' && (
+          <>
+            <mesh position={[-0.14, 0.05, 0.37]}>
+              <sphereGeometry args={[0.075, 12, 10]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.3} />
+            </mesh>
+            <mesh position={[0.14, 0.05, 0.37]}>
+              <sphereGeometry args={[0.075, 12, 10]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.3} />
+            </mesh>
+            <mesh position={[-0.14, 0.05, 0.435]}>
+              <sphereGeometry args={[0.032, 10, 8]} />
+              <meshStandardMaterial color="#101018" roughness={0.3} />
+            </mesh>
+            <mesh position={[0.14, 0.05, 0.435]}>
+              <sphereGeometry args={[0.032, 10, 8]} />
+              <meshStandardMaterial color="#101018" roughness={0.3} />
+            </mesh>
+          </>
+        )}
+        {/* Mosoly */}
+        <mesh position={[0, -0.14, 0.36]} rotation={[0.5, 0, 0]}>
+          <torusGeometry args={[0.11, 0.022, 8, 14, Math.PI]} />
+          <meshStandardMaterial color="#7a3b2e" roughness={0.6} />
+        </mesh>
+        {/* Szemuvegek */}
+        {C.glasses === 'round' && (
+          <group position={[0, 0.05, 0.4]}>
+            <mesh position={[-0.14, 0, 0]}><torusGeometry args={[0.09, 0.016, 8, 18]} /><meshStandardMaterial color="#d9a200" metalness={0.6} roughness={0.3} /></mesh>
+            <mesh position={[0.14, 0, 0]}><torusGeometry args={[0.09, 0.016, 8, 18]} /><meshStandardMaterial color="#d9a200" metalness={0.6} roughness={0.3} /></mesh>
+          </group>
+        )}
+        {C.glasses === 'square' && (
+          <group position={[0, 0.05, 0.4]}>
+            <mesh position={[-0.14, 0, 0]}><boxGeometry args={[0.17, 0.13, 0.03]} /><meshStandardMaterial color="#101018" roughness={0.4} /></mesh>
+            <mesh position={[0.14, 0, 0]}><boxGeometry args={[0.17, 0.13, 0.03]} /><meshStandardMaterial color="#101018" roughness={0.4} /></mesh>
+          </group>
+        )}
+        {C.glasses === 'shades' && (
+          <mesh position={[0, 0.05, 0.4]}><boxGeometry args={[0.42, 0.12, 0.04]} /><meshStandardMaterial color="#0a0a12" roughness={0.2} metalness={0.4} /></mesh>
+        )}
+        {C.glasses === 'gold' && (
+          <mesh position={[0, 0.05, 0.4]}><boxGeometry args={[0.42, 0.12, 0.04]} /><meshStandardMaterial color="#f5b91e" roughness={0.25} metalness={0.8} /></mesh>
+        )}
+        {C.glasses === 'star' && (
+          <group position={[0, 0.06, 0.41]}>
+            <mesh position={[-0.14, 0, 0]} rotation={[0, 0, 0.4]}><boxGeometry args={[0.16, 0.16, 0.03]} /><meshStandardMaterial color="#ff5dde" roughness={0.3} /></mesh>
+            <mesh position={[0.14, 0, 0]} rotation={[0, 0, 0.4]}><boxGeometry args={[0.16, 0.16, 0.03]} /><meshStandardMaterial color="#00eaff" roughness={0.3} /></mesh>
+          </group>
+        )}
+        {C.glasses === 'visor' && (
+          <mesh position={[0, 0.05, 0.36]} rotation={[0.06, 0, 0]}>
+            <boxGeometry args={[0.56, 0.16, 0.1]} />
+            <meshStandardMaterial color="#00eaff" emissive="#00b8d4" emissiveIntensity={0.8} roughness={0.2} />
+          </mesh>
+        )}
+        {/* Frizurak / fejfedok */}
+        {C.hat === 'headphones' && (
+          <group>
+            <mesh rotation={[0, 0, 0]} position={[0, 0.12, 0]}><torusGeometry args={[0.42, 0.045, 10, 24, Math.PI]} /><meshStandardMaterial color="#101018" roughness={0.4} /></mesh>
+            <mesh position={[-0.43, 0.02, 0]}><sphereGeometry args={[0.13, 12, 10]} /><meshStandardMaterial color="#00eaff" emissive="#0090aa" emissiveIntensity={0.5} /></mesh>
+            <mesh position={[0.43, 0.02, 0]}><sphereGeometry args={[0.13, 12, 10]} /><meshStandardMaterial color="#00eaff" emissive="#0090aa" emissiveIntensity={0.5} /></mesh>
+          </group>
+        )}
+        {C.hat === 'mohawk' && (
+          <group>
+            {[-0.18, -0.06, 0.06, 0.18].map((z, i) => (
+              <mesh key={i} position={[0, 0.42 - Math.abs(z) * 0.5, z]} rotation={[z * 1.2, 0, 0]}>
+                <coneGeometry args={[0.07, 0.3, 8]} />
+                <meshStandardMaterial color={hair} roughness={0.5} />
+              </mesh>
+            ))}
+          </group>
+        )}
+        {C.hat === 'spikes' && (
+          <group>
+            {[[-0.2, 0.3, 0.12], [0, 0.4, 0], [0.2, 0.3, 0.12], [-0.12, 0.36, -0.14], [0.12, 0.36, -0.14]].map((p, i) => (
+              <mesh key={i} position={p} rotation={[p[2] * 1.5, 0, -p[0] * 1.4]}>
+                <coneGeometry args={[0.06, 0.24, 8]} />
+                <meshStandardMaterial color={hair} roughness={0.5} />
+              </mesh>
+            ))}
+          </group>
+        )}
+        {C.hat === 'afro' && (
+          <mesh position={[0, 0.26, -0.02]}>
+            <sphereGeometry args={[0.4, 18, 16]} />
+            <meshStandardMaterial color={hair} roughness={0.85} />
+          </mesh>
+        )}
+        {C.hat === 'cap' && (
+          <group position={[0, 0.28, 0]} rotation={[0.12, Math.PI, 0]}>
+            <mesh><sphereGeometry args={[0.4, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2.1]} /><meshStandardMaterial color="#c8102e" roughness={0.6} /></mesh>
+            <mesh position={[0, 0.02, 0.4]} rotation={[-0.15, 0, 0]}><boxGeometry args={[0.34, 0.03, 0.26]} /><meshStandardMaterial color="#c8102e" roughness={0.6} /></mesh>
+          </group>
+        )}
+        {C.hat === 'flat' && (
+          <mesh position={[0, 0.33, 0]} scale={[1, 0.4, 1]}>
+            <sphereGeometry args={[0.38, 16, 12]} />
+            <meshStandardMaterial color={hair} roughness={0.8} />
+          </mesh>
+        )}
+        {C.hat === 'longhair' && (
+          <group>
+            <mesh position={[0, 0.2, -0.06]} scale={[1.05, 0.8, 1.05]}><sphereGeometry args={[0.42, 18, 14, 0, Math.PI * 2, 0, Math.PI / 1.8]} /><meshStandardMaterial color={hair} roughness={0.8} /></mesh>
+            <mesh position={[-0.32, -0.1, -0.12]} rotation={[0, 0, 0.2]}><capsuleGeometry args={[0.09, 0.5, 6, 10]} /><meshStandardMaterial color={hair} roughness={0.8} /></mesh>
+            <mesh position={[0.32, -0.1, -0.12]} rotation={[0, 0, -0.2]}><capsuleGeometry args={[0.09, 0.5, 6, 10]} /><meshStandardMaterial color={hair} roughness={0.8} /></mesh>
+          </group>
+        )}
+        {C.hat === 'bun' && (
+          <group>
+            <mesh position={[0, 0.2, -0.02]} scale={[1.03, 0.7, 1.03]}><sphereGeometry args={[0.42, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
+            <mesh position={[0, 0.5, -0.05]}><sphereGeometry args={[0.15, 14, 12]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
+          </group>
+        )}
+        {C.hat === 'quiff' && (
+          <mesh position={[0, 0.38, 0.16]} rotation={[0.7, 0, 0]} scale={[1, 0.7, 1.3]}>
+            <sphereGeometry args={[0.24, 14, 12]} />
+            <meshStandardMaterial color={hair} roughness={0.55} />
+          </mesh>
+        )}
+        {C.hat === 'dreads' && (
+          <group>
+            <mesh position={[0, 0.22, -0.02]} scale={[1.03, 0.6, 1.03]}><sphereGeometry args={[0.42, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
+            {[[-0.3, 0.05, -0.2], [0.3, 0.05, -0.2], [-0.34, 0, 0.08], [0.34, 0, 0.08], [0, 0.1, -0.36]].map((p, i) => (
+              <mesh key={i} position={[p[0], p[1] - 0.12, p[2]]} rotation={[p[2] * 0.6, 0, -p[0] * 0.5]}>
+                <capsuleGeometry args={[0.05, 0.34, 6, 8]} />
+                <meshStandardMaterial color={i % 3 === 0 ? '#c8102e' : i % 3 === 1 ? '#f5b91e' : '#0a6a2f'} roughness={0.7} />
+              </mesh>
+            ))}
+          </group>
+        )}
+        {C.hat === 'antenna' && (
+          <group position={[0, 0.42, 0]}>
+            <mesh><cylinderGeometry args={[0.02, 0.02, 0.24, 8]} /><meshStandardMaterial color="#5b6a85" roughness={0.4} /></mesh>
+            <mesh position={[0, 0.16, 0]}><sphereGeometry args={[0.06, 10, 8]} /><meshStandardMaterial color="#ff0055" emissive="#ff0055" emissiveIntensity={0.9} /></mesh>
+          </group>
+        )}
+        {C.hat === 'crown' && (
+          <group position={[0, 0.4, 0]}>
+            <mesh><cylinderGeometry args={[0.24, 0.26, 0.12, 12]} /><meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} /></mesh>
+            {[0, 1, 2, 3, 4].map((i) => {
+              const a = (i / 5) * Math.PI * 2;
+              return (
+                <mesh key={i} position={[Math.cos(a) * 0.23, 0.13, Math.sin(a) * 0.23]}>
+                  <coneGeometry args={[0.05, 0.14, 6]} />
+                  <meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} />
+                </mesh>
+              );
+            })}
+          </group>
+        )}
+        {C.extra === 'bow' && (
+          <group position={[0.26, 0.34, 0.18]} rotation={[0, 0, -0.4]}>
+            <mesh position={[-0.05, 0, 0]} scale={[1.3, 0.7, 0.5]}><sphereGeometry args={[0.06, 8, 8]} /><meshStandardMaterial color="#ff0055" roughness={0.5} /></mesh>
+            <mesh position={[0.05, 0, 0]} scale={[1.3, 0.7, 0.5]}><sphereGeometry args={[0.06, 8, 8]} /><meshStandardMaterial color="#ff0055" roughness={0.5} /></mesh>
+          </group>
+        )}
+      </group>
+    </group>
+  );
+}
+
 // Ha egy 3D modell nem toltheto be, 2D korong-avatar jelenik meg,
 // es a jatek zavartalanul megy tovabb
 class ModelBoundary extends React.Component {
@@ -237,7 +520,9 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
         <pointLight position={[0, -2, 3]} intensity={0.7} color="#ff4d8a" />
         <Suspense fallback={null}>
           <SpinGroup spinRef={spinRef}>
-            <CharModel url={c.url} prefer={prefer} mood={mood} dims={c.dims} />
+            {c.buddy
+              ? <BuddyModel cfg={c.buddy} mood={mood} />
+              : <CharModel url={c.url} prefer={prefer} mood={mood} dims={c.dims} />}
           </SpinGroup>
         </Suspense>
       </Canvas>
@@ -246,7 +531,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v19';
+const APP_VERSION = 'v20';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
