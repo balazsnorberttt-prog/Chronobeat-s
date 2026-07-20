@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play, Pause, X, XCircle, CheckCircle, RefreshCw, Coins,
   MessageCircle, AlertTriangle, Trophy, Layers, ChevronRight,
+  Settings, Mic, BookOpen, Timer, EyeOff, Rewind, Sparkles,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
@@ -23,17 +24,16 @@ const K = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/mas
 //  A dims ertekek GEPPEL MERT valodi meretek (magassag, talppont,
 //  kozeppont) - igy minden karakter pontosan egyforma magas.
 //
-//  SAJAT KARAKTER HOZZAADASA (pl. Quaternius csomagbol):
-//  1. A projektben hozz letre egy  public/models  mappat
-//     (a gyokerben: public mappa, azon belul models mappa)
-//  2. Masold bele a letoltott .glb fajlokat (CSAK .glb!)
-//  3. Vegyel fel ide egy uj sort, pl.:
-//     { name: 'Kalandor Kevin', url: '/models/Adventurer.glb',
-//       idle: ['Idle'], win: ['Dance'], color: '#ff8c42' },
-//     (dims nelkul automatikusan bemeri - ha megsem jo a meret,
-//      irj ide kezzel: dims: { h: 2, minY: 0, cx: 0, cz: 0 } ahol
-//      h = a modell magassaga a sajat egysegeben)
+//  SAJAT FIGURAK - EGYSZERU RENDSZER:
+//  1. A projekt GYOKEREBEN hozz letre egy  public  mappat,
+//     azon belul egy  models  mappat  ->  public/models
+//  2. Masold bele a figuraidat SORSZAMOZVA:  1.glb, 2.glb, 3.glb ...
+//     (kihagyas nelkul; az elso hianyzo szamnal megall a kereses)
+//  3. KESZ! Inditaskor automatikusan megtalalja, bemeri es
+//     hozzaadja oket a valaszthato karakterekhez.
 // ============================================================
+const CUSTOM_COLORS = ['#ff8c42', '#7dff6a', '#ff5dde', '#5da9ff', '#fff35d', '#ff6a6a', '#6affd8', '#c46aff', '#ffa1c9', '#9dff5d'];
+
 const CHARACTERS = [
   { name: 'Robi, a DJ-robot',  url: `${T}/RobotExpressive/RobotExpressive.glb`, idle: ['Idle'], win: ['Dance'], color: '#00eaff',
     dims: { h: 4.46, minY: -0.02, cx: 0, cz: 0.07 } },
@@ -71,43 +71,26 @@ function CharModel({ url, prefer, mood, dims }) {
   const group = useRef();
   const gltf = useLoader(GLTFLoader, url);
 
-  // Klonozas + EGYSEGES meretezes: minden karakter pontosan ugyanolyan
-  // magas (2 egyseg), talppal a talajon, kozepre igazitva.
-  // Ha van bemert dims, azt hasznaljuk (100% pontos); ha nincs
-  // (sajat letoltott modell), futasidoben merjuk be.
-  const { cloned, fit } = useMemo(() => {
-    const c = skeletonClone(gltf.scene);
-    let h, minY, cx, cz;
-    if (dims) {
-      ({ h, minY, cx, cz } = dims);
-    } else {
-      c.updateWorldMatrix(true, true);
-      // A csontvaz-matrixokat frissiteni KELL meres elott, kulonben
-      // a skinned modellek hamis (apro) dobozt adnak -> oriasira skalaz
-      c.traverse((o) => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.update(); });
-      const box = computeRealBounds(c);
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-      box.getSize(size);
-      box.getCenter(center);
-      h = size.y || 1;
-      minY = box.min.y;
-      cx = center.x;
-      cz = center.z;
-    }
-    const scale = 2.0 / (h || 1);
-    return {
-      cloned: c,
-      fit: {
-        scale,
-        x: -(cx || 0) * scale,
-        y: -(minY || 0) * scale - 1.0, // talp a -1.0 szinten
-        z: -(cz || 0) * scale,
-      },
-    };
-  }, [gltf, dims]);
-
+  const cloned = useMemo(() => skeletonClone(gltf.scene), [gltf]);
   const mixer = useMemo(() => new THREE.AnimationMixer(cloned), [cloned]);
+
+  // EGYSEGES meretezes: minden karakter pontosan 2 egyseg magas,
+  // talppal a talajon. A beepitett figurakhoz bemert (dims) ertekek
+  // vannak; a sajat modelleket az ELSO ANIMACIOS KEPKOCKA UTAN
+  // merjuk be - igy az is jo, aminek az animacioja atmeretezi/
+  // elmozgatja a nyers fajlhoz kepest (ez okozta a kilogast).
+  const [autoDims, setAutoDims] = useState(null);
+  const d = dims || autoDims;
+  const fit = useMemo(() => {
+    if (!d) return null;
+    const scale = 2.0 / (d.h || 1);
+    return {
+      scale,
+      x: -(d.cx || 0) * scale,
+      y: -(d.minY || 0) * scale - 1.0, // talp a -1.0 szinten
+      z: -(d.cz || 0) * scale,
+    };
+  }, [d]);
 
   // Animacio kivalasztasa: pontos nev VAGY reszleges egyezes
   // (a Quaternius-fele "CharacterArmature|Idle" nevekhez is jo)
@@ -131,12 +114,45 @@ function CharModel({ url, prefer, mood, dims }) {
     return () => { action.fadeOut(0.2); };
   }, [gltf, mixer, cloned, prefer, mood]);
 
-  // Lassu automatikus forgas + animacio leptetese
+  // Sajat modell: az ELSO 10 MEGJELENITETT kepkockan at merjuk a
+  // TENYLEGESEN kirajzolt figurat (futo animacioval egyutt), es a
+  // latvany szerint meretezunk. Ez mar nem tud melle merni.
+  const meas = useRef({ frames: 0, box: null, done: false });
+  useEffect(() => {
+    meas.current = { frames: 0, box: new THREE.Box3(), done: !!dims };
+    setAutoDims(null);
+  }, [cloned, dims]);
+
+  // Animacio leptetese + elo meres + lassu forgas
   useFrame((_, dt) => {
     mixer.update(dt);
+    const M = meas.current;
+    if (!M.done) {
+      cloned.updateWorldMatrix(true, true);
+      cloned.traverse((o) => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.update(); });
+      const b = computeRealBounds(cloned);
+      if (Number.isFinite(b.min.y) && Number.isFinite(b.max.y)) M.box.union(b);
+      M.frames += 1;
+      if (M.frames >= 10 && !M.box.isEmpty()) {
+        M.done = true;
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        M.box.getSize(size);
+        M.box.getCenter(center);
+        setAutoDims({ h: size.y || 1, minY: M.box.min.y, cx: center.x, cz: center.z });
+      }
+    }
     if (group.current) group.current.rotation.y += dt * (mood === 'win' ? 0.8 : 0.35);
   });
 
+  if (!fit) {
+    // A meres alatt lathatatlanul, de animalva fut a modell
+    return (
+      <group visible={false}>
+        <primitive object={cloned} />
+      </group>
+    );
+  }
   return (
     <group ref={group}>
       <group scale={fit.scale} position={[fit.x, fit.y, fit.z]}>
@@ -197,6 +213,8 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
+const APP_VERSION = 'v7.2';
+
 // ============================================================
 //  JATEKSZABALY-KONSTANSOK
 // ============================================================
@@ -237,9 +255,20 @@ const yearScore = (guess, actual) => {
   return 0;
 };
 
-// A TE EREDETI, BEVALT MEGOLDASOD - valtoztatas nelkul visszaallitva!
-// (A korabbi proxy-kiserletem ez ELE ekelodott es blokkolhatta - torolve.)
+// Lezart (cross-origin isolated) elonezetben fut-e a jatek? (pl. StackBlitz)
+// Ott a JSONP-szkriptek tiltva vannak, ezert CORS-fetch-csel probalkozunk.
+// ELES/NORMAL kornyezetben viszont PONTOSAN az eredeti prototipus fut.
+const IS_ISOLATED = typeof window !== 'undefined' && window.crossOriginIsolated === true;
+
+// A TE EREDETI, BEVALT MEGOLDASOD - valtoztatas nelkul!
 const fetchDeezerUrl = (artist, title) => {
+  if (IS_ISOLATED) {
+    const q = encodeURIComponent(`artist:"${artist}" track:"${title}"`);
+    return fetch(`https://api.deezer.com/search?q=${q}&output=json`)
+      .then((r) => r.json())
+      .then((d) => (d && d.data && d.data.length > 0 ? d.data[0].preview : null))
+      .catch(() => null);
+  }
   return new Promise((resolve) => {
     const callbackName = 'dz_cb_' + Math.round(100000 * Math.random());
     const timeout = setTimeout(() => {
@@ -453,6 +482,22 @@ export default function App() {
   const [showPackSelection, setShowPackSelection] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // ---------- Jatekmodok es extra funkciok ----------
+  const [modes, setModes] = useState(() => {
+    try { return { blind: false, speed: false, gold: false, reverse: false, ...(JSON.parse(localStorage.getItem('cb_modes') || '{}')) }; }
+    catch (e) { return { blind: false, speed: false, gold: false, reverse: false }; }
+  });
+  const [showSettings, setShowSettings] = useState(false);
+  const [activeModes, setActiveModes] = useState({ blind: false, speed: false, gold: false, reverse: false });
+  const [, setCharTick] = useState(0); // ujrarender, ha sajat figurak toltodnek be
+  const [tutStep, setTutStep] = useState(-1);      // -1 = nincs tanulokor
+  const [timeLeft, setTimeLeft] = useState(null);   // Speed Run visszaszamlalo (mp)
+  const [goldCard, setGoldCard] = useState(false);  // Arany Kartya kor?
+  const [micOn, setMicOn] = useState(false);
+  const turnCountRef = useRef(0);
+  const recogRef = useRef(null);
+  const revRef = useRef({ ctx: null, src: null, url: null, buf: null });
+
   const deckRef = useRef([]);
   const discardRef = useRef([]);
   const audioRef = useRef(null);
@@ -460,9 +505,43 @@ export default function App() {
   const ghostRef = useRef(null);
   const toastTimer = useRef(null);
 
+  // ---------- Sajat figurak felderitese (public/models/1.glb, 2.glb, ...) ----------
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const found = [];
+      for (let i = 1; i <= 30; i++) {
+        try {
+          const r = await fetch(`/models/${i}.glb`, { method: 'HEAD' });
+          const ct = (r.headers.get('content-type') || '').toLowerCase();
+          // A dev szerver a hianyzo fajlra is 200-at adhat (index.html) -> szurjuk
+          if (!r.ok || ct.includes('text/html')) break;
+          found.push(i);
+        } catch (e) { break; }
+      }
+      if (cancelled || found.length === 0) return;
+      if (!CHARACTERS.some((c) => c.custom)) {
+        found.forEach((n, idx) => {
+          CHARACTERS.push({
+            custom: true,
+            name: `Figura ${n}`,
+            url: `/models/${n}.glb`,
+            idle: ['idle', 'stand', 'breathing'],
+            win: ['dance', 'win', 'victory', 'run', 'walk', 'wave'],
+            color: CUSTOM_COLORS[idx % CUSTOM_COLORS.length],
+          });
+        });
+        setCharTick((v) => v + 1);
+        showToast(`🎭 ${found.length} saját figura betöltve!`);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // ---------- Audio init ----------
   useEffect(() => {
     const a = new Audio();
+    if (IS_ISOLATED) a.crossOrigin = 'anonymous';
     a.setAttribute('playsinline', 'true');
     a.setAttribute('webkit-playsinline', 'true');
     const onEnd = () => setIsPlaying(false);
@@ -470,6 +549,19 @@ export default function App() {
     audioRef.current = a;
     return () => { a.removeEventListener('ended', onEnd); a.pause(); };
   }, []);
+
+  // ---------- Speed Run visszaszamlalo ----------
+  useEffect(() => {
+    if (timeLeft === null || (status !== 'game' && status !== 'handoff')) return undefined;
+    if (timeLeft <= 0) {
+      pauseMusic();
+      setEndReason('time');
+      setStatus('win');
+      return undefined;
+    }
+    const t = setTimeout(() => setTimeLeft((v) => (v === null ? null : v - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [timeLeft, status]);
 
   // ---------- Zene betoltese ----------
   useEffect(() => {
@@ -530,8 +622,24 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2400);
   };
 
+  const toggleMode = (key) => {
+    setModes((m) => {
+      const next = { ...m, [key]: !m[key] };
+      try { localStorage.setItem('cb_modes', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+
+  const stopReverse = () => {
+    if (revRef.current.src) {
+      try { revRef.current.src.onended = null; revRef.current.src.stop(); } catch (e) {}
+      revRef.current.src = null;
+    }
+  };
+
   const pauseMusic = () => {
     if (audioRef.current) audioRef.current.pause();
+    stopReverse();
     setIsPlaying(false);
   };
 
@@ -600,8 +708,16 @@ export default function App() {
     setBetResult(null);
     setBetData({ year: '', artist: '', title: '' });
     setEndReason('win');
+    setActiveModes({ ...modes }); // a beallitasok ITT rogzulnek a meccsre
+    turnCountRef.current = 1;
+    setGoldCard(false);
+    setTimeLeft(modes.speed ? 120 : null);
     setCurrentCard(firstCard);
     setStatus('handoff');
+    // Tanulokor automatikus inditasa az elso jatszmanal
+    try {
+      if (localStorage.getItem('cb_tut') !== '1') setTutStep(0);
+    } catch (e) {}
   };
 
   const startGame = () => {
@@ -620,11 +736,39 @@ export default function App() {
   };
 
   // ---------- Jatek ----------
+  const playReversed = async () => {
+    // A dal visszafele (Web Audio API): letoltjuk, megforditjuk a buffert
+    const R = revRef.current;
+    try {
+      if (!R.ctx) R.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (R.ctx.state === 'suspended') await R.ctx.resume();
+      if (R.url !== audioUrl) {
+        const res = await fetch(audioUrl);
+        const raw = await res.arrayBuffer();
+        const buf = await R.ctx.decodeAudioData(raw);
+        for (let ch = 0; ch < buf.numberOfChannels; ch++) buf.getChannelData(ch).reverse();
+        R.buf = buf; R.url = audioUrl;
+      }
+      const src = R.ctx.createBufferSource();
+      src.buffer = R.buf;
+      src.connect(R.ctx.destination);
+      src.onended = () => { R.src = null; setIsPlaying(false); };
+      src.start();
+      R.src = src;
+      setIsPlaying(true);
+    } catch (e) {
+      // Ha a CDN nem engedi a letoltest, visszaesunk normal lejatszasra
+      showToast('🔁 Reverse itt nem megy – normál lejátszás');
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  };
+
   const toggleMusic = () => {
     if (!audioRef.current || isLoading || !audioUrl) return;
     if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
+      pauseMusic();
+    } else if (activeModes.reverse) {
+      playReversed();
     } else {
       audioRef.current.play()
         .then(() => setIsPlaying(true))
@@ -659,6 +803,7 @@ export default function App() {
     let earned = ys;
     if (isCloseEnough(betData.artist, currentCard.a)) earned += 1;
     if (isCloseEnough(betData.title, currentCard.t)) earned += 1;
+    if (goldCard) earned *= 2; // Arany Kartya: dupla tippnyeremeny
     if (earned > 0) {
       fireConfetti(Math.min(earned, 3));
       setPlayers(players.map((p, i) => (i === turnIndex ? { ...p, tokens: p.tokens + earned } : p)));
@@ -679,6 +824,10 @@ export default function App() {
     const c = drawNext();
     if (!c) { finishByDeck(); return; }
     setTurnIndex((i) => (i + 1) % players.length);
+    turnCountRef.current += 1;
+    const gold = activeModes.gold && turnCountRef.current % 3 === 0;
+    setGoldCard(gold);
+    if (gold) showToast('✨ ARANY KÁRTYA! Dupla tippnyeremény + 2 bónuszzseton a helyes lerakásért!');
     setCurrentCard(c);
     setStatus('handoff');
   };
@@ -700,9 +849,11 @@ export default function App() {
       fireConfetti(2);
       confetti({ particleCount: 60, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors: ['#ffd700', '#00eaff', '#ffffff'] });
       confetti({ particleCount: 60, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors: ['#ffd700', '#ff0055', '#ffffff'] });
+      const goldBonus = goldCard ? 2 : 0;
+      if (goldBonus) showToast('✨ Arany Kártya bónusz: +2 🪙');
       const newTL = [...tl];
       newTL.splice(index, 0, currentCard);
-      const updated = players.map((p, i) => (i === turnIndex ? { ...p, timeline: newTL } : p));
+      const updated = players.map((p, i) => (i === turnIndex ? { ...p, timeline: newTL, tokens: p.tokens + goldBonus } : p));
       setTimeout(() => {
         setPlayers(updated);
         if (newTL.length >= WIN_CARDS) {
@@ -735,6 +886,129 @@ export default function App() {
     }
   };
 
+  // ---------- Hangvezerles (Push-to-Talk, Web Speech API) ----------
+  const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  const micStart = () => {
+    if (!SR || micOn) return;
+    try {
+      const r = new SR();
+      r.lang = 'hu-HU';
+      r.interimResults = false;
+      r.maxAlternatives = 1;
+      r.onresult = (ev) => {
+        const said = (ev.results[0] && ev.results[0][0] ? ev.results[0][0].transcript : '').trim();
+        if (!said) return;
+        const ym = said.match(/(19|20)\d{2}/);
+        setBetData((d) => {
+          const next = { ...d };
+          let rest = said;
+          if (ym) { next.year = ym[0]; rest = rest.replace(ym[0], '').trim(); }
+          if (rest.length > 1) {
+            if (!next.artist) next.artist = rest;
+            else next.title = rest;
+          }
+          return next;
+        });
+        showToast(`🎙️ Értettem: "${said}"`);
+      };
+      r.onend = () => setMicOn(false);
+      r.onerror = () => { setMicOn(false); showToast('🎙️ Nem sikerült – próbáld újra!'); };
+      recogRef.current = r;
+      r.start();
+      setMicOn(true);
+    } catch (e) { setMicOn(false); }
+  };
+  const micStop = () => { try { if (recogRef.current) recogRef.current.stop(); } catch (e) {} };
+
+  // ---------- Tanulokor ----------
+  const TUT_STEPS = [
+    { icon: '🎧', arrow: '⬆', cls: 'tp-stage',    text: 'Koppints a lemezjátszóra, és hallgasd meg a rejtélydalt!' },
+    { icon: '🪙', arrow: '⬇', cls: 'tp-bet',      text: 'Mersz tippelni? Évszám, előadó vagy cím eltalálásáért zseton jár!' },
+    { icon: '📅', arrow: '⬇', cls: 'tp-timeline', text: 'Ezután helyezd a dalt az idővonalad helyes pontjára a + gombokkal!' },
+    { icon: '🔄', arrow: '⬆', cls: 'tp-swap',     text: 'Nem megy a dal? A CSERE gombbal újat húzhatsz. Sok sikert! 🚀' },
+  ];
+  const endTutorial = () => {
+    setTutStep(-1);
+    try { localStorage.setItem('cb_tut', '1'); } catch (e) {}
+  };
+  const TutorialView = tutStep >= 0 && status === 'game' && (
+    <div className="tut-overlay" onClick={() => (tutStep < TUT_STEPS.length - 1 ? setTutStep(tutStep + 1) : endTutorial())}>
+      <motion.div
+        key={tutStep}
+        className={`tut-bubble glass ${TUT_STEPS[tutStep].cls}`}
+        initial={{ scale: 0.7, opacity: 0, y: 14 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={`tut-arrow ${TUT_STEPS[tutStep].arrow === '⬆' ? 'up' : 'down'}`}>{TUT_STEPS[tutStep].arrow}</div>
+        <div className="tut-icon">{TUT_STEPS[tutStep].icon}</div>
+        <div className="tut-step">{tutStep + 1} / {TUT_STEPS.length}</div>
+        <div className="tut-text">{TUT_STEPS[tutStep].text}</div>
+        <div className="tut-actions">
+          <button type="button" className="btn-3d ghost small" onClick={endTutorial}>Kihagyom</button>
+          <button
+            type="button"
+            className="btn-3d gold small"
+            onClick={() => (tutStep < TUT_STEPS.length - 1 ? setTutStep(tutStep + 1) : endTutorial())}
+          >
+            {tutStep < TUT_STEPS.length - 1 ? 'Tovább' : 'Játék indul!'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+
+  // ---------- Beallitasok (fogaskerek) ----------
+  const MODE_LIST = [
+    { key: 'blind',   icon: <EyeOff size={18} />,  name: 'Blind Mode',  desc: 'Az idővonal évszámai rejtve — fejből kell tudnod a sorrendet!' },
+    { key: 'speed',   icon: <Timer size={18} />,   name: 'Speed Run',   desc: '2 perces visszaszámlálás — akié a leghosszabb idővonal, nyer!' },
+    { key: 'gold',    icon: <Sparkles size={18} />, name: 'Arany Kártya', desc: 'Minden 3. kártya arany: dupla tippnyeremény és +2 bónuszzseton!' },
+    { key: 'reverse', icon: <Rewind size={18} />,  name: 'Reverse Mode', desc: 'A dal visszafelé szól — csak az igazi mesterek ismerik fel! 😈' },
+  ];
+  const SettingsView = (
+    <AnimatePresence>
+      {showSettings && (
+        <div className="modal-overlay" onClick={() => setShowSettings(false)}>
+          <motion.div
+            onClick={(e) => e.stopPropagation()}
+            className="modal-box glass settings-modal"
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.85, opacity: 0 }}
+          >
+            <button type="button" className="close-modal" onClick={() => setShowSettings(false)}><X size={22} /></button>
+            <h3 className="modal-title">JÁTÉKMÓDOK</h3>
+            <div className="mode-list">
+              {MODE_LIST.map((m) => (
+                <button key={m.key} type="button" className={`mode-row ${modes[m.key] ? 'on' : ''}`} onClick={() => toggleMode(m.key)}>
+                  <span className="mr-icon">{m.icon}</span>
+                  <span className="mr-body">
+                    <span className="mr-name">{m.name}</span>
+                    <span className="mr-desc">{m.desc}</span>
+                  </span>
+                  <span className={`mr-toggle ${modes[m.key] ? 'on' : ''}`} />
+                </button>
+              ))}
+            </div>
+            <div className="settings-note">A módok a meccs INDÍTÁSAKOR rögzülnek — játék közben már nem változnak.</div>
+            <button
+              type="button"
+              className="btn-3d ghost handbook-btn"
+              onClick={() => {
+                setShowSettings(false);
+                if (status === 'game') setTutStep(0);
+                else showToast('📖 A tanulókör a játékban indul el!');
+              }}
+            >
+              <BookOpen size={17} /> KÉZIKÖNYV (TANULÓKÖR)
+            </button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   // ---------- Kozos elemek ----------
   const ToastView = (
     <AnimatePresence>
@@ -759,7 +1033,12 @@ export default function App() {
     return (
       <div className="app-container">
         <Backdrop />
+        <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
+        {SettingsView}
+        <button type="button" className="gear-btn glass gear-float" onClick={() => setShowSettings(true)} title="Játékmódok">
+          <Settings size={19} />
+        </button>
         <div className="setup-scroll">
           <div className="setup-card glass">
             <h1 className="text-chrome huge">CHRONO<br />BEATS</h1>
@@ -772,12 +1051,20 @@ export default function App() {
               <span className="mode-count">{SONG_PACKS[selectedPack].data.length} dal · koppints a váltáshoz</span>
             </button>
 
+            <button className="mode-display" onClick={() => setShowSettings(true)}>
+              <span className="mode-label">⚙️ JÁTÉKMÓDOK</span>
+              <span className="mode-count">
+                {(modes.blind || modes.speed || modes.gold || modes.reverse)
+                  ? <>Aktív: {modes.blind && '🙈 Blind '}{modes.speed && '⏱ Speed '}{modes.gold && '✨ Arany '}{modes.reverse && '🔁 Reverse'}</>
+                  : 'Nincs extra mód — koppints a beállításhoz'}
+              </span>
+            </button>
+
             <div className="avatar-picker">
               <button className="arrow-btn" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
               <Pedestal charIndex={charIndex} size={170} />
               <button className="arrow-btn" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
             </div>
-            <div className="avatar-name" style={{ color: cur.color }}>{cur.name}</div>
             <div className="avatar-tip">Forgasd meg az ujjaddal! 👆</div>
 
             <div className="setup-form">
@@ -852,6 +1139,7 @@ export default function App() {
     return (
       <div className="app-container">
         <Backdrop />
+        <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
         <motion.div
           className="handoff"
@@ -889,6 +1177,7 @@ export default function App() {
     return (
       <div className="app-container">
         <Backdrop />
+        <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
         <div className="win-scroll">
           <div className="win-content">
@@ -898,6 +1187,7 @@ export default function App() {
               {winner.name}
             </h2>
             {endReason === 'deck' && <div className="deck-note">Elfogyott a pakli — a leghosszabb idővonal nyert!</div>}
+            {endReason === 'time' && <div className="deck-note">⏱ Lejárt a 2 perc — a leghosszabb idővonal nyert!</div>}
 
             <Pedestal charIndex={winner.char} size={200} mood="win" />
 
@@ -952,8 +1242,11 @@ export default function App() {
   return (
     <div className={`app-container ${shake ? 'shake' : ''} ${feedback === 'correct' ? 'winpulse' : ''}`}>
       <Backdrop />
+      <div className="ver-tag">{APP_VERSION}</div>
       {ToastView}
       {feedback && <div className={`fx-overlay ${feedback === 'correct' ? 'good' : 'bad'}`} />}
+      {TutorialView}
+      {SettingsView}
 
       {/* ---------- FELSO HUD ---------- */}
       <div className="top-hud">
@@ -975,14 +1268,24 @@ export default function App() {
           </motion.span>
         </div>
         <div className="hud-right">
+          {timeLeft !== null && (
+            <div className={`timer-chip glass ${timeLeft <= 20 ? 'low' : ''}`}>
+              <Timer size={13} /> {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+            </div>
+          )}
           <div className="deck-chip glass" title="Hátralévő kártyák">🂠 {cardsLeft}</div>
+          {(activeModes.blind || activeModes.speed || activeModes.gold || activeModes.reverse) && (
+            <div className="deck-chip glass" title="Aktív játékmódok">
+              {activeModes.blind && '🙈'}{activeModes.speed && '⏱'}{activeModes.gold && '✨'}{activeModes.reverse && '🔁'}
+            </div>
+          )}
           <button
             className={`btn-3d swap ${isAudioBroken ? 'error' : ''}`}
             onClick={handleSwap}
             disabled={slotsDisabled}
           >
             {isAudioBroken ? <AlertTriangle size={16} /> : <RefreshCw size={16} />}
-            {isAudioBroken ? ' HIBA · INGYEN CSERE' : ` CSERE ${SWAP_COST}🪙`}
+            {isAudioBroken ? ' INGYEN CSERE' : ` CSERE ${SWAP_COST}🪙`}
           </button>
         </div>
       </div>
@@ -990,14 +1293,16 @@ export default function App() {
       {/* ---------- SZINPAD ---------- */}
       <div className="main-arena">
         <div className="game-char">
-          <CharacterStage charIndex={activePlayer.char} size={118} mood={isPlaying ? 'win' : 'idle'} />
+          <CharacterStage charIndex={activePlayer.char} size={96} mood={isPlaying ? 'win' : 'idle'} />
+          <div className="gc-disc" style={{ '--pc': activeChar.color }} />
         </div>
         <div className="music-stage">
           <div className="tt-column">
             <Turntable isPlaying={isPlaying} isLoading={isLoading} onToggle={toggleMusic} />
             <Equalizer active={isPlaying} />
           </div>
-          <div className="card-column">
+          <div className={`card-column ${goldCard ? 'gold' : ''}`}>
+            {goldCard && <div className="gold-badge">✨ ARANY KÁRTYA ✨</div>}
             <MysteryCard flipped={flipped} card={currentCard} />
             <AnimatePresence>
               {betResult && (
@@ -1074,7 +1379,7 @@ export default function App() {
               <React.Fragment key={`${card.a}-${card.t}-${i}`}>
                 {feedback === 'wrong' && wrongIndex === i && GhostCard}
                 <div className="history-card">
-                  <div className="year-capsule">{card.y}</div>
+                  <div className="year-capsule">{activeModes.blind && status === 'game' ? '?' : card.y}</div>
                   <div className="history-title">{card.t}</div>
                   <div className="history-artist">{card.a}</div>
                 </div>
@@ -1101,9 +1406,22 @@ export default function App() {
             >
               <button type="button" className="close-modal" onClick={() => setShowBetModal(false)}><X size={22} /></button>
               <h2 className="text-chrome">MI A TIPPED?</h2>
+              {goldCard && <div className="gold-badge inmodal">✨ ARANY KÁRTYA — DUPLA NYEREMÉNY! ✨</div>}
               <p className="modal-sub">
                 Év ±{YEAR_TOLERANCE}: 1🪙 · pontos év: 2🪙 · előadó / cím: 1-1🪙
               </p>
+              {SR && (
+                <button
+                  type="button"
+                  className={`mic-btn ${micOn ? 'live' : ''}`}
+                  onPointerDown={micStart}
+                  onPointerUp={micStop}
+                  onPointerLeave={micStop}
+                >
+                  <Mic size={18} />
+                  {micOn ? ' HALLGATLAK…' : ' TARTSD NYOMVA ÉS MONDD BE!'}
+                </button>
+              )}
               <div className="modal-inputs">
                 <input
                   type="number"

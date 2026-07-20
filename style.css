@@ -235,7 +235,7 @@ input { font-family: inherit; }
 .btn-3d.swap {
   background: linear-gradient(to bottom, #4de6ff, #00b9d6);
   box-shadow: 0 5px 0 #00778a, 0 10px 18px rgba(0, 0, 0, 0.4);
-  color: #002a33; padding: 10px 14px; font-size: 0.72rem;
+  color: #002a33; padding: 9px 12px; font-size: 0.68rem; white-space: nowrap;
 }
 .btn-3d.swap.error {
   background: linear-gradient(to bottom, #ff5d8a, #e6003f);
@@ -497,19 +497,24 @@ input { font-family: inherit; }
 .top-hud {
   position: relative; z-index: 4;
   display: flex; justify-content: space-between; align-items: center;
-  gap: 10px;
-  padding: calc(10px + env(safe-area-inset-top)) 12px 6px;
+  flex-wrap: wrap;                /* ha nem fer ki, a jobb oldal uj sorba torik */
+  gap: 8px;
+  padding: calc(10px + env(safe-area-inset-top)) 10px 6px;
+  max-width: 100%;
 }
+.top-hud > * { min-width: 0; }    /* engedjuk osszehuzodni, ne logjon ki */
 .player-info {
   --pc: #00eaff;
-  display: flex; align-items: center; gap: 12px;
-  padding: 8px 16px 8px 9px;
+  display: flex; align-items: center; gap: 10px;
+  flex: 1 1 auto; min-width: 0;
+  padding: 7px 12px 7px 8px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--pc) 45%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 22px color-mix(in srgb, var(--pc) 35%, transparent), 0 12px 26px rgba(0, 0, 0, 0.45);
 }
 .hud-avatar {
-  width: 48px; height: 48px; border-radius: 50%;
+  flex: 0 0 auto;
+  width: clamp(38px, 10vw, 46px); height: clamp(38px, 10vw, 46px); border-radius: 50%;
   background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--pc) 55%, #fff), color-mix(in srgb, var(--pc) 60%, #000));
   border: 2px solid var(--pc);
   box-shadow: 0 0 16px color-mix(in srgb, var(--pc) 70%, transparent), inset 0 2px 4px rgba(255, 255, 255, 0.5);
@@ -525,24 +530,26 @@ input { font-family: inherit; }
 }
 .hud-name {
   font-family: 'Anton', sans-serif; letter-spacing: 1.5px;
-  font-size: 1.25rem; line-height: 1.1;
+  font-size: clamp(0.95rem, 4.2vw, 1.2rem); line-height: 1.1;
   color: #fff;
   text-shadow: 0 0 14px var(--pc), 0 2px 4px rgba(0, 0, 0, 0.6);
-  max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .hud-tokens {
   color: #1a1200;
   background: linear-gradient(to bottom, #ffe873, var(--gold) 60%, #d9a200);
   border-radius: 999px;
-  padding: 6px 12px;
-  font-weight: 900; font-size: 0.85rem;
+  padding: 5px 10px;
+  font-weight: 900; font-size: 0.78rem;
+  flex: 0 0 auto;
   display: inline-flex; align-items: center; gap: 4px;
   box-shadow: 0 3px 0 #9c7400, 0 5px 10px rgba(0, 0, 0, 0.4);
 }
-.hud-right { display: flex; align-items: center; gap: 8px; }
+.hud-right { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; margin-left: auto; }
 .deck-chip {
-  padding: 8px 12px; border-radius: 999px;
-  font-size: 0.75rem; font-weight: 800; color: #bcc4e6;
+  padding: 7px 10px; border-radius: 999px;
+  font-size: 0.7rem; font-weight: 800; color: #bcc4e6;
+  white-space: nowrap;
 }
 
 /* ============================================================
@@ -553,14 +560,14 @@ input { font-family: inherit; }
   flex: 1; min-height: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 16px;
+  gap: clamp(10px, 2.4vh, 18px);
 }
 
 /* Szimmetrikus racs: ket egyenlo oszlop, kozepre zarva */
 .music-stage {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  align-items: center;
+  align-items: stretch;           /* egyforma magas oszlopok */
   justify-items: center;
   gap: clamp(12px, 4.5vw, 44px);
   width: 100%;
@@ -568,8 +575,8 @@ input { font-family: inherit; }
   margin: 0 auto;
   padding: 0 14px;
 }
-.tt-column { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.card-column { position: relative; display: flex; flex-direction: column; align-items: center; }
+.tt-column { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.card-column { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
 /* ---------- LEMEZJATSZO ---------- */
 .turntable {
@@ -1081,13 +1088,6 @@ input { font-family: inherit; }
 }
 
 
-/* ---------- JATEK KOZBENI TANCOLO KARAKTER ---------- */
-.game-char {
-  display: flex;
-  justify-content: center;
-  margin-bottom: -6px;
-  pointer-events: none; /* ne fogja el a koppintast a jatek elol */
-}
 
 /* ---------- "HAROM MELLE" ANIMACIO (3 hiba egymas utan) ---------- */
 .triple-miss {
@@ -1190,4 +1190,201 @@ button:active { transform: scale(0.96); }
   12% { opacity: 0.9; }
   60% { opacity: 0.8; }
   100% { transform: translateY(-46vh) rotate(10deg); opacity: 0; }
+}
+
+/* ---------- VERZIO-JELVENY (melyik build fut?) ---------- */
+.ver-tag {
+  position: absolute;
+  left: 8px; bottom: calc(6px + env(safe-area-inset-bottom));
+  z-index: 50;
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+/* ============================================================
+   v6 — JATEKMODOK, TANULOKOR, HANGVEZERLES
+   ============================================================ */
+
+/* ---------- Fogaskerek gomb ---------- */
+.gear-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #cfd6f4;
+  flex: 0 0 auto;
+}
+.gear-btn:active { transform: rotate(40deg) scale(0.94); }
+.gear-float {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top)); right: 12px;
+  z-index: 40;
+}
+
+/* ---------- Speed Run ora ---------- */
+.timer-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 7px 10px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 900; color: #d9f6ff;
+  white-space: nowrap;
+}
+.timer-chip.low {
+  color: #fff;
+  border-color: rgba(255, 0, 85, 0.7);
+  animation: timerPanic 0.7s ease-in-out infinite;
+}
+@keyframes timerPanic {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 0, 85, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(255, 0, 85, 0.9); transform: scale(1.06); }
+}
+
+/* ---------- Tancolo karakter fenykoronggal ---------- */
+.game-char {
+  position: relative;
+  display: flex; justify-content: center;
+  margin-bottom: -4px;
+  pointer-events: none;
+}
+.gc-disc {
+  position: absolute;
+  bottom: 2px; left: 50%;
+  width: 74px; height: 16px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--pc, #00eaff) 55%, transparent), transparent 70%);
+}
+
+/* ---------- Arany Kartya ---------- */
+.card-column.gold .card3d, .card-column.gold .mystery-card {
+  filter: drop-shadow(0 0 14px rgba(255, 215, 0, 0.65));
+}
+.gold-badge {
+  font-family: 'Anton', sans-serif;
+  font-size: 0.7rem; letter-spacing: 2px;
+  color: #1a1200;
+  background: linear-gradient(to bottom, #ffe873, var(--gold) 60%, #d9a200);
+  border-radius: 999px;
+  padding: 5px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 3px 0 #9c7400, 0 0 18px rgba(255, 215, 0, 0.55);
+  animation: goldPulse 1.4s ease-in-out infinite;
+}
+.gold-badge.inmodal { display: inline-block; margin: 4px 0 8px; }
+@keyframes goldPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+/* ---------- Tanulokor ---------- */
+.tut-overlay {
+  position: absolute; inset: 0;
+  z-index: 4000;
+  background: rgba(3, 2, 12, 0.72);
+  display: flex;
+}
+.tut-bubble {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  width: min(88vw, 360px);
+  padding: 18px 16px 14px;
+  border-radius: 20px;
+  text-align: center;
+}
+.tut-bubble.tp-stage    { top: 16%; }
+.tut-bubble.tp-bet      { top: 22%; }
+.tut-bubble.tp-timeline { bottom: 30%; }
+.tut-bubble.tp-swap     { top: 15%; }
+.tut-arrow {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  font-size: 1.7rem;
+  animation: tutBounce 1s ease-in-out infinite;
+}
+.tut-bubble .tut-arrow.up { top: -42px; }
+.tut-bubble .tut-arrow.down { bottom: -42px; }
+@keyframes tutBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(8px); }
+}
+.tut-icon { font-size: 2.1rem; }
+.tut-step {
+  font-size: 0.62rem; font-weight: 900; letter-spacing: 2px;
+  color: var(--gold);
+  margin: 4px 0 6px;
+}
+.tut-text { font-size: 0.92rem; font-weight: 700; line-height: 1.45; }
+.tut-actions {
+  display: flex; justify-content: center; gap: 10px;
+  margin-top: 14px;
+}
+.btn-3d.small { padding: 9px 14px; font-size: 0.7rem; }
+
+/* ---------- Beallitasok modal ---------- */
+.settings-modal { max-width: 400px; }
+.mode-list { display: flex; flex-direction: column; gap: 9px; margin: 12px 0 4px; }
+.mode-row {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #fff;
+}
+.mode-row.on {
+  border-color: rgba(0, 234, 255, 0.6);
+  background: rgba(0, 234, 255, 0.09);
+  box-shadow: 0 0 14px rgba(0, 234, 255, 0.2);
+}
+.mr-icon { color: var(--gold); flex: 0 0 auto; }
+.mr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mr-name { font-weight: 900; font-size: 0.85rem; }
+.mr-desc { font-size: 0.68rem; color: #aab2d6; line-height: 1.35; }
+.mr-toggle {
+  flex: 0 0 auto;
+  width: 40px; height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  position: relative;
+  transition: background 0.2s;
+}
+.mr-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+}
+.mr-toggle.on { background: linear-gradient(to right, #00eaff, #00ff87); }
+.mr-toggle.on::after { left: 20px; }
+.settings-note { font-size: 0.62rem; color: #8890b5; margin: 8px 0 10px; }
+.handbook-btn { width: 100%; justify-content: center; display: inline-flex; align-items: center; gap: 8px; }
+
+/* ---------- Mikrofon (Push-to-Talk) ---------- */
+.mic-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px dashed rgba(0, 234, 255, 0.5);
+  background: rgba(0, 234, 255, 0.08);
+  color: #9be9ff;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 0.68rem; font-weight: 900; letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  user-select: none; -webkit-user-select: none;
+  touch-action: none;
+}
+.mic-btn.live {
+  border-style: solid;
+  border-color: var(--neon-pink);
+  background: rgba(255, 0, 85, 0.14);
+  color: #ffb7cd;
+  animation: micPulse 0.9s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(255, 0, 85, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(255, 0, 85, 0.85); }
 }
