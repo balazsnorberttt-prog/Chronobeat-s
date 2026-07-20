@@ -531,7 +531,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v21.1';
+const APP_VERSION = 'v21.2';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -2709,19 +2709,90 @@ export default function App() {
             <RefreshCw size={15} className="wt-end" />
           </button>
 
-          {/* 5. 2x2 csemperacs */}
-          <div className="tile-grid">
-            
-            <button type="button" className="menu-tile t-bot bob" style={{ animationDelay: '1.1s' }} onClick={() => setShowBot(true)}>
-              <span className="tile-ico"><Play size={20} /></span>
-              <span className="tile-name">CHRONO-BOT</span>
-              <span className="tile-meta">{botDiff ? `${botDiff} fokozat` : 'Három fokozat'}</span>
+          {/* 5. Negy festekpacsa-doboz */}
+          <div className="tile-grid splat-grid">
+            <button
+              type="button"
+              className="splat-tile bob"
+              style={{ animationDelay: '0.5s' }}
+              onClick={() => {
+                if (dtoday) { setDailyView('result'); setStatus('daily-result'); }
+                else startDaily();
+              }}
+            >
+              <svg className="splat-svg s1" viewBox="0 0 220 132" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="sg-daily" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor="#8a2bff" /><stop offset="1" stopColor="#ff2f92" />
+                  </linearGradient>
+                </defs>
+                <path fill="url(#sg-daily)" d="M34,50 C20,28 52,10 82,16 C100,2 138,4 154,18 C184,10 210,30 198,54 C218,70 206,98 182,104 C172,124 136,130 114,118 C92,130 58,124 46,108 C18,104 8,76 22,62 C16,56 28,54 34,50 Z" />
+                <circle cx="14" cy="30" r="7" fill="url(#sg-daily)" />
+                <circle cx="207" cy="112" r="9" fill="url(#sg-daily)" />
+                <circle cx="196" cy="16" r="5" fill="url(#sg-daily)" />
+              </svg>
+              <span className="splat-content">
+                <Sparkles size={18} />
+                <span className="tile-name">NAPI KIHÍVÁS</span>
+                <span className="tile-meta">{dtoday ? `Ma: ${dtoday.score}/10` : dstore.streak ? `Sorozat: ${dstore.streak} nap` : 'Minden nap új 10 dal'}</span>
+              </span>
             </button>
-            
-            <button type="button" className="menu-tile t-trophy bob" style={{ animationDelay: '0.7s' }} onClick={() => setStatus('stats')}>
-              <span className="tile-ico"><Trophy size={20} /></span>
-              <span className="tile-name">TRÓFEÁK</span>
-              <span className="tile-meta">{achN} / 12 megszerezve</span>
+
+            <button type="button" className="splat-tile bob" style={{ animationDelay: '1.1s' }} onClick={() => setShowBot(true)}>
+              <svg className="splat-svg s2" viewBox="0 0 220 132" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="sg-bot" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0" stopColor="#00c8ff" /><stop offset="1" stopColor="#2e5bff" />
+                  </linearGradient>
+                </defs>
+                <path fill="url(#sg-bot)" d="M28,58 C10,40 30,14 62,18 C82,4 120,2 142,14 C170,4 204,20 200,46 C220,58 214,90 192,100 C186,122 148,130 122,120 C100,132 64,128 50,112 C24,110 6,86 18,70 C12,64 22,62 28,58 Z" />
+                <circle cx="210" cy="30" r="7" fill="url(#sg-bot)" />
+                <circle cx="10" cy="102" r="8" fill="url(#sg-bot)" />
+                <circle cx="118" cy="6" r="4" fill="url(#sg-bot)" />
+              </svg>
+              <span className="splat-content">
+                <Play size={18} />
+                <span className="tile-name">CHRONO-BOT</span>
+                <span className="tile-meta">{botDiff ? `${botDiff} fokozat` : 'Három fokozat'}</span>
+              </span>
+            </button>
+
+            <button type="button" className="splat-tile bob" style={{ animationDelay: '1.8s' }} onClick={() => setShowRoom(true)}>
+              <svg className="splat-svg s3" viewBox="0 0 220 132" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="sg-online" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#ff2bd0" /><stop offset="1" stopColor="#8a2bff" />
+                  </linearGradient>
+                </defs>
+                <path fill="url(#sg-online)" d="M40,44 C34,20 70,6 94,14 C116,0 152,6 164,20 C196,16 214,42 202,62 C216,80 200,104 176,106 C164,126 126,132 106,118 C82,128 50,120 42,102 C16,96 10,68 26,58 C20,50 32,48 40,44 Z" />
+                <circle cx="16" cy="26" r="6" fill="url(#sg-online)" />
+                <circle cx="204" cy="118" r="7" fill="url(#sg-online)" />
+                <circle cx="110" cy="128" r="4" fill="url(#sg-online)" />
+              </svg>
+              <span className="splat-content">
+                <Smartphone size={18} />
+                <span className="tile-name">ONLINE SZOBA</span>
+                <span className="tile-meta">{netRole === 'host' ? `Kód: ${roomCode}` : 'Kód vagy QR'}</span>
+              </span>
+            </button>
+
+            <button type="button" className="splat-tile bob" style={{ animationDelay: '0.7s' }} onClick={() => setStatus('stats')}>
+              <svg className="splat-svg s4" viewBox="0 0 220 132" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="sg-trophy" x1="1" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#ffb300" /><stop offset="1" stopColor="#ff6a00" />
+                  </linearGradient>
+                </defs>
+                <path fill="url(#sg-trophy)" d="M30,46 C24,22 58,8 84,14 C108,2 144,6 158,20 C188,14 212,36 200,58 C214,76 202,100 178,104 C166,126 130,130 110,118 C86,128 54,122 44,104 C18,100 8,72 24,60 C18,52 24,50 30,46 Z" />
+                <circle cx="208" cy="22" r="6" fill="url(#sg-trophy)" />
+                <circle cx="12" cy="112" r="7" fill="url(#sg-trophy)" />
+                <circle cx="60" cy="6" r="4" fill="url(#sg-trophy)" />
+              </svg>
+              <span className="splat-content">
+                <Trophy size={18} />
+                <span className="tile-name">TRÓFEÁK</span>
+                <span className="tile-meta">{achN} / 12 megszerezve</span>
+              </span>
             </button>
           </div>
 

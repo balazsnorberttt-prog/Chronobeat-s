@@ -2369,3 +2369,77 @@ button:active { transform: scale(0.96); }
 }
 .menu-screen.lite .blob-box,
 .menu-screen.lite .menu-tile { animation: none; }
+
+/* ============================================================
+   v21.2 — VALODI FESTEKPACSAK + LOGO-ATHANGOLAS + HATTER-TISZTITAS
+   ============================================================ */
+
+/* Bakelitek es nagy fenygombok le a hatterrol (minden kepernyon) */
+.float-vinyl, .orb { display: none !important; }
+
+/* Festekpacsa-csempek */
+.splat-grid { gap: 6px; }
+.splat-tile {
+  position: relative;
+  min-height: 104px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: #fff;
+  overflow: visible;
+}
+.splat-svg {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 16px rgba(200, 31, 255, 0.22));
+  animation: splatWobble 7s ease-in-out infinite alternate;
+  transform-origin: 50% 50%;
+}
+.splat-svg.s2 { animation-duration: 8.2s; animation-delay: 0.6s; }
+.splat-svg.s3 { animation-duration: 6.4s; animation-delay: 1.2s; }
+.splat-svg.s4 { animation-duration: 7.6s; animation-delay: 0.3s; }
+@keyframes splatWobble {
+  0%   { transform: rotate(-1.6deg) scale(1); }
+  50%  { transform: rotate(1.4deg) scale(1.045); }
+  100% { transform: rotate(-0.8deg) scale(1.01); }
+}
+.splat-content {
+  position: relative;
+  z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  height: 100%;
+  padding: var(--s4) var(--s5);
+  text-align: center;
+}
+.splat-content .tile-name { font-size: 0.8rem; }
+.splat-tile:active .splat-svg { transform: scale(0.95); }
+@media (prefers-reduced-motion: reduce) { .splat-svg { animation: none; } }
+.menu-screen.lite .splat-svg { animation: none; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5)); }
+
+/* CHRONO BEATS - oldalra lepo, dontott, uj szinvilagu logo */
+.wordmark.big {
+  align-items: stretch;
+  width: 100%;
+  max-width: 340px;
+  margin: -2px auto 0;
+}
+.wordmark.big .wm-line {
+  transform: skewX(-8deg) rotate(-1.5deg);
+  background: linear-gradient(180deg, #b9f6ff 0%, #ffffff 30%, #ffd76a 50%, #ff41c8 74%, #8a2bff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow:
+    0 1px 0 #6b1258,
+    0 2px 0 #59104b,
+    0 3px 0 #470d3d,
+    0 4px 0 #350a30,
+    0 5px 0 #250722,
+    0 12px 24px rgba(255, 65, 200, 0.35);
+}
+.wordmark.big .wm-line:first-child { text-align: left; padding-left: 4%; }
+.wordmark.big .wm-line:last-child { text-align: right; padding-right: 4%; margin-top: -6px; }
