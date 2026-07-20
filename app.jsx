@@ -214,7 +214,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v9';
+const APP_VERSION = 'v10.1';
 
 // ============================================================
 //  JATEKSZABALY-KONSTANSOK
@@ -504,6 +504,13 @@ export default function App() {
     try { return localStorage.getItem('cb_audiomode') || 'own'; } catch (e) { return 'own'; }
   }); // 'own' = sajat telefonon szol | 'speaker' = a hazigazda telefonjan
   const [prankFx, setPrankFx] = useState(null);        // szivatas-effekt a MI kepernyonkon
+  const [pendingPlace, setPendingPlace] = useState(null); // veto-ablak: fuggo lerakas
+  const [pendingLeft, setPendingLeft] = useState(0);
+  const [shame, setShame] = useState(false);            // szegyenfal a MI kepernyonkon
+  const [shameProg, setShameProg] = useState(0);
+  const shameHoldRef = useRef(null);
+  const shameRef = useRef({ idx: -1, timer: null });
+  const skipNextRef = useRef({});                       // veto-buntetes: kimarado korok
   const peerRef = useRef(null);
   const connsRef = useRef({});                          // host: peerId -> conn
   const hostConnRef = useRef(null);                     // kliens: kapcsolat a hosthoz
@@ -847,7 +854,18 @@ export default function App() {
     pauseMusic();
     const c = drawNext();
     if (!c) { finishByDeck(); return; }
-    setTurnIndex((i) => (i + 1) % players.length);
+    setTurnIndex((i) => {
+      let ni = (i + 1) % players.length;
+      let guard = 0;
+      while (players[ni] && skipNextRef.current[players[ni].id] && guard < players.length) {
+        delete skipNextRef.current[players[ni].id];
+        const nm = players[ni].name;
+        setTimeout(() => showToast(`⏭️ ${nm} kimarad — vétó-büntetés!`), 60);
+        ni = (ni + 1) % players.length;
+        guard += 1;
+      }
+      return ni;
+    });
     turnCountRef.current += 1;
     const gold = activeModes.gold && turnCountRef.current % 3 === 0;
     setGoldCard(gold);
@@ -859,7 +877,10 @@ export default function App() {
     setStatus(online ? 'game' : 'handoff');
   };
 
-  const handlePlace = (index) => {
+  const VETO_SECONDS = 5;
+
+  // A tenyleges kiertekeles (a veto-ablak UTAN fut le)
+  const resolvePlace = (index) => {
     if (flipped || feedback || !currentCard) return;
     pauseMusic();
     setFlipped(true);
@@ -913,12 +934,98 @@ export default function App() {
     }
   };
 
+
+  // Lerakas: online tobbfos jatekban elobb VETO-ablak, utana kiertekeles
+  function handlePlace(index) {
+    if (flipped || feedback || !currentCard || pendingPlace) return;
+    const online = netRole === 'host' && players.some((p) => p.peerId);
+    if (online && players.length > 1) {
+      pauseMusic();
+      setPendingPlace({ index });
+      setPendingLeft(VETO_SECONDS);
+      return;
+    }
+    resolvePlace(index);
+  }
+
+  // ---------- VETO ----------
+  function hostVeto(vetoerIdx) {
+    if (!pendingPlace || vetoerIdx === turnIndex || vetoerIdx < 0 || !currentCard) return;
+    const index = pendingPlace.index;
+    setPendingPlace(null);
+    const placer = players[turnIndex];
+    const vetoer = players[vetoerIdx];
+    const tl = placer.timeline;
+    const y = currentCard.y;
+    let valid = true;
+    if (index > 0 && tl[index - 1].y > y) valid = false;
+    if (index < tl.length && tl[index].y < y) valid = false;
+    resolvePlace(index); // a normal kiertekeles lefut (konfetti VAGY razas)
+    if (!valid) {
+      skipNextRef.current[placer.id] = true;
+      showToast(`🚫 VÉTÓ TALÁLT! ${placer.name} kimarad egy körből, ${vetoer.name} +1 🪙!`);
+      setPlayers((prev) => prev.map((p, i) => (i === vetoerIdx ? { ...p, tokens: (p.tokens || 0) + 1 } : p)));
+    } else {
+      showToast(`🛡️ A lerakás JÓ volt! ${vetoer.name}: -1 🪙 és irány a SZÉGYENFAL! ${placer.name} +1 🪙!`);
+      setPlayers((prev) => prev.map((p, i) => {
+        if (i === vetoerIdx) return { ...p, tokens: Math.max(0, (p.tokens || 0) - 1) };
+        if (i === turnIndex) return { ...p, tokens: (p.tokens || 0) + 1 };
+        return p;
+      }));
+      triggerShame(vetoerIdx);
+    }
+  }
+
+  // ---------- SZEGYENFAL ----------
+  function triggerShame(idx) {
+    const p = players[idx];
+    if (!p) return;
+    if (shameRef.current.timer) clearTimeout(shameRef.current.timer);
+    shameRef.current = {
+      idx,
+      timer: setTimeout(() => {
+        const nm = actRef.current.players[shameRef.current.idx] ? actRef.current.players[shameRef.current.idx].name : '';
+        actRef.current.setPlayers((prev) => prev.map((q, i) => (i === shameRef.current.idx ? { ...q, tokens: Math.max(0, (q.tokens || 0) - 1) } : q)));
+        actRef.current.showToast(`🙈 ${nm} nem vállalta a szégyent: -1 🪙!`);
+        shameRef.current = { idx: -1, timer: null };
+      }, 12000),
+    };
+    if (p.peerId) {
+      const c = connsRef.current[p.peerId];
+      try { if (c && c.open) c.send({ type: 'shame' }); } catch (e) {}
+    } else {
+      setShame(true);
+    }
+  }
+
+  function hostShameDone(idx) {
+    if (shameRef.current.idx !== idx) return;
+    if (shameRef.current.timer) clearTimeout(shameRef.current.timer);
+    const nm = players[idx] ? players[idx].name : '';
+    shameRef.current = { idx: -1, timer: null };
+    showToast(`😅 ${nm} becsülettel letudta a szégyenkört!`);
+  }
+
+  // Veto-ablak visszaszamlalo: ha lejar, jon a normal kiertekeles
+  useEffect(() => {
+    if (!pendingPlace) return undefined;
+    if (pendingLeft <= 0) {
+      const i = pendingPlace.index;
+      setPendingPlace(null);
+      resolvePlace(i);
+      return undefined;
+    }
+    const t = setTimeout(() => setPendingLeft((v) => v - 1), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPlace, pendingLeft]);
+
   // ============================================================
   //  ONLINE SZOBA - halozati logika
   // ============================================================
   // Minden rendernel frissitjuk, igy a peer-esemenyek mindig a
   // legfrissebb allapotot es fuggvenyeket erik el (nincs "beragadas")
-  actRef.current = { players, turnIndex, status, handlePlace, handleSwap, currentCard, showToast, setPlayers, setBetResult, fireConfetti, goldCard, toggleMusic, firePrank };
+  actRef.current = { players, turnIndex, status, handlePlace, handleSwap, currentCard, showToast, setPlayers, setBetResult, fireConfetti, goldCard, toggleMusic, firePrank, hostVeto, hostShameDone };
 
   const makeCode = () => {
     const AB = 'ABCDEFGHJKLMNPRSTUVWXYZ';
@@ -944,6 +1051,7 @@ export default function App() {
     audioLoading: isLoading,
     audioMode,
     playing: isPlaying,
+    pending: pendingPlace ? { left: pendingLeft } : null,
   });
 
   const broadcast = () => {
@@ -956,7 +1064,7 @@ export default function App() {
   useEffect(() => {
     if (netRole === 'host') broadcast();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [netRole, players, turnIndex, currentCard, flipped, feedback, wrongIndex, status, cardsLeft, timeLeft, goldCard, activeModes, audioUrl, isLoading, audioMode, isPlaying]);
+  }, [netRole, players, turnIndex, currentCard, flipped, feedback, wrongIndex, status, cardsLeft, timeLeft, goldCard, activeModes, audioUrl, isLoading, audioMode, isPlaying, pendingPlace, pendingLeft]);
 
   const hostHandleAction = (fromPeer, msg) => {
     const A = actRef.current;
@@ -968,6 +1076,10 @@ export default function App() {
     } else if (msg.a === 'swap') {
       if (idx !== A.turnIndex || A.status !== 'game') return;
       A.handleSwap();
+    } else if (msg.a === 'veto') {
+      A.hostVeto(idx);
+    } else if (msg.a === 'shameDone') {
+      A.hostShameDone(idx);
     } else if (msg.a === 'music') {
       if (idx !== A.turnIndex || A.status !== 'game') return;
       A.toggleMusic();
@@ -1083,6 +1195,8 @@ export default function App() {
           showToast(msg.why || 'Nem sikerült csatlakozni.');
         } else if (msg.type === 'state') {
           setSnap(msg);
+        } else if (msg.type === 'shame') {
+          setShame(true);
         } else if (msg.type === 'prank') {
           const st = msg;
           setSnap((prev) => prev); // allapot valtozatlan
@@ -1133,13 +1247,65 @@ export default function App() {
   };
 
   // Szivatas-effekt a SAJAT kepernyon (ha minket szivattak meg)
-  const firePrank = (kind) => {
+  function firePrank(kind) {
     setPrankFx({ kind, id: Date.now() });
     if (kind === 'heartbeat' && navigator.vibrate) {
       try { navigator.vibrate([180, 90, 180, 90, 260, 70, 260, 70, 380, 60, 380]); } catch (e) {}
     }
     setTimeout(() => setPrankFx(null), kind === 'scramble' ? 5000 : 4200);
+  }
+
+  // Szegyenfal: 5 mp folyamatos nyomvatartas kell
+  const shameStart = () => {
+    if (shameHoldRef.current) return;
+    shameHoldRef.current = setInterval(() => {
+      setShameProg((v) => {
+        const nv = v + 0.1 / 5;
+        if (nv >= 1) {
+          clearInterval(shameHoldRef.current);
+          shameHoldRef.current = null;
+          setShame(false);
+          if (netRole === 'client') sendAction('shameDone');
+          else {
+            const meIdx = actRef.current.players.findIndex((p, i) => !p.peerId && i === shameRef.current.idx);
+            hostShameDone(meIdx === -1 ? shameRef.current.idx : meIdx);
+          }
+          return 0;
+        }
+        return nv;
+      });
+    }, 100);
   };
+  const shameEnd = () => {
+    if (shameHoldRef.current) { clearInterval(shameHoldRef.current); shameHoldRef.current = null; }
+    setShameProg(0);
+  };
+
+  // Ha lejar a 12 mp, az ablak maganak eltunik (a buntetest a host adja)
+  useEffect(() => {
+    if (!shame) return undefined;
+    const t = setTimeout(() => { setShame(false); setShameProg(0); shameEnd(); }, 12200);
+    return () => clearTimeout(t);
+  }, [shame]);
+
+  const ShameView = shame && (
+    <div className="shame-overlay">
+      <motion.div className="shame-box glass" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+        <span className="sh-title">🙈 SZÉGYENFAL</span>
+        <span className="sh-sub">Besült a vétód! Tartsd nyomva a gombot 5 másodpercig,<br />különben további -1 🪙!</span>
+        <button
+          type="button"
+          className="shame-btn"
+          onPointerDown={shameStart}
+          onPointerUp={shameEnd}
+          onPointerLeave={shameEnd}
+        >
+          SZÉGYELLEM MAGAM 😳
+          <span className="shame-prog"><span style={{ width: `${Math.round(shameProg * 100)}%` }} /></span>
+        </button>
+      </motion.div>
+    </div>
+  );
 
   const sendAction = (a, extra = {}) => {
     try { if (hostConnRef.current && hostConnRef.current.open) hostConnRef.current.send({ type: 'action', a, ...extra }); } catch (e) {}
@@ -1303,7 +1469,7 @@ export default function App() {
     const active = st && st.players[st.turnIndex];
     const myTurn = !!(st && me && active && active.peerId === myPeerId && st.status === 'game');
     const myChar = me ? CHARACTERS[me.char % CHARACTERS.length] : CHARACTERS[0];
-    const canAct = myTurn && !st.flipped && !st.feedback;
+    const canAct = myTurn && !st.flipped && !st.feedback && !st.pending;
     const tl = me ? me.timeline : [];
     return (
       <div className="app-container">
@@ -1339,7 +1505,16 @@ export default function App() {
                 <span className="cb-big">🎧 {active.name} játszik…</span>
                 <span className="cb-sub">{st.audioMode === 'speaker' ? 'A zene a hangfalon szól!' : `A zene ${active.name} telefonján szól!`}</span>
               </div>
-              <Pedestal charIndex={active.char} size={150} mood={st.playing ? 'win' : 'idle'} />
+              {st.pending ? (
+                <motion.div className="veto-panel glass" initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                  <span className="vp-count">{st.pending.left}</span>
+                  <span className="vp-text">{active.name} lerakta a lapot!<br />Szerinted mellément?</span>
+                  <button type="button" className="veto-btn" onClick={() => sendAction('veto')}>🚫 VÉTÓ!</button>
+                  <span className="vp-warn">Ha tévedsz: -1 🪙 + Szégyenfal!</span>
+                </motion.div>
+              ) : (
+                <Pedestal charIndex={active.char} size={150} mood={st.playing ? 'win' : 'idle'} />
+              )}
               {me && (me.pranks || 0) > 0 && st.status === 'game' && (
                 <div className="prank-bar glass">
                   <span className="pb-title">😈 Szívatás ({me.pranks} 🃏)</span>
@@ -1360,8 +1535,9 @@ export default function App() {
           {myTurn && (
             <>
               <div className="turn-banner">
-                <span className="tb-big">🎤 TE JÖSSZ!</span>
-                {st.goldCard && <span className="gold-badge">✨ ARANY KÁRTYA ✨</span>}
+                <span className="tb-big">{st.pending ? '⏳ VÉTÓZHATNAK…' : '🎤 TE JÖSSZ!'}</span>
+                {st.pending && <span className="vp-count">{st.pending.left}</span>}
+                {st.goldCard && !st.pending && <span className="gold-badge">✨ ARANY KÁRTYA ✨</span>}
               </div>
               {/* Ugyanaz a szinpad, mint a hazigazdanal: lemezjatszo + rejtelykartya */}
               <div className="music-stage">
@@ -1452,6 +1628,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {ShameView}
         <button type="button" className="leave-room" onClick={leaveRoom}><X size={14} /> Kilépés</button>
       </div>
     );
@@ -1757,6 +1934,20 @@ export default function App() {
       {ToastView}
       {feedback && <div className={`fx-overlay ${feedback === 'correct' ? 'good' : 'bad'}`} />}
       {prankFx && prankFx.kind === 'heartbeat' && <div className="fx-heartbeat" />}
+      {ShameView}
+      {pendingPlace && (
+        <div className="veto-strip glass">
+          <span className="vp-count">{pendingLeft}</span>
+          <span className="vp-text">{activePlayer.name} lerakta a lapot — vétózhattok!</span>
+          {players.some((p, i) => !p.peerId && i !== turnIndex) && (
+            <button
+              type="button"
+              className="veto-btn"
+              onClick={() => hostVeto(players.findIndex((p, i) => !p.peerId && i !== turnIndex))}
+            >🚫 VÉTÓ!</button>
+          )}
+        </div>
+      )}
       {TutorialView}
       {SettingsView}
 
