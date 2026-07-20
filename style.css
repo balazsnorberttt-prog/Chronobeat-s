@@ -1,4 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+  /* Feluletek */
+  --bg-0: #05030f; --bg-1: #0b0724;
+  --surface: rgba(20, 16, 46, 0.55);
+  --surface-2: rgba(30, 24, 66, 0.65);
+  --line: rgba(255, 255, 255, 0.10);
+  /* Szoveg */
+  --text-1: #ffffff; --text-2: #b9c0e3; --text-3: #8a90b8;
+  /* Marka + szemantika */
+  --ok: #00ff87; --err: #ff2255; --warn: #ffb020;
+  /* Ragyogas */
+  --glow-gold: 0 0 18px rgba(255, 215, 0, 0.45);
+  --glow-blue: 0 0 18px rgba(0, 234, 255, 0.40);
+  --glow-err: 0 0 18px rgba(255, 34, 85, 0.45);
+  /* Terkoz, sugar, idozites */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px;
+  --s6: 24px; --s7: 32px; --s8: 40px;
+  --r1: 10px; --r2: 14px; --r3: 22px; --r-pill: 999px;
+  --t-fast: 120ms; --t-med: 240ms; --t-slow: 400ms;
+  --spring: cubic-bezier(0.2, 1.4, 0.3, 1);
+}
 
 /* ============================================================
    ALAP
@@ -7,6 +30,8 @@
   --gold: #ffd700;
   --neon-blue: #00eaff;
   --neon-pink: #ff0055;
+  --blue: var(--neon-blue);
+  --pink: var(--neon-pink);
   --violet: #7b2dff;
   --dark: #05030f;
   --rx: 0deg;
@@ -182,7 +207,7 @@ input { font-family: inherit; }
    KROM 3D FELIRAT
    ============================================================ */
 .text-chrome {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   text-transform: uppercase;
   letter-spacing: 2px;
   color: transparent;
@@ -357,7 +382,7 @@ input { font-family: inherit; }
 }
 .mode-label { font-size: 0.62rem; letter-spacing: 3px; color: #9aa3c7; font-weight: 700; }
 .mode-value {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   font-size: 1.15rem; letter-spacing: 1.5px;
   padding: 7px 20px; border-radius: 999px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
@@ -377,7 +402,7 @@ input { font-family: inherit; }
 }
 .arrow-btn:active { background: rgba(0, 234, 255, 0.3); }
 .avatar-name {
-  font-family: 'Anton', sans-serif; letter-spacing: 1.5px;
+  font-family: var(--font-display); letter-spacing: 1.5px;
   font-size: 1.05rem; margin-top: -4px;
 }
 .avatar-tip { font-size: 0.66rem; color: #8890b5; margin-top: -8px; }
@@ -457,7 +482,7 @@ input { font-family: inherit; }
 .pack-card:active { transform: scale(0.96); }
 .pack-card.selected { outline: 3px solid #fff; outline-offset: 2px; }
 .pack-card h3 {
-  font-family: 'Anton', sans-serif; margin: 0 0 4px;
+  font-family: var(--font-display); margin: 0 0 4px;
   font-size: 1rem; letter-spacing: 1px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
@@ -519,7 +544,7 @@ input { font-family: inherit; }
   border: 2px solid var(--pc);
   box-shadow: 0 0 16px color-mix(in srgb, var(--pc) 70%, transparent), inset 0 2px 4px rgba(255, 255, 255, 0.5);
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Anton', sans-serif; font-size: 1.35rem;
+  font-family: var(--font-display); font-size: 1.35rem;
   color: #0b0722;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
@@ -530,7 +555,7 @@ input { font-family: inherit; }
   opacity: 0.85;
 }
 .hud-name {
-  font-family: 'Anton', sans-serif; letter-spacing: 1.5px;
+  font-family: var(--font-display); letter-spacing: 1.5px;
   font-size: clamp(0.95rem, 4.2vw, 1.2rem); line-height: 1.1;
   color: #fff;
   text-shadow: 0 0 14px var(--pc), 0 2px 4px rgba(0, 0, 0, 0.6);
@@ -749,7 +774,7 @@ input { font-family: inherit; }
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45), 0 0 14px rgba(0, 234, 255, 0.45);
 }
 .front-q {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   font-size: calc(var(--cw) * 0.42);
   line-height: 1;
   color: transparent;
@@ -778,7 +803,7 @@ input { font-family: inherit; }
     0 0 30px rgba(255, 215, 0, 0.3);
 }
 .year-big {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   font-size: calc(var(--cw) * 0.3);
   line-height: 1;
   color: transparent;
@@ -931,25 +956,29 @@ input { font-family: inherit; }
 
 .history-card {
   flex: 0 0 auto;
-  width: 118px;
-  background: linear-gradient(160deg, #221a52, #0f0a2c);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 14px;
-  padding: 10px 8px 11px;
+  width: 128px;
+  background: linear-gradient(175deg, #241d58 0%, #17103c 55%, #100b2e 100%);
+  border: 1px solid rgba(148, 130, 255, 0.28);
+  border-top-color: rgba(255, 255, 255, 0.28);
+  border-radius: 16px;
+  padding: 12px 10px 13px;
   text-align: center;
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  -webkit-box-reflect: below 3px linear-gradient(transparent 62%, rgba(255, 255, 255, 0.14));
+  box-shadow:
+    0 12px 22px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
 .year-capsule {
   display: inline-block;
-  font-family: 'Anton', sans-serif;
-  font-size: 1.1rem; letter-spacing: 1px;
-  color: #1a1200;
-  background: linear-gradient(to bottom, #ffe873, var(--gold) 60%, #d9a200);
-  border-radius: 999px;
-  padding: 4px 14px;
-  box-shadow: 0 3px 0 #9c7400, 0 5px 9px rgba(0, 0, 0, 0.4);
-  margin-bottom: 7px;
+  font-family: var(--font-display);
+  font-size: 1.02rem; letter-spacing: 0.5px;
+  color: #241800;
+  background: linear-gradient(to bottom, #ffe27a, #f5b91e);
+  border: 1px solid rgba(120, 82, 0, 0.55);
+  border-radius: 10px;
+  padding: 4px 13px;
+  box-shadow: 0 2px 0 rgba(120, 82, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 .year-capsule.red {
   color: #fff;
@@ -957,13 +986,16 @@ input { font-family: inherit; }
   box-shadow: 0 3px 0 #70001f, 0 5px 9px rgba(0, 0, 0, 0.4);
 }
 .history-title {
-  font-size: 0.74rem; font-weight: 800; line-height: 1.3;
+  font-size: 0.78rem; font-weight: 800; line-height: 1.32;
+  color: #fff;
+  letter-spacing: 0.1px;
   overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 .history-artist {
-  font-size: 0.66rem; font-weight: 700; color: #b0b8d8;
-  margin-top: 3px;
+  font-size: 0.68rem; font-weight: 600; color: #a8b1d8;
+  letter-spacing: 0.2px;
+  max-width: 100%;
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 
@@ -987,9 +1019,10 @@ input { font-family: inherit; }
 }
 
 .ghost-card {
+  /* meret az uj kartyahoz igazitva */
   position: relative;
   flex: 0 0 auto;
-  width: 118px;
+  width: 128px;
   background: rgba(60, 0, 18, 0.55);
   border: 2px dashed rgba(255, 0, 85, 0.9);
   border-radius: 13px;
@@ -1034,7 +1067,7 @@ input { font-family: inherit; }
   to { transform: translateY(-8px) rotate(3deg); }
 }
 .winner-name {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   font-size: 1.6rem; letter-spacing: 2px; margin: 0;
 }
 .deck-note { font-size: 0.72rem; color: #9aa3c7; }
@@ -1053,7 +1086,7 @@ input { font-family: inherit; }
   border-color: rgba(255, 215, 0, 0.45);
   box-shadow: 0 0 18px rgba(255, 215, 0, 0.25);
 }
-.stand-place { font-family: 'Anton', sans-serif; width: 22px; color: #9aa3c7; }
+.stand-place { font-family: var(--font-display); width: 22px; color: #9aa3c7; }
 .stand-row.first .stand-place { color: var(--gold); }
 .stand-name { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stand-score { color: #9aa3c7; font-size: 0.72rem; flex-shrink: 0; }
@@ -1116,7 +1149,7 @@ input { font-family: inherit; }
   animation: tmZoom 2.2s cubic-bezier(0.2, 1.4, 0.3, 1) forwards;
 }
 .tm-text {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1.4rem, 6vw, 2.2rem);
   letter-spacing: 3px;
   color: #fff;
@@ -1269,7 +1302,7 @@ button:active { transform: scale(0.96); }
   filter: drop-shadow(0 0 14px rgba(255, 215, 0, 0.65));
 }
 .gold-badge {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   font-size: 0.7rem; letter-spacing: 2px;
   color: #1a1200;
   background: linear-gradient(to bottom, #ffe873, var(--gold) 60%, #d9a200);
@@ -1402,7 +1435,7 @@ button:active { transform: scale(0.96); }
    v8 — ONLINE SZOBA
    ============================================================ */
 .room-code-big {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   font-size: 3rem;
   letter-spacing: 14px;
   padding-left: 14px; /* a betukoz kiegyenlitese */
@@ -1442,7 +1475,7 @@ button:active { transform: scale(0.96); }
 .client-banner.mine { border-color: rgba(255, 215, 0, 0.55); box-shadow: 0 0 24px rgba(255, 215, 0, 0.25); }
 .client-banner.good { border-color: rgba(0, 255, 135, 0.6); }
 .client-banner.bad { border-color: rgba(255, 0, 85, 0.6); }
-.cb-big { font-family: 'Anton', sans-serif; font-size: 1.25rem; letter-spacing: 1px; }
+.cb-big { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: 1px; }
 .cb-sub { font-size: 0.78rem; color: #cfd6f4; line-height: 1.4; }
 .client-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 4px; }
 .leave-room {
@@ -1485,7 +1518,7 @@ button:active { transform: scale(0.96); }
   display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
 .tb-big {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--font-display);
   font-size: 1.5rem; letter-spacing: 2px;
   color: #fff;
   text-shadow: 0 0 18px var(--gold), 0 3px 6px rgba(0, 0, 0, 0.6);
@@ -1539,4 +1572,496 @@ button:active { transform: scale(0.96); }
   24% { opacity: 0.35; }
   36% { opacity: 0.95; }
   55% { opacity: 0.25; }
+}
+
+/* ============================================================
+   v10 — VETO + SZEGYENFAL
+   ============================================================ */
+.veto-panel {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 18px 22px; border-radius: 20px;
+  border-color: rgba(255, 0, 85, 0.55);
+  box-shadow: 0 0 26px rgba(255, 0, 85, 0.3);
+  text-align: center;
+}
+.veto-strip {
+  position: absolute;
+  top: calc(96px + env(safe-area-inset-top));
+  left: 50%; transform: translateX(-50%);
+  z-index: 60;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; border-radius: 999px;
+  border-color: rgba(255, 0, 85, 0.55);
+  box-shadow: 0 0 26px rgba(255, 0, 85, 0.35);
+  white-space: nowrap;
+}
+.vp-count {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  color: #fff;
+  text-shadow: 0 0 14px var(--neon-pink);
+  animation: tbPulse 1s ease-in-out infinite;
+}
+.vp-text { font-size: 0.78rem; font-weight: 800; line-height: 1.4; }
+.vp-warn { font-size: 0.62rem; color: #ffb7cd; }
+.veto-btn {
+  background: linear-gradient(to bottom, #ff7aa8, var(--neon-pink) 55%, #b8003c);
+  border: none; border-radius: 999px;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.05rem; letter-spacing: 2px;
+  padding: 12px 26px;
+  box-shadow: 0 5px 0 #70001f, 0 10px 18px rgba(0, 0, 0, 0.45), 0 0 22px rgba(255, 0, 85, 0.5);
+}
+
+/* ---------- Szegyenfal ---------- */
+.shame-overlay {
+  position: absolute; inset: 0;
+  z-index: 5000;
+  background: rgba(10, 3, 14, 0.82);
+  display: flex; align-items: center; justify-content: center;
+}
+.shame-box {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 26px 22px; border-radius: 24px;
+  border-color: rgba(255, 160, 60, 0.5);
+  text-align: center;
+  max-width: min(86vw, 340px);
+}
+.sh-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem; letter-spacing: 2px;
+  color: #ffbd66;
+  text-shadow: 0 0 18px rgba(255, 140, 40, 0.7);
+}
+.sh-sub { font-size: 0.8rem; line-height: 1.5; color: #e8dccb; }
+.shame-btn {
+  position: relative;
+  background: linear-gradient(to bottom, #ffcf7d, #ff9b3d 60%, #d96f00);
+  border: none; border-radius: 18px;
+  color: #3a1d00; font-weight: 900; font-size: 0.95rem;
+  padding: 18px 26px 24px;
+  box-shadow: 0 5px 0 #8a4a00, 0 10px 18px rgba(0, 0, 0, 0.5);
+  user-select: none; -webkit-user-select: none;
+  touch-action: none;
+  overflow: hidden;
+}
+.shame-prog {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  display: block;
+}
+.shame-prog span {
+  display: block; height: 100%;
+  background: linear-gradient(to right, #00ff87, #00eaff);
+  transition: width 0.1s linear;
+}
+
+
+/* ---------- Inline vektorikonok igazitasa ---------- */
+.mode-label svg, .tb-big svg, .cb-big svg, .pb-title svg, .veto-btn svg,
+.prank-btn svg, .am-btn svg, .deck-chip svg, .gold-badge svg, .cb-sub svg {
+  vertical-align: -2px;
+  margin-right: 2px;
+}
+.tb-big, .cb-big, .pb-title, .veto-btn, .gold-badge, .am-btn, .mode-label, .deck-chip {
+  display: inline-flex; align-items: center; gap: 6px; justify-content: center;
+}
+.prank-mini {
+  font-style: normal;
+  display: inline-flex; align-items: center; gap: 2px;
+  margin-left: 6px; padding-left: 6px;
+  border-left: 1px solid rgba(0, 0, 0, 0.25);
+  font-size: 0.72rem;
+}
+
+
+/* ============================================================
+   v12 — HIBATURES, HANGBEALLITASOK, TOKEN-FINOMSAGOK
+   ============================================================ */
+
+/* Szamok ne ugraljanak (zseton, timer, evszam) */
+.hud-tokens, .timer-chip, .deck-chip, .year-capsule, .tl-count, .vp-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 2D avatar-korong, ha egy 3D modell nem tolt be */
+.avatar-fallback {
+  --pc: #00eaff;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--pc) 55%, #fff), color-mix(in srgb, var(--pc) 55%, #000));
+  border: 2px solid var(--pc);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--pc) 60%, transparent), inset 0 2px 6px rgba(255, 255, 255, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  color: #0b0722;
+  margin: auto;
+}
+.char-canvas { display: flex; align-items: center; justify-content: center; }
+
+/* Hang- es rezges-beallitasok */
+.modal-title.small { font-size: 0.8rem; margin-top: 14px; }
+.sfx-row { display: flex; flex-direction: column; gap: 9px; margin: 10px 0 4px; }
+.mode-row.slim { padding: 8px 12px; }
+.sfx-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 8px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(to right, var(--blue), var(--violet));
+  outline: none;
+}
+.sfx-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--blue);
+  box-shadow: var(--glow-blue);
+}
+.settings-version {
+  margin-top: 12px;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 1px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+/* ============================================================
+   v13 — QR, REPULO KARTYA, VETO-VALASZTO
+   ============================================================ */
+.qr-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  margin: 6px 0 10px;
+}
+.qr-img {
+  width: min(52vw, 190px);
+  border-radius: var(--r2);
+  border: 4px solid #fff;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5), var(--glow-blue);
+}
+.qr-hint { font-size: 0.64rem; color: var(--text-2); }
+
+.fly-card {
+  position: fixed;
+  z-index: 6000;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  perspective: 700px;
+}
+.fly-face {
+  width: 128px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: linear-gradient(175deg, #241d58, #100b2e);
+  border: 1px solid rgba(148, 130, 255, 0.4);
+  border-radius: var(--r2);
+  padding: 12px 10px;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.6), var(--glow-gold);
+}
+.fly-year {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: #241800;
+  background: linear-gradient(to bottom, #ffe27a, #f5b91e);
+  border-radius: var(--r1);
+  padding: 3px 12px;
+}
+.fly-title {
+  font-size: 0.7rem; font-weight: 800; text-align: center;
+  color: var(--text-1);
+  overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+
+.veto-pickers { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+.veto-btn.small { font-size: 0.72rem; padding: 9px 14px; letter-spacing: 1px; }
+
+/* ============================================================
+   v14 — NAPI KIHIVAS
+   ============================================================ */
+.daily-screen {
+  position: relative; z-index: 2;
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--s4);
+  padding: var(--s5);
+}
+.daily-tabs { display: flex; gap: var(--s2); }
+.d-tab {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--text-2);
+  font-weight: 900; font-size: 0.72rem; letter-spacing: 1px;
+  padding: 9px 18px;
+}
+.d-tab.on { color: #fff; border-color: rgba(0, 234, 255, 0.6); box-shadow: var(--glow-blue); }
+.daily-card {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s4);
+  width: min(92vw, 380px);
+  padding: var(--s6) var(--s5);
+  border-radius: var(--r3);
+}
+.d-score {
+  font-family: var(--font-display);
+  font-size: 3.4rem; line-height: 1;
+  color: #fff;
+  text-shadow: var(--glow-gold);
+}
+.d-score span { font-size: 1.4rem; color: var(--text-2); }
+.d-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.d-dot {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+.d-dot.g { background: linear-gradient(to bottom, #3dff9e, #00c060); }
+.d-dot.y { background: linear-gradient(to bottom, #ffe27a, #f0a800); }
+.d-dot.r { background: linear-gradient(to bottom, #ff6a8a, #d10035); }
+.d-stats {
+  display: flex; gap: var(--s4); flex-wrap: wrap; justify-content: center;
+  font-size: 0.74rem; font-weight: 800; color: var(--text-2);
+}
+.d-stats span { display: inline-flex; align-items: center; gap: 4px; }
+.d-countdown { font-size: 0.68rem; color: var(--text-3); }
+.d-month { font-family: var(--font-display); font-size: 1rem; letter-spacing: 1px; }
+.d-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+.d-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r1);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  font-size: 0.66rem; font-weight: 800; color: var(--text-3);
+}
+.d-day.played {
+  background: rgba(0, 255, 135, 0.14);
+  border-color: rgba(0, 255, 135, 0.5);
+  color: #fff;
+}
+.d-day.played em {
+  position: absolute;
+  bottom: 2px;
+  font-style: normal; font-size: 0.5rem; color: var(--ok);
+}
+.d-day.today { outline: 2px solid var(--blue); }
+.daily-chip { color: #ffb7cd; }
+
+/* ============================================================
+   v15 — CHRONO-BOT + STATISZTIKA + TROFEAK
+   ============================================================ */
+.stats-screen {
+  position: relative; z-index: 2;
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--s4);
+  padding: var(--s5);
+  overflow-y: auto;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+  width: min(92vw, 400px);
+}
+.stat-box {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: var(--s3) var(--s2);
+  border-radius: var(--r2);
+}
+.stat-box b {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.stat-box span { font-size: 0.58rem; font-weight: 800; letter-spacing: 1px; color: var(--text-3); text-transform: uppercase; }
+
+.decade-card, .ach-card {
+  width: min(92vw, 400px);
+  padding: var(--s4);
+  border-radius: var(--r3);
+}
+.dc-title {
+  font-size: 0.64rem; font-weight: 900; letter-spacing: 2px;
+  color: var(--text-2);
+  text-align: center;
+  margin-bottom: var(--s3);
+}
+.dc-bars { display: flex; align-items: flex-end; justify-content: center; gap: var(--s2); }
+.dc-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.dc-bar-wrap {
+  width: 26px; height: 92px;
+  border-radius: var(--r1);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  display: flex; align-items: flex-end;
+  overflow: hidden;
+}
+.dc-bar {
+  width: 100%;
+  background: linear-gradient(to top, var(--violet), var(--blue));
+  border-radius: var(--r1) var(--r1) 0 0;
+}
+.dc-pct { font-size: 0.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.dc-label { font-size: 0.56rem; color: var(--text-3); font-weight: 800; }
+
+.ach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.ach-tile {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: var(--s3);
+  border-radius: var(--r2);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  opacity: 0.55;
+}
+.ach-tile.got {
+  opacity: 1;
+  border-color: rgba(255, 215, 0, 0.55);
+  background: rgba(255, 215, 0, 0.07);
+  box-shadow: var(--glow-gold);
+}
+.ach-ico { color: var(--gold); }
+.ach-tile:not(.got) .ach-ico { color: var(--text-3); }
+.ach-name { font-size: 0.72rem; font-weight: 900; }
+.ach-desc { font-size: 0.6rem; color: var(--text-3); line-height: 1.35; }
+
+/* ============================================================
+   v16 — PWA FRISSITES-SAV
+   ============================================================ */
+.sw-banner {
+  position: fixed;
+  left: 50%; bottom: calc(14px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 9000;
+  display: flex; align-items: center; gap: var(--s3);
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--r-pill);
+  border-color: rgba(255, 215, 0, 0.5);
+  box-shadow: var(--glow-gold), 0 12px 26px rgba(0, 0, 0, 0.5);
+  font-size: 0.76rem; font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   v18 — LITE MOD + CSOKKENTETT MOZGAS
+   ============================================================ */
+/* Lite: hatter-animaciok es draga effektek KI, tomor feluletek */
+.app-container.lite .stars,
+.app-container.lite .beam,
+.app-container.lite .grid-floor,
+.app-container.lite .discoball,
+.app-container.lite .db-sphere,
+.app-container.lite .float-vinyl,
+.app-container.lite .float-vinyl span,
+.app-container.lite .orb,
+.app-container.lite .note,
+.app-container.lite .win-trophy,
+.app-container.lite .card3d {
+  animation: none !important;
+}
+.app-container.lite .beam { display: none; }
+.app-container.lite .glass {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(14, 10, 36, 0.92);
+}
+.app-container.lite .modal-overlay {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.app-container.lite .fx-overlay { display: none; }
+.app-container.lite .fly-card { display: none; }
+
+/* Rendszer-szintu "csokkentett mozgas" tisztelete */
+@media (prefers-reduced-motion: reduce) {
+  .stars, .beam, .grid-floor, .discoball, .db-sphere,
+  .float-vinyl, .float-vinyl span, .orb, .note,
+  .win-trophy, .card3d {
+    animation: none !important;
+  }
+  .beam { display: none; }
+}
+
+.lite-row { display: flex; gap: var(--s2); justify-content: center; margin: 10px 0 6px; }
+
+/* ============================================================
+   v19 — FEKVO MOBIL + ASZTALI ELRENDEZES (4.4)
+   ============================================================ */
+
+/* ---------- FEKVO MOBIL: szinpad balra, TIPP jobbra, idovonal alul ---------- */
+@media (orientation: landscape) and (max-height: 540px) {
+  .top-hud { padding-top: calc(4px + env(safe-area-inset-top)); padding-bottom: 6px; }
+  .main-arena {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: var(--s6);
+    padding: 0 var(--s4);
+  }
+  .music-stage { max-width: 460px; margin: 0; gap: var(--s5); }
+  .turntable { --tt: clamp(120px, 26vh, 170px); }
+  .card3d { --cw: clamp(110px, 24vh, 160px); }
+  .bet-fab { margin: 0; }
+  .game-char { display: none; }
+  .timeline-zone { padding-bottom: 4px; }
+  .tl-chip { margin: 4px auto 4px; padding: 5px 12px; }
+  .history-card { width: 104px; padding: 8px 7px 9px; }
+  .ghost-card { width: 104px; }
+  .slot-btn { width: 46px; height: 46px; }
+  .setup-card { max-width: 620px; }
+}
+
+/* ---------- ASZTALI (>=1024): ketoszlopos jatek, FUGGOLEGES idovonal ---------- */
+@media (min-width: 1024px) {
+  .app-container.in-game {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'hud hud'
+      'arena side';
+    column-gap: var(--s5);
+    padding-right: var(--s4);
+  }
+  .app-container.in-game .top-hud { grid-area: hud; }
+  .app-container.in-game .main-arena { grid-area: arena; }
+  .app-container.in-game .timeline-zone {
+    grid-area: side;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r3);
+    padding: var(--s3);
+    margin: 0 0 var(--s4);
+  }
+  .app-container.in-game .tl-chip { width: 100%; margin: 0 0 var(--s3); }
+  .app-container.in-game .timeline-track {
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
+    padding: var(--s2) 0 var(--s3);
+    gap: var(--s2);
+  }
+  .app-container.in-game .history-card,
+  .app-container.in-game .ghost-card { width: 168px; }
+  .app-container.in-game .music-stage { max-width: 720px; gap: var(--s7); }
+  .app-container.in-game .turntable { --tt: clamp(190px, 24vw, 250px); }
+  .app-container.in-game .card3d { --cw: clamp(170px, 20vw, 230px); }
+  .setup-card { max-width: 560px; }
+  .win-content { max-width: 640px; margin: 0 auto; }
+}
+
+@media (min-width: 1440px) {
+  .app-container.in-game { grid-template-columns: 1fr 380px; }
+  .app-container.in-game .history-card,
+  .app-container.in-game .ghost-card { width: 186px; }
 }

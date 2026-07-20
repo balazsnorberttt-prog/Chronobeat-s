@@ -4,9 +4,11 @@ import {
   Play, Pause, X, XCircle, CheckCircle, RefreshCw, Coins,
   MessageCircle, AlertTriangle, Trophy, Layers, ChevronRight,
   Settings, Mic, BookOpen, Timer, EyeOff, Rewind, Sparkles,
+  ShieldAlert, Zap, Vibrate, Smartphone, Volume2, Headphones, DoorOpen,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import Peer from 'peerjs';
+import QRCode from 'qrcode';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -174,8 +176,29 @@ function SpinGroup({ spinRef, children }) {
   return <group ref={ref}>{children}</group>;
 }
 
+// Ha egy 3D modell nem toltheto be, 2D korong-avatar jelenik meg,
+// es a jatek zavartalanul megy tovabb
+class ModelBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { broken: false }; }
+  static getDerivedStateFromError() { return { broken: true }; }
+  componentDidCatch() {}
+  render() {
+    if (this.state.broken) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
 function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   const c = CHARACTERS[charIndex % CHARACTERS.length];
+  if (LITE_ACTIVE) {
+    return (
+      <div className="char-canvas" style={{ width: size, height: size }}>
+        <div className="avatar-fallback" style={{ width: size * 0.55, height: size * 0.55, '--pc': c.color }}>
+          <Play size={Math.round(size * 0.22)} />
+        </div>
+      </div>
+    );
+  }
   const prefer = mood === 'win' ? c.win : c.idle;
   const spinRef = useRef({ v: 0, dragging: false, lastX: 0 });
 
@@ -199,7 +222,15 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
       onPointerUp={onUp}
       onPointerLeave={onUp}
     >
-      <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.15, 4.6], fov: 40 }} gl={{ alpha: true, antialias: true }}>
+      <ModelBoundary
+        key={c.url}
+        fallback={(
+          <div className="avatar-fallback" style={{ width: size * 0.55, height: size * 0.55, '--pc': c.color }}>
+            <Play size={size * 0.22} />
+          </div>
+        )}
+      >
+      <Canvas dpr={LITE_ACTIVE ? 1 : [1, 1.5]} camera={{ position: [0, 0.15, 4.6], fov: 40 }} gl={{ alpha: true, antialias: true }}>
         <ambientLight intensity={0.85} />
         <directionalLight position={[4, 6, 4]} intensity={2.4} />
         <directionalLight position={[-5, 3, -4]} intensity={1.2} color="#7fdcff" />
@@ -210,11 +241,133 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
           </SpinGroup>
         </Suspense>
       </Canvas>
+      </ModelBoundary>
     </div>
   );
 }
 
-const APP_VERSION = 'v10.1';
+const APP_VERSION = 'v19';
+
+// ============================================================
+//  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
+// ============================================================
+const loadProfile = () => {
+  try {
+    return {
+      m: 0, w: 0, placed: 0, wrong: 0, exact: 0, full: 0, veto: 0,
+      decades: {}, ach: {},
+      ...(JSON.parse(localStorage.getItem('cb_profile_v1') || '{}')),
+    };
+  } catch (e) {
+    return { m: 0, w: 0, placed: 0, wrong: 0, exact: 0, full: 0, veto: 0, decades: {}, ach: {} };
+  }
+};
+const saveProfile = (p) => { try { localStorage.setItem('cb_profile_v1', JSON.stringify(p)); } catch (e) {} };
+
+const ACHIEVEMENTS = [
+  { id: 'first',    name: 'Első vér',        desc: 'Fejezd be az első meccsedet!' },
+  { id: 'exact5',   name: 'Évszám-mester',   desc: '5 pontos évszám-tipp összesen.' },
+  { id: 'full',     name: 'Full House',      desc: 'Év + előadó + cím egyetlen tippben.' },
+  { id: 'flawless', name: 'Hibátlan',        desc: 'Meccs legalább 5 lerakással, 0 hibával.' },
+  { id: 'veto5',    name: 'Vétókirály',      desc: '5 sikeres vétó összesen.' },
+  { id: 'streak7',  name: 'Heti láng',       desc: '7 napos Napi kihívás-sorozat.' },
+  { id: 'revwin',   name: 'Visszafelé is',   desc: 'Győzelem Reverse módban.' },
+  { id: 'blindwin', name: 'Vakrepülés',      desc: 'Győzelem Blind módban.' },
+  { id: 'cards100', name: 'Százas klub',     desc: '100 helyesen lerakott kártya.' },
+  { id: 'bothard',  name: 'Gépverő',         desc: 'Győzd le a Nehéz Chrono-botot!' },
+  { id: 'speed8',   name: 'Villámkéz',       desc: '8+ lerakás egy Speed Run alatt.' },
+  { id: 'rich10',   name: 'Zsugori',         desc: 'Zárj meccset 10+ zsetonnal.' },
+];
+
+// ============================================================
+//  NAPI KIHIVAS - determinisztikus napi dalsor (seed a datumbol)
+// ============================================================
+const mulberry32 = (a) => () => {
+  a |= 0; a = (a + 0x6D2B79F5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+const todayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+};
+const dailyPick = (list, count, seedStr) => {
+  const rnd = mulberry32(parseInt(seedStr, 10));
+  const idx = list.map((_, i) => i);
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx.slice(0, count).map((i) => list[i]);
+};
+const loadDailyStore = () => {
+  try { return JSON.parse(localStorage.getItem('cb_daily_v1') || '{}'); } catch (e) { return {}; }
+};
+const saveDailyStore = (d) => { try { localStorage.setItem('cb_daily_v1', JSON.stringify(d)); } catch (e) {} };
+
+// ============================================================
+//  SFX - Web Audio API-val szintetizalt hangok (nincs hangfajl)
+// ============================================================
+const sfx = {
+  ctx: null, master: null, vol: 0.6, muted: false, ducked: false,
+  init() {
+    if (this.ctx) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.connect(this.ctx.destination);
+      this.apply();
+    } catch (e) {}
+  },
+  apply() {
+    if (!this.master) return;
+    const v = this.muted ? 0 : this.vol * (this.ducked ? 0.45 : 1);
+    this.master.gain.value = v * 0.5;
+  },
+  setVol(v) { this.vol = v; this.apply(); try { localStorage.setItem('cb_sfxvol', String(v)); } catch (e) {} },
+  setMuted(m) { this.muted = m; this.apply(); try { localStorage.setItem('cb_sfxmute', m ? '1' : '0'); } catch (e) {} },
+  setDucked(d) { this.ducked = d; this.apply(); },
+  tone(f0, f1, dur, type = 'sine', gain = 1, when = 0) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime + when;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur + 0.05);
+  },
+  tap() { this.tone(1400, 900, 0.05, 'triangle', 0.5); },
+  flip() { this.tone(300, 900, 0.16, 'sine', 0.5); this.tone(1800, 1200, 0.05, 'triangle', 0.4, 0.13); },
+  success() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, f, 0.16, 'triangle', 0.7, i * 0.07)); },
+  fail() { this.tone(360, 130, 0.4, 'sawtooth', 0.4); },
+  coin() { this.tone(1700, 2300, 0.09, 'square', 0.32); this.tone(2300, 2300, 0.12, 'sine', 0.3, 0.08); },
+  gold() { [880, 1109, 1319, 1760].forEach((f, i) => this.tone(f, f * 1.01, 0.22, 'sine', 0.55, i * 0.05)); },
+  veto() { this.tone(880, 880, 0.12, 'square', 0.45); this.tone(660, 660, 0.12, 'square', 0.45, 0.14); },
+  tick(panic) { this.tone(panic ? 1600 : 1100, panic ? 1600 : 1100, 0.04, 'square', panic ? 0.4 : 0.22); },
+};
+
+// Haptika: rezgesmintak (ahol nincs tamogatas, csendben kimarad)
+const haptics = {
+  on: true,
+  buzz(p) { if (!this.on) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} },
+  tap() { this.buzz(10); },
+  success() { this.buzz([30, 40, 60]); },
+  fail() { this.buzz([80, 50, 80]); },
+  gold() { this.buzz([20, 30, 20, 30, 120]); },
+  veto() { this.buzz([60, 60, 60]); },
+};
+try {
+  sfx.vol = Math.min(1, Math.max(0, parseFloat(localStorage.getItem('cb_sfxvol') || '0.6')));
+  sfx.muted = localStorage.getItem('cb_sfxmute') === '1';
+  haptics.on = localStorage.getItem('cb_haptics') !== '0';
+} catch (e) {}
 
 // ============================================================
 //  JATEKSZABALY-KONSTANSOK
@@ -227,24 +380,42 @@ const MAX_PLAYERS = 8;
 // ============================================================
 //  SEGEDFUGGVENYEK
 // ============================================================
-const isCloseEnough = (str1, str2) => {
-  if (!str1 || !str2) return false;
-  const s1 = String(str1).trim().toLowerCase();
-  const s2 = String(str2).trim().toLowerCase();
-  if (s1 === s2) return true;
-  if (Math.abs(s1.length - s2.length) > 1) return false;
-  let i = 0, j = 0, mistakes = 0;
-  while (i < s1.length && j < s2.length) {
-    if (s1[i] !== s2[j]) {
-      mistakes++;
-      if (mistakes > 1) return false;
-      if (s1.length > s2.length) i++;
-      else if (s2.length > s1.length) j++;
-      else { i++; j++; }
-    } else { i++; j++; }
+// ---------- Okos nev/cim-egyeztetes ----------
+// Normalizalas: kisbetu, ekezet le, irasjelek ki, nevelok le, & -> and
+const stripAccents = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const cutParen = (t) => String(t)
+  .replace(/\(.*?\)|\[.*?\]/g, ' ')                 // (feat. ...), [Remastered]
+  .replace(/\s*-\s*(remaster(ed)?|live|radio edit|single version).*$/i, ' ');
+const normText = (t) => stripAccents(String(t || '').toLowerCase())
+  .replace(/&/g, ' and ')
+  .replace(/[^a-z0-9 ]+/g, ' ')
+  .replace(/\b(the|a|an|az|egy)\b/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+const levDist = (a, b) => {
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
   }
-  if (i < s1.length || j < s2.length) mistakes++;
-  return mistakes <= 1;
+  return prev[n];
+};
+const isCloseEnough = (guess, target) => {
+  if (!guess || !target) return false;
+  const g = normText(guess);
+  if (!g) return false;
+  const candidates = [normText(target), normText(cutParen(target))];
+  for (const t of candidates) {
+    if (!t) continue;
+    if (g === t) return true;
+    if (levDist(g, t) <= Math.max(1, Math.ceil(t.length * 0.2))) return true;
+  }
+  return false;
 };
 
 const yearScore = (guess, actual) => {
@@ -301,8 +472,19 @@ const shuffleDeck = (array) => {
   return newArray;
 };
 
+// Lite mod: gyenge keszulekeken minimalis effekt-terheles
+let LITE_ACTIVE = false;
+const REDUCED_MOTION = typeof window !== 'undefined'
+  && window.matchMedia
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fxScale = () => (LITE_ACTIVE || REDUCED_MOTION ? 0.2 : 1);
+const boom = (opts) => confetti({
+  ...opts,
+  particleCount: Math.max(6, Math.round((opts.particleCount || 50) * fxScale())),
+});
+
 const fireConfetti = (power = 1) => {
-  confetti({
+  boom({
     particleCount: 70 * power,
     spread: 95,
     origin: { y: 0.55 },
@@ -485,10 +667,13 @@ export default function App() {
 
   // ---------- Jatekmodok es extra funkciok ----------
   const [modes, setModes] = useState(() => {
-    try { return { blind: false, speed: false, gold: false, reverse: false, ...(JSON.parse(localStorage.getItem('cb_modes') || '{}')) }; }
-    catch (e) { return { blind: false, speed: false, gold: false, reverse: false }; }
+    try { return { blind: false, speed: false, gold: false, reverse: false, veto: false, pranks: false, ...(JSON.parse(localStorage.getItem('cb_modes') || '{}')) }; }
+    catch (e) { return { blind: false, speed: false, gold: false, reverse: false, veto: false, pranks: false }; }
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [sfxVolUi, setSfxVolUi] = useState(Math.round(sfx.vol * 100));
+  const [sfxMuteUi, setSfxMuteUi] = useState(sfx.muted);
+  const [hapticsUi, setHapticsUi] = useState(haptics.on);
 
   // ---------- ONLINE SZOBA (PeerJS - szerver nelkuli WebRTC) ----------
   const [netRole, setNetRole] = useState(null);        // null | 'host' | 'client'
@@ -504,11 +689,34 @@ export default function App() {
     try { return localStorage.getItem('cb_audiomode') || 'own'; } catch (e) { return 'own'; }
   }); // 'own' = sajat telefonon szol | 'speaker' = a hazigazda telefonjan
   const [prankFx, setPrankFx] = useState(null);        // szivatas-effekt a MI kepernyonkon
+  const [qrUrl, setQrUrl] = useState(null);             // szoba QR-kod kepe
+  const [flight, setFlight] = useState(null);           // repulo kartya animacio
+  const [dailyView, setDailyView] = useState('result'); // 'result' | 'calendar'
+  const dailyRef = useRef(null);                        // {day, queue, idx, lives, row, exact}
+  const botRef = useRef(null);                          // {sigma, label} - Chrono-bot edzomod
+  const [showBot, setShowBot] = useState(false);
+  const statRef = useRef({ correct: 0, wrong: 0 });     // meccs-szintu szamlalok
+  const [swWaiting, setSwWaiting] = useState(null);     // uj app-verzio var aktivalasra
+  const [liteSetting, setLiteSetting] = useState(() => {
+    try { return localStorage.getItem('cb_lite') || 'auto'; } catch (e) { return 'auto'; }
+  }); // 'auto' | 'on' | 'off'
+  const [liteActive, setLiteActive] = useState(false);
+  const endDoneRef = useRef(false);                     // trofeak egyszeri kiosztasa meccs vegen
+
+  // Trofea kiosztasa (toast + mentes), csak egyszer
+  const award = (p, id) => {
+    if (p.ach[id]) return;
+    p.ach[id] = true;
+    const a = ACHIEVEMENTS.find((x) => x.id === id);
+    if (a) { sfx.gold(); showToast(`🏆 Trófea: ${a.name}!`); }
+  };
   const [pendingPlace, setPendingPlace] = useState(null); // veto-ablak: fuggo lerakas
   const [pendingLeft, setPendingLeft] = useState(0);
   const [shame, setShame] = useState(false);            // szegyenfal a MI kepernyonkon
   const [shameProg, setShameProg] = useState(0);
   const shameHoldRef = useRef(null);
+  const stageCardRef = useRef(null);   // a rejtelykartya helye (repules kiindulopont)
+  const slotRectRef = useRef(null);    // a megkoppintott slot helye (celpont)
   const shameRef = useRef({ idx: -1, timer: null });
   const skipNextRef = useRef({});                       // veto-buntetes: kimarado korok
   const peerRef = useRef(null);
@@ -516,7 +724,7 @@ export default function App() {
   const hostConnRef = useRef(null);                     // kliens: kapcsolat a hosthoz
   const actRef = useRef({});                            // friss fuggvenyek a peer-hendlereknek
   const myPeerIdRef = useRef(null);
-  const [activeModes, setActiveModes] = useState({ blind: false, speed: false, gold: false, reverse: false });
+  const [activeModes, setActiveModes] = useState({ blind: false, speed: false, gold: false, reverse: false, veto: false, pranks: false });
   const [, setCharTick] = useState(0); // ujrarender, ha sajat figurak toltodnek be
   const [tutStep, setTutStep] = useState(-1);      // -1 = nincs tanulokor
   const [timeLeft, setTimeLeft] = useState(null);   // Speed Run visszaszamlalo (mp)
@@ -532,6 +740,410 @@ export default function App() {
   const scrollRef = useRef(null);
   const ghostRef = useRef(null);
   const toastTimer = useRef(null);
+
+  // ---------- MEGOSZTHATO EREDMENYKEP (1080x1350 PNG) ----------
+  const renderResultCard = async () => {
+    // roundRect-fallback regebbi bongeszokhoz
+    if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+      // eslint-disable-next-line no-extend-native
+      CanvasRenderingContext2D.prototype.roundRect = function rr(x, y, w2, h2, r) {
+        const rad = Math.min(r, w2 / 2, h2 / 2);
+        this.moveTo(x + rad, y);
+        this.arcTo(x + w2, y, x + w2, y + h2, rad);
+        this.arcTo(x + w2, y + h2, x, y + h2, rad);
+        this.arcTo(x, y + h2, x, y, rad);
+        this.arcTo(x, y, x + w2, y, rad);
+        this.closePath();
+        return this;
+      };
+    }
+    const standings = [...players].sort(
+      (a, b) => b.timeline.length - a.timeline.length || b.tokens - a.tokens
+    );
+    const winner = standings[0];
+    const wChar = CHARACTERS[winner.char % CHARACTERS.length];
+    const bigMiss = [...players].sort((a, b) => (b.worstMiss || 0) - (a.worstMiss || 0))[0];
+    try { await document.fonts.load('900 90px "Archivo Black"'); } catch (e) {}
+
+    const W = 1080; const H = 1350;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+
+    // Hatter: sotet gradiens + csillagok + synthwave racs
+    const bg = g.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0b0724'); bg.addColorStop(0.65, '#05030f'); bg.addColorStop(1, '#12063a');
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,0.7)';
+    for (let i = 0; i < 90; i++) {
+      g.globalAlpha = 0.15 + Math.random() * 0.5;
+      g.fillRect(Math.random() * W, Math.random() * H * 0.7, 2, 2);
+    }
+    g.globalAlpha = 1;
+    const horizon = H * 0.82;
+    g.strokeStyle = 'rgba(123,45,255,0.8)'; g.lineWidth = 2;
+    for (let i = 0; i < 7; i++) {
+      const y = horizon + i * i * 5 + i * 10;
+      if (y > H) break;
+      g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+    }
+    for (let i = -6; i <= 6; i++) {
+      g.beginPath(); g.moveTo(W / 2 + i * 90, horizon); g.lineTo(W / 2 + i * 320, H); g.stroke();
+    }
+    const hg = g.createLinearGradient(0, horizon - 6, 0, horizon + 6);
+    hg.addColorStop(0, 'rgba(0,234,255,0)'); hg.addColorStop(0.5, '#00eaff'); hg.addColorStop(1, 'rgba(255,0,85,0)');
+    g.fillStyle = hg; g.fillRect(0, horizon - 6, W, 12);
+
+    // Bakelit-motivum a cim mogott
+    const dx = W / 2; const dy = 300; const R = 190;
+    g.save();
+    g.globalAlpha = 0.9;
+    g.fillStyle = '#0a0810';
+    g.beginPath(); g.arc(dx, dy, R, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#00eaff'; g.lineWidth = 10;
+    g.shadowColor = '#00eaff'; g.shadowBlur = 30;
+    g.beginPath(); g.arc(dx, dy, R, 0, Math.PI * 2); g.stroke();
+    g.shadowBlur = 0;
+    g.strokeStyle = 'rgba(120,110,160,0.5)'; g.lineWidth = 1;
+    for (let r = R * 0.5; r < R - 12; r += 9) { g.beginPath(); g.arc(dx, dy, r, 0, Math.PI * 2); g.stroke(); }
+    g.fillStyle = '#f5b91e';
+    g.beginPath(); g.arc(dx, dy, R * 0.42, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#785200'; g.lineWidth = 6;
+    g.beginPath(); g.arc(dx, dy, R * 0.42, 0, Math.PI * 2); g.stroke();
+    g.restore();
+
+    // Wordmark + GYOZTES + nev
+    g.textAlign = 'center';
+    g.fillStyle = '#ffffff';
+    g.font = '900 92px "Archivo Black", "Arial Black", sans-serif';
+    g.shadowColor = 'rgba(0,234,255,0.8)'; g.shadowBlur = 26;
+    g.fillText('CHRONOBEATS', W / 2, 150);
+    g.shadowBlur = 0;
+    g.fillStyle = '#b9c0e3';
+    g.font = '800 34px Montserrat, sans-serif';
+    g.fillText('G Y Ő Z T E S', W / 2, 560);
+    g.fillStyle = '#ffffff';
+    g.font = '900 84px "Archivo Black", "Arial Black", sans-serif';
+    g.shadowColor = wChar.color; g.shadowBlur = 36;
+    g.fillText(winner.name.toUpperCase(), W / 2, 655);
+    g.shadowBlur = 0;
+
+    // Dobogo / vegeredmeny-lista
+    g.textAlign = 'left';
+    const listY = 740; const rowH = 86;
+    standings.slice(0, 5).forEach((p, i) => {
+      const y = listY + i * rowH;
+      const c = CHARACTERS[p.char % CHARACTERS.length];
+      g.fillStyle = i === 0 ? 'rgba(255,215,0,0.10)' : 'rgba(255,255,255,0.05)';
+      g.strokeStyle = i === 0 ? 'rgba(255,215,0,0.6)' : 'rgba(255,255,255,0.12)';
+      g.lineWidth = 2;
+      const rx = 90; const rw = W - 180;
+      g.beginPath(); g.roundRect(rx, y, rw, rowH - 16, 20); g.fill(); g.stroke();
+      g.fillStyle = c.color;
+      g.beginPath(); g.arc(rx + 44, y + (rowH - 16) / 2, 20, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#05030f';
+      g.font = '900 24px Montserrat, sans-serif';
+      g.textAlign = 'center';
+      g.fillText(String(i + 1), rx + 44, y + (rowH - 16) / 2 + 9);
+      g.textAlign = 'left';
+      g.fillStyle = '#ffffff';
+      g.font = '800 34px Montserrat, sans-serif';
+      g.fillText(p.name, rx + 84, y + 46);
+      g.textAlign = 'right';
+      g.fillStyle = '#b9c0e3';
+      g.font = '800 30px Montserrat, sans-serif';
+      g.fillText(`${p.timeline.length} kártya · ${p.tokens || 0} zseton`, rx + rw - 26, y + 46);
+      g.textAlign = 'left';
+    });
+
+    // Legnagyobb mellelöves + datum + modok
+    let footY = listY + Math.min(standings.length, 5) * rowH + 30;
+    if (bigMiss && (bigMiss.worstMiss || 0) > 0) {
+      g.fillStyle = '#ff9db8';
+      g.font = '800 30px Montserrat, sans-serif';
+      g.textAlign = 'center';
+      g.fillText(`Legnagyobb mellélövés: ${bigMiss.name} — ${bigMiss.worstMiss} év!`, W / 2, footY);
+      footY += 50;
+    }
+    const dt = new Date();
+    const modeNames = [activeModes.blind && 'BLIND', activeModes.speed && 'SPEED RUN', activeModes.gold && 'ARANY KÁRTYA', activeModes.reverse && 'REVERSE', activeModes.veto && 'VÉTÓ', activeModes.pranks && 'SZÍVATÁS'].filter(Boolean);
+    g.fillStyle = '#8a90b8';
+    g.font = '700 26px Montserrat, sans-serif';
+    g.textAlign = 'center';
+    g.fillText(`${dt.getFullYear()}. ${String(dt.getMonth() + 1).padStart(2, '0')}. ${String(dt.getDate()).padStart(2, '0')}.${modeNames.length ? ' · ' + modeNames.join(' · ') : ''}`, W / 2, footY);
+    g.fillStyle = '#00eaff';
+    g.font = '800 28px Montserrat, sans-serif';
+    g.fillText(window.location.host || 'chronobeats', W / 2, H - 44);
+
+    return cv;
+  };
+
+  const shareResultCard = async () => {
+    try {
+      showToast('Eredménykép készítése…');
+      const cv = await renderResultCard();
+      const blob = await new Promise((res) => cv.toBlob(res, 'image/png'));
+      if (!blob) throw new Error('blob');
+      const file = new File([blob], 'chronobeats-eredmeny.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'ChronoBeats eredmény' });
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'chronobeats-eredmeny.png';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      showToast('Kép letöltve!');
+    } catch (e) {
+      if (String(e && e.name) !== 'AbortError') showToast('A megosztás nem sikerült. 😕');
+    }
+  };
+
+  // ---------- MECCS VEGE: profil + trofeak ----------
+  useEffect(() => {
+    if (status !== 'win' || endDoneRef.current) return;
+    endDoneRef.current = true;
+    const P = loadProfile();
+    P.m += 1;
+    award(P, 'first');
+    const best = [...players].sort((a, b) => (b.timeline ? b.timeline.length : 0) - (a.timeline ? a.timeline.length : 0))[0];
+    const localWin = best && !best.peerId && !best.isBot;
+    if (localWin) {
+      P.w += 1;
+      if (activeModes.reverse) award(P, 'revwin');
+      if (activeModes.blind) award(P, 'blindwin');
+      if (botRef.current && botRef.current.sigma <= 1.5) award(P, 'bothard');
+    }
+    if (statRef.current.wrong === 0 && statRef.current.correct >= 5) award(P, 'flawless');
+    if (activeModes.speed && statRef.current.correct >= 8) award(P, 'speed8');
+    if (players.some((p) => !p.peerId && !p.isBot && (p.tokens || 0) >= 10)) award(P, 'rich10');
+    saveProfile(P);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  // ---------- CHRONO-BOT EDZES ----------
+  const startBot = (sigma, label) => {
+    if (netRole) { showToast('Bot-edzéshez előbb lépj ki a szobából!'); return; }
+    const human = players[0]
+      ? { id: players[0].id, name: players[0].name, char: players[0].char }
+      : { id: 'me', name: 'Te', char: 0 };
+    botRef.current = { sigma, label };
+    setShowBot(false);
+    beginMatch([human, { id: 'bot', name: `Chrono-bot (${label})`, char: 0, isBot: true }]);
+  };
+
+  // A bot kore: rovid "gondolkodas" utan lerak, normal eloszlasu hibaval
+  useEffect(() => {
+    if (status !== 'game' || !botRef.current) return undefined;
+    const ap = players[turnIndex];
+    if (!ap || !ap.isBot || !currentCard || flipped || feedback || pendingPlace) return undefined;
+    const t = setTimeout(() => {
+      const gauss = () => {
+        let u = 0; let v = 0;
+        while (!u) u = Math.random();
+        while (!v) v = Math.random();
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      };
+      const perceived = currentCard.y + gauss() * botRef.current.sigma;
+      const tl = ap.timeline;
+      let idx = 0;
+      while (idx < tl.length && tl[idx].y < perceived) idx += 1;
+      handlePlace(idx);
+    }, 1700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, turnIndex, currentCard, flipped, feedback, pendingPlace, players]);
+
+  // ---------- NAPI KIHIVAS ----------
+  const startDaily = () => {
+    if (netRole) { showToast('Napi kihíváshoz előbb lépj ki a szobából!'); return; }
+    const day = todayKey();
+    const picked = dailyPick(SONG_PACKS.mix.data, 16, day); // 1 kezdo + 10 feladat + 5 csere-tartalek
+    dailyRef.current = { day, queue: picked.slice(1, 11), idx: 0, lives: 3, row: [], exact: false };
+    setDeck(picked.slice(11));           // a csere ebbol a tartalekbol huz
+    discardRef.current = [];
+    setPlayers([{ id: 'daily', name: 'Te', char: 0, tokens: 0, timeline: [picked[0]], worstMiss: 0 }]);
+    setTurnIndex(0);
+    setActiveModes({ blind: false, speed: false, gold: false, reverse: false, veto: false, pranks: false });
+    setGoldCard(false);
+    setTimeLeft(null);
+    setEndReason('win');
+    setFeedback(null); setFlipped(false); setWrongIndex(null); setBetResult(null);
+    setCurrentCard(picked[1]);
+    setStatus('game');
+    showToast(`Napi kihívás — 10 dal, 3 élet. Sok sikert!`);
+  };
+
+  const finishDaily = () => {
+    const D = dailyRef.current;
+    const score = D.row.filter((r) => r !== 'R').length;
+    const tokens = (players[0] && players[0].tokens) || 0;
+    const store = loadDailyStore();
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    const yKey = `${y.getFullYear()}${String(y.getMonth() + 1).padStart(2, '0')}${String(y.getDate()).padStart(2, '0')}`;
+    const prevStreak = store.lastDay === yKey ? (store.streak || 0) : 0;
+    store.streak = prevStreak + 1;
+    store.lastDay = D.day;
+    store.best = Math.max(store.best || 0, score);
+    store.history = store.history || {};
+    store.history[D.day] = { score, row: D.row.join(''), tokens };
+    saveDailyStore(store);
+    const P = loadProfile();
+    P.m += 1;
+    award(P, 'first');
+    if (store.streak >= 7) award(P, 'streak7');
+    saveProfile(P);
+    pauseMusic();
+    setDailyView('result');
+    setStatus('daily-result');
+  };
+
+  const dailyAdvance = () => {
+    const D = dailyRef.current;
+    if (!D) return;
+    D.idx += 1;
+    setFeedback(null); setFlipped(false); setWrongIndex(null); setBetResult(null);
+    if (D.lives <= 0 || D.idx >= D.queue.length) { finishDaily(); return; }
+    setCurrentCard(D.queue[D.idx]);
+  };
+
+  const shareDaily = async () => {
+    const store = loadDailyStore();
+    const D = store.history && store.history[todayKey()];
+    if (!D) return;
+    const emoji = D.row.split('').map((c) => (c === 'G' ? '🟩' : c === 'Y' ? '🟨' : '🟥')).join('');
+    const dt = new Date();
+    const txt = `ChronoBeats Napi — ${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getDate()).padStart(2, '0')}.\n${emoji}\nPont: ${D.score}/10 · Zseton: ${D.tokens} · Sorozat: ${store.streak}🔥\n${window.location.origin}${window.location.pathname}`;
+    try {
+      if (navigator.share) { await navigator.share({ text: txt }); return; }
+    } catch (e) {}
+    try { await navigator.clipboard.writeText(txt); showToast('Eredmény a vágólapon!'); } catch (e) {}
+  };
+
+  // ---------- Szoba-link + QR-kod ----------
+  const roomLink = roomCode
+    ? `${window.location.origin}${window.location.pathname}?room=${roomCode}`
+    : '';
+
+  useEffect(() => {
+    if (!roomCode || netRole !== 'host') { setQrUrl(null); return; }
+    QRCode.toDataURL(roomLink, {
+      width: 340,
+      margin: 1,
+      color: { dark: '#0b0724', light: '#ffffff' },
+    }).then(setQrUrl).catch(() => setQrUrl(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomCode, netRole]);
+
+  const shareRoomLink = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'ChronoBeats szoba', text: `Csatlakozz a(z) ${roomCode} szobához!`, url: roomLink });
+        return;
+      }
+    } catch (e) { /* megszakitva -> masolas */ }
+    try {
+      await navigator.clipboard.writeText(roomLink);
+      showToast('Link a vágólapon!');
+    } catch (e) { showToast(roomLink); }
+  };
+
+  // Inditas ?room=KOD linkkel: elore kitoltott csatlakozas
+  useEffect(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const rc = (p.get('room') || '').toUpperCase();
+      if (rc && rc.length === 4) {
+        setJoinCode(rc);
+        setShowRoom(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch (e) {}
+  }, []);
+
+  // ---------- LITE MOD: automatikus felismeres + kezi felulbiralas ----------
+  useEffect(() => { LITE_ACTIVE = liteActive; }, [liteActive]);
+
+  useEffect(() => {
+    if (liteSetting === 'on') { setLiteActive(true); return undefined; }
+    if (liteSetting === 'off') { setLiteActive(false); return undefined; }
+    // AUTO: gyors hardver-ellenorzes
+    const weakHw = (navigator.deviceMemory && navigator.deviceMemory < 4)
+      || (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4)
+      || REDUCED_MOTION;
+    if (weakHw) {
+      setLiteActive(true);
+      return undefined;
+    }
+    // AUTO: 3 masodperces FPS-meres a hatterben
+    let frames = 0;
+    let raf = 0;
+    let stopped = false;
+    const t0 = performance.now();
+    const loop = () => {
+      if (stopped) return;
+      frames += 1;
+      if (performance.now() - t0 < 3000) { raf = requestAnimationFrame(loop); return; }
+      const fps = frames / 3;
+      if (fps < 45) {
+        setLiteActive(true);
+        showToast('Lite mód bekapcsolva a folyamatos játékért. (Beállításokban módosítható)');
+      } else {
+        setLiteActive(false);
+      }
+    };
+    raf = requestAnimationFrame(loop);
+    return () => { stopped = true; cancelAnimationFrame(raf); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liteSetting]);
+
+  const setLite = (v) => {
+    setLiteSetting(v);
+    try { localStorage.setItem('cb_lite', v); } catch (e) {}
+  };
+
+  // ---------- PWA: service worker regisztracio + frissites-figyeles ----------
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const h = window.location.hostname;
+    // Fejlesztoi kornyezetben (StackBlitz/localhost) nem regisztralunk
+    if (h.includes('webcontainer') || h.includes('stackblitz') || h === 'localhost' || h === '127.0.0.1') return;
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      if (reg.waiting) setSwWaiting(reg.waiting);
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) setSwWaiting(nw);
+        });
+      });
+    }).catch(() => {});
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!reloaded) { reloaded = true; window.location.reload(); }
+    });
+  }, []);
+
+  const applyUpdate = () => {
+    try { if (swWaiting) swWaiting.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
+  };
+
+  // ---------- SFX: elesztes az elso koppintasnal + gomb-hangok ----------
+  useEffect(() => {
+    const onDown = (e) => {
+      sfx.init();
+      if (e.target && e.target.closest && e.target.closest('button')) {
+        sfx.tap();
+        haptics.tap();
+      }
+    };
+    document.addEventListener('pointerdown', onDown, { passive: true });
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, []);
+
+  // A dal-preview alatt az effektek halkabbak (ducking)
+  useEffect(() => { sfx.setDucked(isPlaying); }, [isPlaying]);
 
   // ---------- Sajat figurak felderitese (public/models/1.glb, 2.glb, ...) ----------
   useEffect(() => {
@@ -587,6 +1199,7 @@ export default function App() {
       setStatus('win');
       return undefined;
     }
+    if (timeLeft <= 20) sfx.tick(timeLeft <= 10);
     const t = setTimeout(() => setTimeLeft((v) => (v === null ? null : v - 1)), 1000);
     return () => clearTimeout(t);
   }, [timeLeft, status]);
@@ -614,7 +1227,11 @@ export default function App() {
   useEffect(() => {
     if (status === 'game' && scrollRef.current) {
       const el = scrollRef.current;
-      el.scrollTo({ left: (el.scrollWidth - el.clientWidth) / 2, behavior: 'smooth' });
+      el.scrollTo({
+        left: (el.scrollWidth - el.clientWidth) / 2,
+        top: (el.scrollHeight - el.clientHeight) / 2,
+        behavior: 'smooth',
+      });
     }
   }, [status, turnIndex]);
 
@@ -623,7 +1240,8 @@ export default function App() {
       const track = scrollRef.current;
       const ghost = ghostRef.current;
       const target = ghost.offsetLeft - track.clientWidth / 2 + ghost.clientWidth / 2;
-      track.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+      const targetY = ghost.offsetTop - track.clientHeight / 2 + ghost.clientHeight / 2;
+      track.scrollTo({ left: Math.max(0, target), top: Math.max(0, targetY), behavior: 'smooth' });
     }
   }, [wrongIndex]);
 
@@ -708,6 +1326,10 @@ export default function App() {
   const removePlayer = (id) => setPlayers(players.filter((p) => p.id !== id));
 
   const beginMatch = (roster) => {
+    dailyRef.current = null;
+    botRef.current = roster.some((p) => p.isBot) ? botRef.current : null;
+    statRef.current = { correct: 0, wrong: 0 };
+    endDoneRef.current = false;
     const pack = SONG_PACKS[selectedPack];
     if (!pack || !pack.data || pack.data.length === 0) {
       showToast('Hiba: a választott csomag üres. Válassz másikat!');
@@ -742,7 +1364,7 @@ export default function App() {
     setTimeLeft(modes.speed ? 120 : null);
     setCurrentCard(firstCard);
     const onlineStart = netRole === 'host' && roster.some((p) => p.peerId);
-    setStatus(onlineStart ? 'game' : 'handoff');
+    setStatus(onlineStart || botRef.current ? 'game' : 'handoff');
     // Tanulokor automatikus inditasa az elso jatszmanal
     try {
       if (localStorage.getItem('cb_tut') !== '1') setTutStep(0);
@@ -833,10 +1455,24 @@ export default function App() {
     if (isCloseEnough(betData.artist, currentCard.a)) earned += 1;
     if (isCloseEnough(betData.title, currentCard.t)) earned += 1;
     if (goldCard) earned *= 2; // Arany Kartya: dupla tippnyeremeny
+    if (dailyRef.current && ys === 2) dailyRef.current.exact = true;
+    {
+      const P = loadProfile();
+      const dec = Math.floor(currentCard.y / 10) * 10;
+      if (!P.decades[dec]) P.decades[dec] = { a: 0, h: 0 };
+      P.decades[dec].a += 1;
+      if (ys > 0) P.decades[dec].h += 1;
+      if (ys === 2) { P.exact += 1; if (P.exact >= 5) award(P, 'exact5'); }
+      if (ys === 2 && isCloseEnough(betData.artist, currentCard.a) && isCloseEnough(betData.title, currentCard.t)) {
+        P.full += 1; award(P, 'full');
+      }
+      saveProfile(P);
+    }
     if (earned > 0) {
+      sfx.coin();
       fireConfetti(Math.min(earned, 3));
-      const prankPlus = ys === 2 ? 1 : 0;
-      if (prankPlus) showToast('🃏 +1 szívatás-token a pontos évért!');
+      const prankPlus = activeModes.pranks && ys === 2 ? 1 : 0;
+      if (prankPlus) showToast('+1 szívatás-token a pontos évért!');
       setPlayers(players.map((p, i) => (i === turnIndex ? { ...p, tokens: p.tokens + earned, pranks: (p.pranks || 0) + prankPlus } : p)));
       setBetResult({ total: earned, exactYear: ys === 2 });
     } else {
@@ -869,12 +1505,12 @@ export default function App() {
     turnCountRef.current += 1;
     const gold = activeModes.gold && turnCountRef.current % 3 === 0;
     setGoldCard(gold);
-    if (gold) showToast('✨ ARANY KÁRTYA! Dupla tippnyeremény + 2 bónuszzseton a helyes lerakásért!');
+    if (gold) { sfx.gold(); haptics.gold(); showToast('ARANY KÁRTYA! Dupla tippnyeremény + 2 bónuszzseton a helyes lerakásért!'); }
     setCurrentCard(c);
     // Online szobaban nincs "add tovabb a telefont" - azonnal a
     // kovetkezo jatekos telefonja aktivalodik
     const online = netRole === 'host' && players.some((p) => p.peerId);
-    setStatus(online ? 'game' : 'handoff');
+    setStatus(online || botRef.current ? 'game' : 'handoff');
   };
 
   const VETO_SECONDS = 5;
@@ -884,6 +1520,7 @@ export default function App() {
     if (flipped || feedback || !currentCard) return;
     pauseMusic();
     setFlipped(true);
+    sfx.flip();
 
     const tl = players[turnIndex].timeline;
     const y = currentCard.y;
@@ -894,14 +1531,41 @@ export default function App() {
     if (valid) {
       missStreakRef.current = 0;
       setFeedback('correct');
+      const AP = players[turnIndex];
+      if (AP && !AP.isBot && !AP.peerId) {
+        statRef.current.correct += 1;
+        const P = loadProfile();
+        P.placed += 1;
+        if (P.placed >= 100) award(P, 'cards100');
+        saveProfile(P);
+      }
+      // Repulo-kartya animacio: a szinpadi kartyatol a beszurasi pontig
+      try {
+        const fromEl = stageCardRef.current;
+        const to = slotRectRef.current;
+        if (fromEl && to) {
+          const from = fromEl.getBoundingClientRect();
+          setFlight({ from, to, card: currentCard, id: Date.now() });
+          setTimeout(() => setFlight(null), 950);
+        }
+      } catch (e) {}
+      sfx.success();
+      haptics.success();
       fireConfetti(2);
-      confetti({ particleCount: 60, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors: ['#ffd700', '#00eaff', '#ffffff'] });
-      confetti({ particleCount: 60, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors: ['#ffd700', '#ff0055', '#ffffff'] });
+      boom({ particleCount: 60, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors: ['#ffd700', '#00eaff', '#ffffff'] });
+      boom({ particleCount: 60, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors: ['#ffd700', '#ff0055', '#ffffff'] });
       const goldBonus = goldCard ? 2 : 0;
       if (goldBonus) showToast('✨ Arany Kártya bónusz: +2 🪙');
       const newTL = [...tl];
       newTL.splice(index, 0, currentCard);
       const updated = players.map((p, i) => (i === turnIndex ? { ...p, timeline: newTL, tokens: p.tokens + goldBonus } : p));
+      if (dailyRef.current) {
+        const D = dailyRef.current;
+        D.row.push(D.exact ? 'Y' : 'G');
+        D.exact = false;
+        setTimeout(() => { setPlayers(updated); dailyAdvance(); }, 1900);
+        return;
+      }
       setTimeout(() => {
         setPlayers(updated);
         if (newTL.length >= WIN_CARDS) {
@@ -920,6 +1584,17 @@ export default function App() {
       if (index < tl.length && tl[index].y < y) d = Math.max(d, y - tl[index].y);
       setPlayers(players.map((p, i) => (i === turnIndex ? { ...p, worstMiss: Math.max(p.worstMiss || 0, d) } : p)));
       setFeedback('wrong');
+      {
+        const AP = players[turnIndex];
+        if (AP && !AP.isBot && !AP.peerId) {
+          statRef.current.wrong += 1;
+          const P = loadProfile();
+          P.wrong += 1;
+          saveProfile(P);
+        }
+      }
+      sfx.fail();
+      haptics.fail();
       missStreakRef.current += 1;
       if (missStreakRef.current >= 3) {
         missStreakRef.current = 0;
@@ -936,11 +1611,15 @@ export default function App() {
 
 
   // Lerakas: online tobbfos jatekban elobb VETO-ablak, utana kiertekeles
-  function handlePlace(index) {
+  function handlePlace(index, ev) {
+    if (ev && ev.currentTarget && ev.currentTarget.getBoundingClientRect) {
+      slotRectRef.current = ev.currentTarget.getBoundingClientRect();
+    }
     if (flipped || feedback || !currentCard || pendingPlace) return;
-    const online = netRole === 'host' && players.some((p) => p.peerId);
-    if (online && players.length > 1) {
+    if (activeModes.veto && players.length > 1) {
       pauseMusic();
+      sfx.veto();
+      haptics.veto();
       setPendingPlace({ index });
       setPendingLeft(VETO_SECONDS);
       return;
@@ -950,6 +1629,7 @@ export default function App() {
 
   // ---------- VETO ----------
   function hostVeto(vetoerIdx) {
+    if (!activeModes.veto) return;
     if (!pendingPlace || vetoerIdx === turnIndex || vetoerIdx < 0 || !currentCard) return;
     const index = pendingPlace.index;
     setPendingPlace(null);
@@ -963,6 +1643,12 @@ export default function App() {
     resolvePlace(index); // a normal kiertekeles lefut (konfetti VAGY razas)
     if (!valid) {
       skipNextRef.current[placer.id] = true;
+      if (!vetoer.peerId && !vetoer.isBot) {
+        const P = loadProfile();
+        P.veto += 1;
+        if (P.veto >= 5) award(P, 'veto5');
+        saveProfile(P);
+      }
       showToast(`🚫 VÉTÓ TALÁLT! ${placer.name} kimarad egy körből, ${vetoer.name} +1 🪙!`);
       setPlayers((prev) => prev.map((p, i) => (i === vetoerIdx ? { ...p, tokens: (p.tokens || 0) + 1 } : p)));
     } else {
@@ -1025,7 +1711,7 @@ export default function App() {
   // ============================================================
   // Minden rendernel frissitjuk, igy a peer-esemenyek mindig a
   // legfrissebb allapotot es fuggvenyeket erik el (nincs "beragadas")
-  actRef.current = { players, turnIndex, status, handlePlace, handleSwap, currentCard, showToast, setPlayers, setBetResult, fireConfetti, goldCard, toggleMusic, firePrank, hostVeto, hostShameDone };
+  actRef.current = { players, turnIndex, status, handlePlace, handleSwap, currentCard, showToast, setPlayers, setBetResult, fireConfetti, goldCard, toggleMusic, firePrank, hostVeto, hostShameDone, activeModes };
 
   const makeCode = () => {
     const AB = 'ABCDEFGHJKLMNPRSTUVWXYZ';
@@ -1084,6 +1770,7 @@ export default function App() {
       if (idx !== A.turnIndex || A.status !== 'game') return;
       A.toggleMusic();
     } else if (msg.a === 'prank') {
+      if (!A.activeModes || !A.activeModes.pranks) return;
       if (idx === A.turnIndex) return; // sajat magat nem szivatja
       const sender = A.players[idx];
       if (!sender || (sender.pranks || 0) < 1) return;
@@ -1103,9 +1790,10 @@ export default function App() {
       if (isCloseEnough(d.title, A.currentCard.t)) earned += 1;
       if (A.goldCard) earned *= 2;
       if (earned > 0) {
+        sfx.coin();
         A.fireConfetti(Math.min(earned, 3));
-        const prankPlus = ys === 2 ? 1 : 0;
-        if (prankPlus) A.showToast('🃏 +1 szívatás-token a pontos évért!');
+        const prankPlus = A.activeModes && A.activeModes.pranks && ys === 2 ? 1 : 0;
+        if (prankPlus) A.showToast('+1 szívatás-token a pontos évért!');
         A.setPlayers(A.players.map((p, i) => (i === idx ? { ...p, tokens: (p.tokens || 0) + earned, pranks: (p.pranks || 0) + prankPlus } : p)));
         A.setBetResult({ total: earned, exactYear: ys === 2 });
       } else {
@@ -1291,8 +1979,8 @@ export default function App() {
   const ShameView = shame && (
     <div className="shame-overlay">
       <motion.div className="shame-box glass" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-        <span className="sh-title">🙈 SZÉGYENFAL</span>
-        <span className="sh-sub">Besült a vétód! Tartsd nyomva a gombot 5 másodpercig,<br />különben további -1 🪙!</span>
+        <span className="sh-title">SZÉGYENFAL</span>
+        <span className="sh-sub">Besült a vétód! Tartsd nyomva a gombot 5 másodpercig,<br />különben további 1 zsetont veszítesz!</span>
         <button
           type="button"
           className="shame-btn"
@@ -1300,7 +1988,7 @@ export default function App() {
           onPointerUp={shameEnd}
           onPointerLeave={shameEnd}
         >
-          SZÉGYELLEM MAGAM 😳
+          SZÉGYELLEM MAGAM
           <span className="shame-prog"><span style={{ width: `${Math.round(shameProg * 100)}%` }} /></span>
         </button>
       </motion.div>
@@ -1396,7 +2084,9 @@ export default function App() {
     { key: 'blind',   icon: <EyeOff size={18} />,  name: 'Blind Mode',  desc: 'Az idővonal évszámai rejtve — fejből kell tudnod a sorrendet!' },
     { key: 'speed',   icon: <Timer size={18} />,   name: 'Speed Run',   desc: '2 perces visszaszámlálás — akié a leghosszabb idővonal, nyer!' },
     { key: 'gold',    icon: <Sparkles size={18} />, name: 'Arany Kártya', desc: 'Minden 3. kártya arany: dupla tippnyeremény és +2 bónuszzseton!' },
-    { key: 'reverse', icon: <Rewind size={18} />,  name: 'Reverse Mode', desc: 'A dal visszafelé szól — csak az igazi mesterek ismerik fel! 😈' },
+    { key: 'reverse', icon: <Rewind size={18} />,  name: 'Reverse Mode', desc: 'A dal visszafelé szól — csak az igazi mesterek ismerik fel!' },
+    { key: 'veto',    icon: <ShieldAlert size={18} />, name: 'Vétó', desc: 'Online: 5 mp-ig megvétózható a lerakás. Sikeres vétó: a hibázó kimarad. Besült vétó: Szégyenfal!', online: true },
+    { key: 'pranks',  icon: <Zap size={18} />, name: 'Szívatások', desc: 'Online: pontos évtippért szívatás-token jár — Rövidzárlat és Frász vethető be a soros játékos ellen!', online: true },
   ];
   const SettingsView = (
     <AnimatePresence>
@@ -1424,6 +2114,58 @@ export default function App() {
               ))}
             </div>
             <div className="settings-note">A módok a meccs INDÍTÁSAKOR rögzülnek — játék közben már nem változnak.</div>
+
+            <h3 className="modal-title small">HANG ÉS REZGÉS</h3>
+            <div className="sfx-row">
+              <button
+                type="button"
+                className={`mode-row slim ${sfxMuteUi ? '' : 'on'}`}
+                onClick={() => { const m = !sfxMuteUi; setSfxMuteUi(m); sfx.setMuted(m); if (!m) sfx.coin(); }}
+              >
+                <span className="mr-icon"><Volume2 size={17} /></span>
+                <span className="mr-body"><span className="mr-name">Hangeffektek</span></span>
+                <span className={`mr-toggle ${sfxMuteUi ? '' : 'on'}`} />
+              </button>
+              <input
+                type="range"
+                min="0" max="100"
+                value={sfxVolUi}
+                className="sfx-slider"
+                onChange={(e) => { const v = Number(e.target.value); setSfxVolUi(v); sfx.setVol(v / 100); }}
+                onPointerUp={() => sfx.coin()}
+              />
+              <button
+                type="button"
+                className={`mode-row slim ${hapticsUi ? 'on' : ''}`}
+                onClick={() => {
+                  const h = !hapticsUi;
+                  setHapticsUi(h);
+                  haptics.on = h;
+                  try { localStorage.setItem('cb_haptics', h ? '1' : '0'); } catch (e) {}
+                  if (h) haptics.success();
+                }}
+              >
+                <span className="mr-icon"><Vibrate size={17} /></span>
+                <span className="mr-body"><span className="mr-name">Rezgés (haptika)</span></span>
+                <span className={`mr-toggle ${hapticsUi ? 'on' : ''}`} />
+              </button>
+            </div>
+            <h3 className="modal-title small">TELJESÍTMÉNY (LITE MÓD)</h3>
+            <div className="lite-row">
+              {[['auto', 'Auto'], ['on', 'Be'], ['off', 'Ki']].map(([v, lbl]) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`d-tab ${liteSetting === v ? 'on' : ''}`}
+                  onClick={() => setLite(v)}
+                >{lbl}</button>
+              ))}
+            </div>
+            <div className="settings-note">
+              Lite módban a háttér-animációk és a 3D figurák kikapcsolnak — gyengébb telefonon is folyamatos a játék.
+              {liteActive ? ' Jelenleg: BEKAPCSOLVA.' : ' Jelenleg: kikapcsolva.'}
+            </div>
+            <div className="settings-version">ChronoBeats {APP_VERSION}</div>
             <button
               type="button"
               className="btn-3d ghost handbook-btn"
@@ -1443,23 +2185,158 @@ export default function App() {
 
   // ---------- Kozos elemek ----------
   const ToastView = (
-    <AnimatePresence>
-      {toast && (
-        <motion.div
-          className="toast"
-          initial={{ y: -60, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -60, opacity: 0 }}
-        >
-          {toast}
-        </motion.div>
+    <>
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            className="toast"
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -60, opacity: 0 }}
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {swWaiting && (
+        <div className="sw-banner glass">
+          <span>Új verzió érhető el!</span>
+          <button type="button" className="btn-3d gold small" onClick={applyUpdate}>FRISSÍTÉS</button>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 
   // ============================================================
   //  SETUP
   // ============================================================
+  // ============================================================
+  //  STATISZTIKA ES TROFEAK
+  // ============================================================
+  if (status === 'stats') {
+    const P = loadProfile();
+    const DS = loadDailyStore();
+    const decades = Object.keys(P.decades).map(Number).sort((a, b) => a - b);
+    const maxA = Math.max(1, ...decades.map((d) => P.decades[d].a));
+    return (
+      <div className={`app-container ${liteActive ? 'lite' : ''}`}>
+        <Backdrop />
+        {ToastView}
+        <div className="stats-screen">
+          <h1 className="text-chrome huge">STATISZTIKA</h1>
+          <div className="stat-grid">
+            <div className="stat-box glass"><b>{P.m}</b><span>meccs</span></div>
+            <div className="stat-box glass"><b>{P.w}</b><span>győzelem</span></div>
+            <div className="stat-box glass"><b>{P.placed}</b><span>jó lerakás</span></div>
+            <div className="stat-box glass"><b>{P.exact}</b><span>pontos év</span></div>
+            <div className="stat-box glass"><b>{DS.streak || 0}</b><span>napi sorozat</span></div>
+            <div className="stat-box glass"><b>{DS.best || 0}/10</b><span>napi rekord</span></div>
+          </div>
+
+          {decades.length > 0 && (
+            <div className="decade-card glass">
+              <div className="dc-title">TIPP-PONTOSSÁG ÉVTIZEDENKÉNT</div>
+              <div className="dc-bars">
+                {decades.map((d) => {
+                  const v = P.decades[d];
+                  const pct = v.a ? Math.round((v.h / v.a) * 100) : 0;
+                  return (
+                    <div key={d} className="dc-col">
+                      <div className="dc-bar-wrap">
+                        <div className="dc-bar" style={{ height: `${Math.max(6, pct)}%`, opacity: 0.45 + 0.55 * (v.a / maxA) }} />
+                      </div>
+                      <span className="dc-pct">{pct}%</span>
+                      <span className="dc-label">{String(d).slice(2)}s</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="ach-card glass">
+            <div className="dc-title">TRÓFEÁK ({Object.keys(P.ach).length}/12)</div>
+            <div className="ach-grid">
+              {ACHIEVEMENTS.map((a) => (
+                <div key={a.id} className={`ach-tile ${P.ach[a.id] ? 'got' : ''}`}>
+                  <span className="ach-ico">{P.ach[a.id] ? <Trophy size={17} /> : <X size={15} />}</span>
+                  <span className="ach-name">{a.name}</span>
+                  <span className="ach-desc">{a.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button type="button" className="btn-3d ghost" onClick={() => setStatus('setup')}>VISSZA</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  NAPI EREDMENY
+  // ============================================================
+  if (status === 'daily-result') {
+    const store = loadDailyStore();
+    const today = todayKey();
+    const T = (store.history && store.history[today]) || { score: 0, row: '', tokens: 0 };
+    const now = new Date();
+    const midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
+    const mins = Math.max(0, Math.round((midnight - now) / 60000));
+    const cd = `${Math.floor(mins / 60)} ó ${mins % 60} p`;
+    const monthDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const mPrefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return (
+      <div className={`app-container ${liteActive ? 'lite' : ''}`}>
+        <Backdrop />
+        {ToastView}
+        <div className="daily-screen">
+          <h1 className="text-chrome huge">NAPI KIHÍVÁS</h1>
+          <div className="daily-tabs">
+            <button type="button" className={`d-tab ${dailyView === 'result' ? 'on' : ''}`} onClick={() => setDailyView('result')}>EREDMÉNY</button>
+            <button type="button" className={`d-tab ${dailyView === 'calendar' ? 'on' : ''}`} onClick={() => setDailyView('calendar')}>NAPTÁR</button>
+          </div>
+
+          {dailyView === 'result' ? (
+            <div className="daily-card glass">
+              <div className="d-score">{T.score}<span>/10</span></div>
+              <div className="d-row">
+                {T.row.split('').map((c, i) => (
+                  <span key={i} className={`d-dot ${c === 'G' ? 'g' : c === 'Y' ? 'y' : 'r'}`} />
+                ))}
+              </div>
+              <div className="d-stats">
+                <span><Coins size={14} /> {T.tokens} zseton</span>
+                <span>Sorozat: {store.streak || 1} nap</span>
+                <span>Rekord: {store.best || T.score}/10</span>
+              </div>
+              <button type="button" className="btn-3d gold wide" onClick={shareDaily}>EREDMÉNY MEGOSZTÁSA</button>
+              <div className="d-countdown">Következő kihívás: {cd} múlva</div>
+            </div>
+          ) : (
+            <div className="daily-card glass">
+              <div className="d-month">{now.getFullYear()}. {String(now.getMonth() + 1).padStart(2, '0')}.</div>
+              <div className="d-cal">
+                {Array.from({ length: monthDays }, (_, i) => {
+                  const k = `${mPrefix}${String(i + 1).padStart(2, '0')}`;
+                  const h = store.history && store.history[k];
+                  return (
+                    <span key={k} className={`d-day ${h ? 'played' : ''} ${k === today ? 'today' : ''}`}>
+                      {i + 1}
+                      {h && <em>{h.score}</em>}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <button type="button" className="btn-3d ghost" onClick={() => { dailyRef.current = null; setStatus('setup'); }}>VISSZA A FŐOLDALRA</button>
+        </div>
+      </div>
+    );
+  }
+
   // ============================================================
   //  KLIENS NEZET (csatlakozott telefon)
   // ============================================================
@@ -1472,9 +2349,8 @@ export default function App() {
     const canAct = myTurn && !st.flipped && !st.feedback && !st.pending;
     const tl = me ? me.timeline : [];
     return (
-      <div className="app-container">
+      <div className={`app-container ${liteActive ? 'lite' : ''}`}>
         <Backdrop />
-        <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
         {prankFx && prankFx.kind === 'heartbeat' && <div className="fx-heartbeat" />}
         <div className="top-hud">
@@ -1484,10 +2360,10 @@ export default function App() {
               <div className="hud-label">TE VAGY</div>
               <div className="hud-name">{me ? me.name : '…'}</div>
             </div>
-            <span className="hud-tokens"><Coins size={15} /> {me ? me.tokens : 0}{me && (me.pranks || 0) > 0 ? ` · ${me.pranks}🃏` : ''}</span>
+            <span className="hud-tokens"><Coins size={15} /> {me ? me.tokens : 0}{me && (me.pranks || 0) > 0 && <em className="prank-mini"><Zap size={11} /> {me.pranks}</em>}</span>
           </div>
           <div className="hud-right">
-            <div className="deck-chip glass">🚪 {roomCode}</div>
+            <div className="deck-chip glass"><DoorOpen size={13} /> {roomCode}</div>
             {st && st.timeLeft !== null && st.timeLeft !== undefined && (
               <div className={`timer-chip glass ${st.timeLeft <= 20 ? 'low' : ''}`}>
                 <Timer size={13} /> {Math.floor(st.timeLeft / 60)}:{String(st.timeLeft % 60).padStart(2, '0')}
@@ -1502,25 +2378,25 @@ export default function App() {
           {st && (st.status === 'handoff' || st.status === 'game') && !myTurn && active && (
             <>
               <div className="client-banner glass">
-                <span className="cb-big">🎧 {active.name} játszik…</span>
+                <span className="cb-big"><Headphones size={17} /> {active.name} játszik…</span>
                 <span className="cb-sub">{st.audioMode === 'speaker' ? 'A zene a hangfalon szól!' : `A zene ${active.name} telefonján szól!`}</span>
               </div>
               {st.pending ? (
                 <motion.div className="veto-panel glass" initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
                   <span className="vp-count">{st.pending.left}</span>
                   <span className="vp-text">{active.name} lerakta a lapot!<br />Szerinted mellément?</span>
-                  <button type="button" className="veto-btn" onClick={() => sendAction('veto')}>🚫 VÉTÓ!</button>
-                  <span className="vp-warn">Ha tévedsz: -1 🪙 + Szégyenfal!</span>
+                  <button type="button" className="veto-btn" onClick={() => sendAction('veto')}><ShieldAlert size={16} /> VÉTÓ!</button>
+                  <span className="vp-warn">Ha tévedsz: -1 zseton + Szégyenfal!</span>
                 </motion.div>
               ) : (
                 <Pedestal charIndex={active.char} size={150} mood={st.playing ? 'win' : 'idle'} />
               )}
-              {me && (me.pranks || 0) > 0 && st.status === 'game' && (
+              {me && st.activeModes && st.activeModes.pranks && (me.pranks || 0) > 0 && st.status === 'game' && (
                 <div className="prank-bar glass">
-                  <span className="pb-title">😈 Szívatás ({me.pranks} 🃏)</span>
+                  <span className="pb-title"><Zap size={14} /> SZÍVATÁS ({me.pranks})</span>
                   <div className="pb-btns">
-                    <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'scramble' })}>⚡ Rövidzárlat</button>
-                    <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'heartbeat' })}>📳 Frász</button>
+                    <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'scramble' })}><Zap size={13} /> Rövidzárlat</button>
+                    <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'heartbeat' })}><Vibrate size={13} /> Frász</button>
                   </div>
                 </div>
               )}
@@ -1528,16 +2404,16 @@ export default function App() {
           )}
           {st && st.status === 'win' && (
             <div className="client-banner glass">
-              <span className="cb-big">🏆 Vége a meccsnek!</span>
+              <span className="cb-big"><Trophy size={17} /> Vége a meccsnek!</span>
               <span className="cb-sub">Az eredmény a házigazda képernyőjén!</span>
             </div>
           )}
           {myTurn && (
             <>
               <div className="turn-banner">
-                <span className="tb-big">{st.pending ? '⏳ VÉTÓZHATNAK…' : '🎤 TE JÖSSZ!'}</span>
+                <span className="tb-big">{st.pending ? <><ShieldAlert size={20} /> VÉTÓZHATNAK…</> : <><Mic size={20} /> TE JÖSSZ!</>}</span>
                 {st.pending && <span className="vp-count">{st.pending.left}</span>}
-                {st.goldCard && !st.pending && <span className="gold-badge">✨ ARANY KÁRTYA ✨</span>}
+                {st.goldCard && !st.pending && <span className="gold-badge"><Sparkles size={13} /> ARANY KÁRTYA</span>}
               </div>
               {/* Ugyanaz a szinpad, mint a hazigazdanal: lemezjatszo + rejtelykartya */}
               <div className="music-stage">
@@ -1548,7 +2424,7 @@ export default function App() {
                     onToggle={clientToggleMusic}
                   />
                   <Equalizer active={st.audioMode === 'speaker' ? !!st.playing : isPlaying} />
-                  {st.audioMode === 'speaker' && <span className="cb-sub">🔊 A hangfalon szól</span>}
+                  {st.audioMode === 'speaker' && <span className="cb-sub"><Volume2 size={12} /> A hangfalon szól</span>}
                 </div>
                 <div className={`card-column ${st.goldCard ? 'gold' : ''}`}>
                   <MysteryCard
@@ -1569,7 +2445,7 @@ export default function App() {
               )}
               {st.feedback && (
                 <div className={`client-banner glass ${st.feedback === 'correct' ? 'good' : 'bad'}`}>
-                  <span className="cb-big">{st.feedback === 'correct' ? '🎉 TALÁLT!' : '😅 Nem talált…'}</span>
+                  <span className="cb-big">{st.feedback === 'correct' ? <><CheckCircle size={17} /> TALÁLT!</> : <><XCircle size={17} /> Nem talált…</>}</span>
                 </div>
               )}
             </>
@@ -1637,11 +2513,41 @@ export default function App() {
   if (status === 'setup') {
     const cur = CHARACTERS[charIndex % CHARACTERS.length];
     return (
-      <div className="app-container">
+      <div className={`app-container ${liteActive ? 'lite' : ''}`}>
         <Backdrop />
-        <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
         {SettingsView}
+        <AnimatePresence>
+          {showBot && (
+            <div className="modal-overlay" onClick={() => setShowBot(false)}>
+              <motion.div
+                onClick={(e) => e.stopPropagation()}
+                className="modal-box glass settings-modal"
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+              >
+                <button type="button" className="close-modal" onClick={() => setShowBot(false)}><X size={22} /></button>
+                <h3 className="modal-title">CHRONO-BOT EDZÉS</h3>
+                <p className="modal-sub">A bot ugyanazokkal a szabályokkal játszik — csak a füle különbözik. Te kezdesz!</p>
+                <div className="mode-list">
+                  <button type="button" className="mode-row" onClick={() => startBot(6, 'Könnyű')}>
+                    <span className="mr-icon"><Play size={18} /></span>
+                    <span className="mr-body"><span className="mr-name">Könnyű</span><span className="mr-desc">A bot átlagosan ±6 évet téved — kezdőknek.</span></span>
+                  </button>
+                  <button type="button" className="mode-row" onClick={() => startBot(3, 'Közepes')}>
+                    <span className="mr-icon"><Play size={18} /></span>
+                    <span className="mr-body"><span className="mr-name">Közepes</span><span className="mr-desc">±3 év szórás — kiegyenlített meccs.</span></span>
+                  </button>
+                  <button type="button" className="mode-row" onClick={() => startBot(1.5, 'Nehéz')}>
+                    <span className="mr-icon"><Play size={18} /></span>
+                    <span className="mr-body"><span className="mr-name">Nehéz</span><span className="mr-desc">±1.5 év — a Gépverő trófea ellenfele.</span></span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
         <AnimatePresence>
           {showRoom && (
             <div className="modal-overlay" onClick={() => setShowRoom(false)}>
@@ -1657,14 +2563,23 @@ export default function App() {
                 {netRole === 'host' ? (
                   <>
                     <div className="room-code-big">{roomCode}</div>
-                    <p className="modal-sub">Ezt a kódot írják be a többiek a saját telefonjukon!</p>
+                    {qrUrl && (
+                      <div className="qr-wrap">
+                        <img src={qrUrl} alt="Szoba QR-kód" className="qr-img" />
+                        <span className="qr-hint">Olvasd be telefonnal — a kód már ki lesz töltve!</span>
+                      </div>
+                    )}
+                    <button type="button" className="btn-3d ghost small" onClick={shareRoomLink}>
+                      LINK MEGOSZTÁSA / MÁSOLÁSA
+                    </button>
+                    <p className="modal-sub">…vagy írjátok be kézzel a 4 betűs kódot!</p>
                     <div className="audio-mode-row">
                       <button
                         type="button"
                         className={`am-btn ${audioMode === 'own' ? 'on' : ''}`}
                         onClick={() => { setAudioMode('own'); try { localStorage.setItem('cb_audiomode', 'own'); } catch (e) {} }}
                       >
-                        📱 SAJÁT TELEFON MÓD
+                        <Smartphone size={15} /> SAJÁT TELEFON MÓD
                         <small>a soros játékos telefonján szól a zene</small>
                       </button>
                       <button
@@ -1672,7 +2587,7 @@ export default function App() {
                         className={`am-btn ${audioMode === 'speaker' ? 'on' : ''}`}
                         onClick={() => { setAudioMode('speaker'); try { localStorage.setItem('cb_audiomode', 'speaker'); } catch (e) {} }}
                       >
-                        🔊 KIHANGOSÍTÓ MÓD
+                        <Volume2 size={15} /> KIHANGOSÍTÓ MÓD
                         <small>a házigazda telefonján szól — a soros játékos indítja a sajátjáról</small>
                       </button>
                     </div>
@@ -1730,8 +2645,39 @@ export default function App() {
               <span className="mode-count">{SONG_PACKS[selectedPack].data.length} dal · koppints a váltáshoz</span>
             </button>
 
+            <button
+              className="mode-display daily-launcher"
+              onClick={() => {
+                const st = loadDailyStore();
+                if (st.history && st.history[todayKey()]) { setDailyView('result'); setStatus('daily-result'); }
+                else startDaily();
+              }}
+            >
+              <span className="mode-label"><Sparkles size={13} /> NAPI KIHÍVÁS</span>
+              <span className="mode-count">
+                {(() => {
+                  const st = loadDailyStore();
+                  const t = st.history && st.history[todayKey()];
+                  if (t) return `Ma: ${t.score}/10 · Sorozat: ${st.streak || 1} nap — koppints az eredményért`;
+                  return st.streak ? `A mai 10 dal mindenkinek ugyanaz! Sorozatod: ${st.streak} nap` : 'A mai 10 dal mindenkinek ugyanaz — 3 élet, hajrá!';
+                })()}
+              </span>
+            </button>
+
+            <button className="mode-display" onClick={() => setShowBot(true)}>
+              <span className="mode-label"><Play size={13} /> CHRONO-BOT EDZÉS</span>
+              <span className="mode-count">Gyakorolj gép ellen — Könnyű / Közepes / Nehéz</span>
+            </button>
+
+            <button className="mode-display" onClick={() => setStatus('stats')}>
+              <span className="mode-label"><Trophy size={13} /> STATISZTIKA ÉS TRÓFEÁK</span>
+              <span className="mode-count">
+                {(() => { const P = loadProfile(); const n = Object.keys(P.ach).length; return `${P.m} meccs · ${P.w} győzelem · ${n}/12 trófea`; })()}
+              </span>
+            </button>
+
             <button className="mode-display" onClick={() => setShowRoom(true)}>
-              <span className="mode-label">📱 ONLINE SZOBA</span>
+              <span className="mode-label"><Smartphone size={13} /> ONLINE SZOBA</span>
               <span className="mode-count">
                 {netRole === 'host'
                   ? <>Szobakód: <b className="room-code-inline">{roomCode}</b> · {players.filter((p) => p.peerId).length} telefon csatlakozva</>
@@ -1740,10 +2686,10 @@ export default function App() {
             </button>
 
             <button className="mode-display" onClick={() => setShowSettings(true)}>
-              <span className="mode-label">⚙️ JÁTÉKMÓDOK</span>
+              <span className="mode-label"><Settings size={13} /> JÁTÉKMÓDOK</span>
               <span className="mode-count">
                 {(modes.blind || modes.speed || modes.gold || modes.reverse)
-                  ? <>Aktív: {modes.blind && '🙈 Blind '}{modes.speed && '⏱ Speed '}{modes.gold && '✨ Arany '}{modes.reverse && '🔁 Reverse'}</>
+                  ? <>Aktív: {[modes.blind && 'Blind', modes.speed && 'Speed', modes.gold && 'Arany Kártya', modes.reverse && 'Reverse', modes.veto && 'Vétó', modes.pranks && 'Szívatás'].filter(Boolean).join(' · ')}</>
                   : 'Nincs extra mód — koppints a beállításhoz'}
               </span>
             </button>
@@ -1825,9 +2771,8 @@ export default function App() {
     const p = players[turnIndex];
     const c = CHARACTERS[p.char % CHARACTERS.length];
     return (
-      <div className="app-container">
+      <div className={`app-container ${liteActive ? 'lite' : ''}`}>
         <Backdrop />
-        <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
         <motion.div
           className="handoff"
@@ -1863,9 +2808,8 @@ export default function App() {
     const winnerChar = CHARACTERS[winner.char % CHARACTERS.length];
     const biggestMiss = [...players].sort((a, b) => (b.worstMiss || 0) - (a.worstMiss || 0))[0];
     return (
-      <div className="app-container">
+      <div className={`app-container ${liteActive ? 'lite' : ''}`}>
         <Backdrop />
-        <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
         <div className="win-scroll">
           <div className="win-content">
@@ -1900,6 +2844,7 @@ export default function App() {
             )}
 
             <div className="win-buttons">
+              <button className="btn-3d gold" onClick={shareResultCard}><Trophy size={18} /> EREDMÉNYKÉP MEGOSZTÁSA</button>
               <button className="btn-3d start" onClick={rematch}><RefreshCw size={18} /> VISSZAVÁGÓ</button>
               <button className="btn-3d ghost" onClick={backToSetup}>ÚJ CSAPAT</button>
             </div>
@@ -1928,24 +2873,53 @@ export default function App() {
   );
 
   return (
-    <div className={`app-container ${shake ? 'shake' : ''} ${feedback === 'correct' ? 'winpulse' : ''}`}>
+    <div className={`app-container in-game ${liteActive ? 'lite' : ''} ${shake ? 'shake' : ''} ${feedback === 'correct' ? 'winpulse' : ''}`}>
       <Backdrop />
       <div className="ver-tag">{APP_VERSION}</div>
       {ToastView}
       {feedback && <div className={`fx-overlay ${feedback === 'correct' ? 'good' : 'bad'}`} />}
       {prankFx && prankFx.kind === 'heartbeat' && <div className="fx-heartbeat" />}
+      <AnimatePresence>
+        {flight && (
+          <motion.div
+            key={flight.id}
+            className="fly-card"
+            initial={{
+              left: flight.from.left + flight.from.width / 2,
+              top: flight.from.top + flight.from.height / 2,
+              scale: 1,
+              rotateY: 0,
+              opacity: 1,
+            }}
+            animate={{
+              left: flight.to.left + flight.to.width / 2,
+              top: flight.to.top + flight.to.height / 2,
+              scale: 0.55,
+              rotateY: 360,
+              opacity: 1,
+            }}
+            exit={{ opacity: 0, scale: 0.4 }}
+            transition={{ duration: 0.85, ease: [0.2, 0.9, 0.3, 1] }}
+          >
+            <div className="fly-face">
+              <span className="fly-year">{flight.card.y}</span>
+              <span className="fly-title">{flight.card.t}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {ShameView}
       {pendingPlace && (
         <div className="veto-strip glass">
           <span className="vp-count">{pendingLeft}</span>
-          <span className="vp-text">{activePlayer.name} lerakta a lapot — vétózhattok!</span>
-          {players.some((p, i) => !p.peerId && i !== turnIndex) && (
-            <button
-              type="button"
-              className="veto-btn"
-              onClick={() => hostVeto(players.findIndex((p, i) => !p.peerId && i !== turnIndex))}
-            >🚫 VÉTÓ!</button>
-          )}
+          <span className="vp-text">{activePlayer.name} lerakta a lapot — ki vétóz?</span>
+          <div className="veto-pickers">
+            {players.map((p, i) => (!p.peerId && i !== turnIndex ? (
+              <button key={p.id} type="button" className="veto-btn small" onClick={() => hostVeto(i)}>
+                <ShieldAlert size={13} /> {p.name}
+              </button>
+            ) : null))}
+          </div>
         </div>
       )}
       {TutorialView}
@@ -1976,10 +2950,16 @@ export default function App() {
               <Timer size={13} /> {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
             </div>
           )}
-          <div className="deck-chip glass" title="Hátralévő kártyák">🂠 {cardsLeft}</div>
+          {dailyRef.current ? (
+            <div className="deck-chip glass daily-chip" title="Napi kihívás">
+              {dailyRef.current.idx + 1}/10 · {'♥'.repeat(Math.max(0, dailyRef.current.lives))}{'♡'.repeat(Math.max(0, 3 - dailyRef.current.lives))}
+            </div>
+          ) : (
+            <div className="deck-chip glass" title="Hátralévő kártyák"><Layers size={13} /> {cardsLeft}</div>
+          )}
           {(activeModes.blind || activeModes.speed || activeModes.gold || activeModes.reverse) && (
             <div className="deck-chip glass" title="Aktív játékmódok">
-              {activeModes.blind && '🙈'}{activeModes.speed && '⏱'}{activeModes.gold && '✨'}{activeModes.reverse && '🔁'}
+              {activeModes.blind && <EyeOff size={13} />}{activeModes.speed && <Timer size={13} />}{activeModes.gold && <Sparkles size={13} />}{activeModes.reverse && <Rewind size={13} />}{activeModes.veto && <ShieldAlert size={13} />}{activeModes.pranks && <Zap size={13} />}
             </div>
           )}
           <button
@@ -2004,8 +2984,8 @@ export default function App() {
             <Turntable isPlaying={isPlaying} isLoading={isLoading} onToggle={toggleMusic} />
             <Equalizer active={isPlaying} />
           </div>
-          <div className={`card-column ${goldCard ? 'gold' : ''}`}>
-            {goldCard && <div className="gold-badge">✨ ARANY KÁRTYA ✨</div>}
+          <div className={`card-column ${goldCard ? 'gold' : ''}`} ref={stageCardRef}>
+            {goldCard && <div className="gold-badge"><Sparkles size={13} /> ARANY KÁRTYA</div>}
             <MysteryCard flipped={flipped} card={currentCard} />
             <AnimatePresence>
               {betResult && (
@@ -2076,7 +3056,7 @@ export default function App() {
         <div className="tl-perspective">
           <div className={`timeline-track ${prankFx && prankFx.kind === 'scramble' ? 'scrambled' : ''}`} ref={scrollRef}>
             {feedback !== 'wrong' && (
-              <button className="slot-btn" disabled={slotsDisabled} onClick={() => handlePlace(0)}>+</button>
+              <button className="slot-btn" disabled={slotsDisabled} onClick={(e) => handlePlace(0, e)}>+</button>
             )}
             {tl.map((card, i) => (
               <React.Fragment key={`${card.a}-${card.t}-${i}`}>
@@ -2087,7 +3067,7 @@ export default function App() {
                   <div className="history-artist">{card.a}</div>
                 </div>
                 {feedback !== 'wrong' && (
-                  <button className="slot-btn" disabled={slotsDisabled} onClick={() => handlePlace(i + 1)}>+</button>
+                  <button className="slot-btn" disabled={slotsDisabled} onClick={(e) => handlePlace(i + 1, e)}>+</button>
                 )}
               </React.Fragment>
             ))}
@@ -2109,7 +3089,7 @@ export default function App() {
             >
               <button type="button" className="close-modal" onClick={() => setShowBetModal(false)}><X size={22} /></button>
               <h2 className="text-chrome">MI A TIPPED?</h2>
-              {goldCard && <div className="gold-badge inmodal">✨ ARANY KÁRTYA — DUPLA NYEREMÉNY! ✨</div>}
+              {goldCard && <div className="gold-badge inmodal"><Sparkles size={13} /> ARANY KÁRTYA — DUPLA NYEREMÉNY!</div>}
               <p className="modal-sub">
                 Év ±{YEAR_TOLERANCE}: 1🪙 · pontos év: 2🪙 · előadó / cím: 1-1🪙
               </p>

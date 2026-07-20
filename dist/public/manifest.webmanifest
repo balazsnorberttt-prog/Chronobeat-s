@@ -1,0 +1,17 @@
+{
+  "name": "ChronoBeats — Zenei idővonal party",
+  "short_name": "ChronoBeats",
+  "description": "Hitster-stílusú zenei idővonalas partijáték: hallgasd, tippelj, tedd a helyére!",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05030f",
+  "theme_color": "#05030f",
+  "lang": "hu",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
