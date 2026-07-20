@@ -2291,3 +2291,81 @@ button:active { transform: scale(0.96); }
   border-color: rgba(0, 234, 255, 0.4);
 }
 .room-inline b { color: var(--gold); letter-spacing: 2px; }
+
+/* ============================================================
+   v21.1 — FOMENU-FINOMITAS: nagy marka, festekpacsa-dobozok
+   ============================================================ */
+/* A dinamikus hatterrel a kulon eg-gradiens mar nem kell felul */
+.menu-screen { background: var(--bg-0); }
+
+/* Nagy, kozepre rendezett marka */
+.wordmark.big {
+  align-items: center;
+  text-align: center;
+  line-height: 0.92;
+  margin-top: -4px;
+}
+.wordmark.big .wm-line {
+  font-size: clamp(42px, 13vw, 60px);
+  letter-spacing: 3px;
+}
+.hero-stage.center { margin: 0 auto; }
+
+/* Szeles doboz (a csempe-recept teljes szelessegben) */
+.wide-tile {
+  position: relative;
+  width: 100%;
+  min-height: 64px;
+  border: none;
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s3) var(--s5);
+  color: #fff;
+  text-align: left;
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.45),
+    0 14px 30px rgba(123, 45, 255, 0.28),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.40),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.25);
+}
+.wt-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.wt-body .tile-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wt-end { opacity: 0.9; flex: 0 0 auto; }
+.t-modes { background: linear-gradient(135deg, #5b2dff, #00c8ff); }
+
+/* FESTEKPACSA: organikus, folyamatosan morfolo forma + folyo szinatmenet */
+.blob-box {
+  border-radius: 30px 46px 34px 48px / 44px 28px 46px 30px;
+  background-size: 220% 220% !important;
+  animation-name: bob, blobMorph, paintFlow;
+  animation-duration: 4.6s, 9s, 7s;
+  animation-timing-function: ease-in-out, ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite, infinite;
+  animation-direction: normal, alternate, alternate;
+}
+@keyframes blobMorph {
+  0%   { border-radius: 30px 46px 34px 48px / 44px 28px 46px 30px; }
+  33%  { border-radius: 46px 30px 48px 32px / 30px 46px 28px 46px; }
+  66%  { border-radius: 34px 48px 28px 44px / 46px 32px 44px 28px; }
+  100% { border-radius: 44px 32px 46px 30px / 32px 44px 30px 48px; }
+}
+@keyframes paintFlow {
+  0%   { background-position: 0% 40%; }
+  100% { background-position: 100% 60%; }
+}
+
+/* A 2x2 csempek is "folynak" (forma nelkul, csak a festek aramlik) */
+.menu-tile {
+  background-size: 200% 200% !important;
+  animation-name: bob, paintFlow;
+  animation-duration: 4.6s, 8s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-direction: normal, alternate;
+}
+
+/* Nyugalmi modok: minden folyas/morf leall */
+@media (prefers-reduced-motion: reduce) {
+  .blob-box, .menu-tile { animation: none; }
+}
+.menu-screen.lite .blob-box,
+.menu-screen.lite .menu-tile { animation: none; }

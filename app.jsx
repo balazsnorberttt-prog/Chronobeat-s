@@ -531,7 +531,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v21';
+const APP_VERSION = 'v21.1';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -2662,6 +2662,7 @@ export default function App() {
     try { botDiff = localStorage.getItem('cb_botdiff') || ''; } catch (e) {}
     return (
       <div className={`app-container menu-screen ${liteActive ? 'lite' : ''}`}>
+        <Backdrop />
         {ToastView}
         <div className="menu-scroll">
           {/* 1. Fejlec: csak a fogaskerek (az overline szandekosan kimarad) */}
@@ -2672,20 +2673,18 @@ export default function App() {
             </button>
           </div>
 
-          {/* 2. Hos-sor: terhatasu wordmark + karakter-szinpad */}
-          <div className="hero-row">
-            <div className="wordmark bob" style={{ animationDelay: '0.2s' }}>
-              <span className="wm-line">CHRONO</span>
-              <span className="wm-line">BEATS</span>
-            </div>
-            <div className="hero-stage bob" style={{ animationDelay: '0.9s' }}>
-              <div className="spot-cone" />
-              <CharacterStage charIndex={charIndex} size={148} mood="idle" />
-              <div className="stage-ring" />
-              <div className="stage-arrows">
-                <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
-                <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
-              </div>
+          {/* 2. Marka + karakter-szinpad (kozepre rendezve) */}
+          <div className="wordmark big bob" style={{ animationDelay: '0.2s' }}>
+            <span className="wm-line">CHRONO</span>
+            <span className="wm-line">BEATS</span>
+          </div>
+          <div className="hero-stage center bob" style={{ animationDelay: '0.9s' }}>
+            <div className="spot-cone" />
+            <CharacterStage charIndex={charIndex} size={150} mood="idle" />
+            <div className="stage-ring" />
+            <div className="stage-arrows">
+              <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
+              <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
             </div>
           </div>
 
@@ -2695,9 +2694,19 @@ export default function App() {
             <span className="cta-shine" />
           </button>
 
-          {/* 4. Pakli-sor */}
-          <button type="button" className="deck-row" onClick={() => setShowPackSelection(true)}>
-            Pakli: {SONG_PACKS[selectedPack].label} · {SONG_PACKS[selectedPack].data.length} dal <RefreshCw size={12} />
+          {/* 4. Pakli-doboz (festekpacsa) */}
+          <button
+            type="button"
+            className="wide-tile blob-box bob"
+            style={{ background: SONG_PACKS[selectedPack].style, animationDelay: '1.3s' }}
+            onClick={() => setShowPackSelection(true)}
+          >
+            <span className="tile-ico"><Layers size={20} /></span>
+            <span className="wt-body">
+              <span className="tile-name">PAKLI: {SONG_PACKS[selectedPack].label}</span>
+              <span className="tile-meta">{SONG_PACKS[selectedPack].data.length} dal · koppints a váltáshoz</span>
+            </span>
+            <RefreshCw size={15} className="wt-end" />
           </button>
 
           {/* 5. 2x2 csemperacs */}
@@ -2716,9 +2725,18 @@ export default function App() {
             </button>
           </div>
 
-          {/* 6. Labsor */}
-          <button type="button" className="menu-foot" onClick={() => setShowSettings(true)}>
-            Extra módok · {modeN} aktív
+          {/* 6. Extra modok doboz (festekpacsa) */}
+          <button
+            type="button"
+            className="wide-tile blob-box t-modes bob"
+            style={{ animationDelay: '0.4s' }}
+            onClick={() => setShowSettings(true)}
+          >
+            <span className="tile-ico"><Settings size={20} /></span>
+            <span className="wt-body">
+              <span className="tile-name">EXTRA MÓDOK</span>
+              <span className="tile-meta">{modeN ? `${modeN} aktív — Blind, Speed, Vétó és társaik` : 'Blind, Speed Run, Arany Kártya, Vétó…'}</span>
+            </span>
           </button>
         </div>
 
