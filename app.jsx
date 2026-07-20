@@ -184,264 +184,259 @@ function BuddyModel({ cfg, mood }) {
     const t = st.clock.elapsedTime;
     const dance = mood === 'win';
     const sp = dance ? 6.4 : 2.1;
-    const bob = dance ? 0.085 : 0.03;
+    const bob2 = dance ? 0.09 : 0.028;
     if (body.current) {
-      body.current.position.y = Math.sin(t * sp) * bob;
-      body.current.rotation.z = Math.sin(t * sp * 0.5) * (dance ? 0.09 : 0.03);
+      body.current.position.y = 0.04 + Math.sin(t * sp) * bob2;
+      body.current.rotation.z = Math.sin(t * sp * 0.5) * (dance ? 0.08 : 0.025);
     }
     if (head.current) {
-      head.current.rotation.x = dance ? Math.sin(t * sp) * 0.22 : Math.sin(t * sp) * 0.06;
-      head.current.rotation.z = Math.sin(t * sp * 0.5) * 0.08;
+      head.current.rotation.x = dance ? Math.sin(t * sp) * 0.2 : Math.sin(t * sp) * 0.05;
+      head.current.rotation.z = Math.sin(t * sp * 0.5) * 0.07;
     }
     if (armL.current && armR.current) {
       if (dance) {
-        armL.current.rotation.z = 2.5 + Math.sin(t * sp) * 0.45;
-        armR.current.rotation.z = -2.5 - Math.cos(t * sp) * 0.45;
+        armL.current.rotation.z = 2.4 + Math.sin(t * sp) * 0.4;
+        armR.current.rotation.z = -2.4 - Math.cos(t * sp) * 0.4;
       } else {
-        armL.current.rotation.z = 0.28 + Math.sin(t * sp) * 0.12;
-        armR.current.rotation.z = -0.28 - Math.sin(t * sp) * 0.12;
+        armL.current.rotation.z = 0.3 + Math.sin(t * sp) * 0.1;
+        armR.current.rotation.z = -0.3 - Math.sin(t * sp) * 0.1;
       }
     }
   });
 
   const C = cfg;
   const hair = C.hair || '#3a2a1a';
+  const HY = 0.3;   // fej-kozeppont
+  const HR = 0.52;  // fej-sugar (nagy chibi-fej!)
 
   return (
-    <group ref={body} position={[0, 0, 0]}>
-      {/* Labak */}
-      <mesh position={[-0.2, -0.74, 0]}>
-        <capsuleGeometry args={[0.13, 0.34, 6, 12]} />
-        <meshStandardMaterial color={C.pants} roughness={0.7} />
+    <group ref={body} scale={1.12}>
+      {/* Labak + szinezett cipok */}
+      {[-0.17, 0.17].map((x, i) => (
+        <group key={i}>
+          <mesh position={[x, -0.78, 0]}>
+            <capsuleGeometry args={[0.115, 0.14, 6, 12]} />
+            <meshStandardMaterial color={C.pants} roughness={0.7} />
+          </mesh>
+          <mesh position={[x, -0.93, 0.05]} scale={[1, 0.55, 1.45]}>
+            <sphereGeometry args={[0.13, 14, 12]} />
+            <meshStandardMaterial color="#f6f6ff" roughness={0.45} />
+          </mesh>
+          <mesh position={[x, -0.9, 0.13]} scale={[0.9, 0.3, 0.7]}>
+            <sphereGeometry args={[0.1, 10, 8]} />
+            <meshStandardMaterial color={C.shirt} roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+      {/* Pufok torzs */}
+      <mesh position={[0, -0.42, 0]}>
+        <capsuleGeometry args={[0.34, 0.24, 8, 18]} />
+        <meshStandardMaterial color={C.shirt} roughness={0.5} />
       </mesh>
-      <mesh position={[0.2, -0.74, 0]}>
-        <capsuleGeometry args={[0.13, 0.34, 6, 12]} />
-        <meshStandardMaterial color={C.pants} roughness={0.7} />
+      <mesh position={[0, -0.44, 0.24]} scale={[0.75, 0.85, 0.5]}>
+        <sphereGeometry args={[0.24, 16, 14]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.6} transparent opacity={0.18} />
       </mesh>
-      {/* Cipok */}
-      <mesh position={[-0.2, -0.95, 0.06]} scale={[1, 0.55, 1.5]}>
-        <sphereGeometry args={[0.14, 14, 12]} />
-        <meshStandardMaterial color="#f4f4ff" roughness={0.5} />
-      </mesh>
-      <mesh position={[0.2, -0.95, 0.06]} scale={[1, 0.55, 1.5]}>
-        <sphereGeometry args={[0.14, 14, 12]} />
-        <meshStandardMaterial color="#f4f4ff" roughness={0.5} />
-      </mesh>
-      {/* Torzs */}
-      <mesh position={[0, -0.12, 0]}>
-        <capsuleGeometry args={[0.4, 0.42, 8, 18]} />
-        <meshStandardMaterial color={C.shirt} roughness={0.55} />
-      </mesh>
-      {/* Poci-folt */}
-      <mesh position={[0, -0.16, 0.31]} scale={[0.8, 1, 0.5]}>
-        <sphereGeometry args={[0.26, 16, 14]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.65} transparent opacity={0.22} />
-      </mesh>
-      {/* Karok */}
-      <group ref={armL} position={[-0.44, 0.12, 0]}>
-        <mesh position={[0, -0.2, 0]}>
-          <capsuleGeometry args={[0.1, 0.3, 6, 12]} />
-          <meshStandardMaterial color={C.shirt} roughness={0.55} />
+      {/* Kurta karok */}
+      <group ref={armL} position={[-0.38, -0.26, 0]}>
+        <mesh position={[0, -0.14, 0]}>
+          <capsuleGeometry args={[0.085, 0.18, 6, 12]} />
+          <meshStandardMaterial color={C.shirt} roughness={0.5} />
         </mesh>
-        <mesh position={[0, -0.42, 0]}>
-          <sphereGeometry args={[0.11, 12, 10]} />
-          <meshStandardMaterial color={C.skin} roughness={0.6} />
+        <mesh position={[0, -0.3, 0]}>
+          <sphereGeometry args={[0.1, 12, 10]} />
+          <meshStandardMaterial color={C.skin} roughness={0.55} />
         </mesh>
       </group>
-      <group ref={armR} position={[0.44, 0.12, 0]}>
-        <mesh position={[0, -0.2, 0]}>
-          <capsuleGeometry args={[0.1, 0.3, 6, 12]} />
-          <meshStandardMaterial color={C.shirt} roughness={0.55} />
+      <group ref={armR} position={[0.38, -0.26, 0]}>
+        <mesh position={[0, -0.14, 0]}>
+          <capsuleGeometry args={[0.085, 0.18, 6, 12]} />
+          <meshStandardMaterial color={C.shirt} roughness={0.5} />
         </mesh>
-        <mesh position={[0, -0.42, 0]}>
-          <sphereGeometry args={[0.11, 12, 10]} />
-          <meshStandardMaterial color={C.skin} roughness={0.6} />
+        <mesh position={[0, -0.3, 0]}>
+          <sphereGeometry args={[0.1, 12, 10]} />
+          <meshStandardMaterial color={C.skin} roughness={0.55} />
         </mesh>
         {C.extra === 'mic' && (
-          <group position={[0, -0.5, 0.1]}>
-            <mesh>
-              <cylinderGeometry args={[0.035, 0.045, 0.22, 10]} />
-              <meshStandardMaterial color="#22222c" roughness={0.4} />
-            </mesh>
-            <mesh position={[0, 0.16, 0]}>
-              <sphereGeometry args={[0.075, 12, 10]} />
-              <meshStandardMaterial color="#8a90b8" roughness={0.3} metalness={0.6} />
-            </mesh>
+          <group position={[0, -0.36, 0.12]}>
+            <mesh><cylinderGeometry args={[0.03, 0.04, 0.18, 10]} /><meshStandardMaterial color="#22222c" roughness={0.4} /></mesh>
+            <mesh position={[0, 0.13, 0]}><sphereGeometry args={[0.065, 12, 10]} /><meshStandardMaterial color="#9aa2c4" metalness={0.6} roughness={0.3} /></mesh>
           </group>
         )}
       </group>
-      {/* Nyaklanc / csokornyakkendo / maslI */}
       {C.extra === 'chain' && (
-        <mesh position={[0, 0.16, 0.3]} rotation={[1.25, 0, 0]}>
-          <torusGeometry args={[0.2, 0.035, 10, 22]} />
+        <mesh position={[0, -0.2, 0.26]} rotation={[1.3, 0, 0]}>
+          <torusGeometry args={[0.17, 0.032, 10, 22]} />
           <meshStandardMaterial color="#ffd700" metalness={0.85} roughness={0.25} />
         </mesh>
       )}
       {C.extra === 'bowtie' && (
-        <group position={[0, 0.22, 0.36]}>
-          <mesh position={[-0.09, 0, 0]} rotation={[0, 0, 0.5]} scale={[1.4, 0.8, 0.5]}>
-            <sphereGeometry args={[0.07, 8, 8]} />
-            <meshStandardMaterial color="#ff0055" roughness={0.5} />
-          </mesh>
-          <mesh position={[0.09, 0, 0]} rotation={[0, 0, -0.5]} scale={[1.4, 0.8, 0.5]}>
-            <sphereGeometry args={[0.07, 8, 8]} />
-            <meshStandardMaterial color="#ff0055" roughness={0.5} />
-          </mesh>
+        <group position={[0, -0.15, 0.3]}>
+          {[-0.08, 0.08].map((x, i) => (
+            <mesh key={i} position={[x, 0, 0]} rotation={[0, 0, x > 0 ? -0.5 : 0.5]} scale={[1.4, 0.8, 0.5]}>
+              <sphereGeometry args={[0.06, 8, 8]} />
+              <meshStandardMaterial color="#ff0055" roughness={0.5} />
+            </mesh>
+          ))}
         </group>
       )}
-      {/* Fej */}
-      <group ref={head} position={[0, 0.55, 0]}>
+
+      {/* NAGY chibi-fej */}
+      <group ref={head} position={[0, HY, 0]}>
         <mesh>
-          <sphereGeometry args={[0.42, 24, 20]} />
-          <meshStandardMaterial color={C.skin} roughness={0.6} />
+          <sphereGeometry args={[HR, 26, 22]} />
+          <meshStandardMaterial color={C.skin} roughness={0.55} />
         </mesh>
-        {/* Szemek */}
-        {C.glasses !== 'visor' && (
-          <>
-            <mesh position={[-0.14, 0.05, 0.37]}>
-              <sphereGeometry args={[0.075, 12, 10]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.3} />
+        {/* Nagy, csillogo szemek */}
+        {C.glasses !== 'visor' && [-0.18, 0.18].map((x, i) => (
+          <group key={i} position={[x, 0.04, 0]}>
+            <mesh position={[0, 0, HR * 0.86]}>
+              <sphereGeometry args={[0.105, 14, 12]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.2} />
             </mesh>
-            <mesh position={[0.14, 0.05, 0.37]}>
-              <sphereGeometry args={[0.075, 12, 10]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.3} />
+            <mesh position={[0, 0, HR * 0.98]}>
+              <sphereGeometry args={[0.05, 10, 8]} />
+              <meshStandardMaterial color="#141420" roughness={0.25} />
             </mesh>
-            <mesh position={[-0.14, 0.05, 0.435]}>
-              <sphereGeometry args={[0.032, 10, 8]} />
-              <meshStandardMaterial color="#101018" roughness={0.3} />
+            <mesh position={[0.028, 0.03, HR * 1.05]}>
+              <sphereGeometry args={[0.018, 8, 6]} />
+              <meshStandardMaterial color="#ffffff" />
             </mesh>
-            <mesh position={[0.14, 0.05, 0.435]}>
-              <sphereGeometry args={[0.032, 10, 8]} />
-              <meshStandardMaterial color="#101018" roughness={0.3} />
-            </mesh>
-          </>
-        )}
+          </group>
+        ))}
+        {/* Pirospozsgas orcak */}
+        {[-0.31, 0.31].map((x, i) => (
+          <mesh key={i} position={[x, -0.1, HR * 0.72]} scale={[1, 0.7, 0.4]}>
+            <sphereGeometry args={[0.09, 10, 8]} />
+            <meshStandardMaterial color="#ff8aa0" roughness={0.7} transparent opacity={0.75} />
+          </mesh>
+        ))}
         {/* Mosoly */}
-        <mesh position={[0, -0.14, 0.36]} rotation={[0.5, 0, 0]}>
-          <torusGeometry args={[0.11, 0.022, 8, 14, Math.PI]} />
+        <mesh position={[0, -0.17, HR * 0.82]} rotation={[0.45, 0, 0]}>
+          <torusGeometry args={[0.12, 0.026, 8, 14, Math.PI]} />
           <meshStandardMaterial color="#7a3b2e" roughness={0.6} />
         </mesh>
         {/* Szemuvegek */}
-        {C.glasses === 'round' && (
-          <group position={[0, 0.05, 0.4]}>
-            <mesh position={[-0.14, 0, 0]}><torusGeometry args={[0.09, 0.016, 8, 18]} /><meshStandardMaterial color="#d9a200" metalness={0.6} roughness={0.3} /></mesh>
-            <mesh position={[0.14, 0, 0]}><torusGeometry args={[0.09, 0.016, 8, 18]} /><meshStandardMaterial color="#d9a200" metalness={0.6} roughness={0.3} /></mesh>
-          </group>
-        )}
-        {C.glasses === 'square' && (
-          <group position={[0, 0.05, 0.4]}>
-            <mesh position={[-0.14, 0, 0]}><boxGeometry args={[0.17, 0.13, 0.03]} /><meshStandardMaterial color="#101018" roughness={0.4} /></mesh>
-            <mesh position={[0.14, 0, 0]}><boxGeometry args={[0.17, 0.13, 0.03]} /><meshStandardMaterial color="#101018" roughness={0.4} /></mesh>
-          </group>
-        )}
+        {C.glasses === 'round' && [-0.18, 0.18].map((x, i) => (
+          <mesh key={i} position={[x, 0.05, HR * 0.94]}>
+            <torusGeometry args={[0.11, 0.016, 8, 18]} />
+            <meshStandardMaterial color="#d9a200" metalness={0.6} roughness={0.3} />
+          </mesh>
+        ))}
+        {C.glasses === 'square' && [-0.18, 0.18].map((x, i) => (
+          <mesh key={i} position={[x, 0.05, HR * 0.94]}>
+            <boxGeometry args={[0.2, 0.15, 0.03]} />
+            <meshStandardMaterial color="#101018" roughness={0.4} />
+          </mesh>
+        ))}
         {C.glasses === 'shades' && (
-          <mesh position={[0, 0.05, 0.4]}><boxGeometry args={[0.42, 0.12, 0.04]} /><meshStandardMaterial color="#0a0a12" roughness={0.2} metalness={0.4} /></mesh>
+          <mesh position={[0, 0.06, HR * 0.94]}><boxGeometry args={[0.5, 0.14, 0.05]} /><meshStandardMaterial color="#0a0a12" roughness={0.2} metalness={0.4} /></mesh>
         )}
         {C.glasses === 'gold' && (
-          <mesh position={[0, 0.05, 0.4]}><boxGeometry args={[0.42, 0.12, 0.04]} /><meshStandardMaterial color="#f5b91e" roughness={0.25} metalness={0.8} /></mesh>
+          <mesh position={[0, 0.06, HR * 0.94]}><boxGeometry args={[0.5, 0.14, 0.05]} /><meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} /></mesh>
         )}
-        {C.glasses === 'star' && (
-          <group position={[0, 0.06, 0.41]}>
-            <mesh position={[-0.14, 0, 0]} rotation={[0, 0, 0.4]}><boxGeometry args={[0.16, 0.16, 0.03]} /><meshStandardMaterial color="#ff5dde" roughness={0.3} /></mesh>
-            <mesh position={[0.14, 0, 0]} rotation={[0, 0, 0.4]}><boxGeometry args={[0.16, 0.16, 0.03]} /><meshStandardMaterial color="#00eaff" roughness={0.3} /></mesh>
-          </group>
-        )}
+        {C.glasses === 'star' && [-0.18, 0.18].map((x, i) => (
+          <mesh key={i} position={[x, 0.07, HR * 0.96]} rotation={[0, 0, 0.4]}>
+            <boxGeometry args={[0.18, 0.18, 0.03]} />
+            <meshStandardMaterial color={i === 0 ? '#ff5dde' : '#00eaff'} roughness={0.3} />
+          </mesh>
+        ))}
         {C.glasses === 'visor' && (
-          <mesh position={[0, 0.05, 0.36]} rotation={[0.06, 0, 0]}>
-            <boxGeometry args={[0.56, 0.16, 0.1]} />
-            <meshStandardMaterial color="#00eaff" emissive="#00b8d4" emissiveIntensity={0.8} roughness={0.2} />
+          <mesh position={[0, 0.05, HR * 0.8]} rotation={[0.05, 0, 0]}>
+            <boxGeometry args={[0.68, 0.18, 0.12]} />
+            <meshStandardMaterial color="#00eaff" emissive="#00b8d4" emissiveIntensity={0.9} roughness={0.2} />
           </mesh>
         )}
-        {/* Frizurak / fejfedok */}
+        {/* Frizurak / fejfedok - a nagy fejhez meretezve */}
         {C.hat === 'headphones' && (
           <group>
-            <mesh rotation={[0, 0, 0]} position={[0, 0.12, 0]}><torusGeometry args={[0.42, 0.045, 10, 24, Math.PI]} /><meshStandardMaterial color="#101018" roughness={0.4} /></mesh>
-            <mesh position={[-0.43, 0.02, 0]}><sphereGeometry args={[0.13, 12, 10]} /><meshStandardMaterial color="#00eaff" emissive="#0090aa" emissiveIntensity={0.5} /></mesh>
-            <mesh position={[0.43, 0.02, 0]}><sphereGeometry args={[0.13, 12, 10]} /><meshStandardMaterial color="#00eaff" emissive="#0090aa" emissiveIntensity={0.5} /></mesh>
-          </group>
-        )}
-        {C.hat === 'mohawk' && (
-          <group>
-            {[-0.18, -0.06, 0.06, 0.18].map((z, i) => (
-              <mesh key={i} position={[0, 0.42 - Math.abs(z) * 0.5, z]} rotation={[z * 1.2, 0, 0]}>
-                <coneGeometry args={[0.07, 0.3, 8]} />
-                <meshStandardMaterial color={hair} roughness={0.5} />
+            <mesh position={[0, 0.16, 0]}><torusGeometry args={[HR * 1.0, 0.05, 10, 24, Math.PI]} /><meshStandardMaterial color="#14141c" roughness={0.4} /></mesh>
+            {[-1, 1].map((d, i) => (
+              <mesh key={i} position={[d * (HR + 0.02), 0.02, 0]}>
+                <sphereGeometry args={[0.15, 14, 12]} />
+                <meshStandardMaterial color="#00eaff" emissive="#0090aa" emissiveIntensity={0.55} />
               </mesh>
             ))}
           </group>
         )}
-        {C.hat === 'spikes' && (
-          <group>
-            {[[-0.2, 0.3, 0.12], [0, 0.4, 0], [0.2, 0.3, 0.12], [-0.12, 0.36, -0.14], [0.12, 0.36, -0.14]].map((p, i) => (
-              <mesh key={i} position={p} rotation={[p[2] * 1.5, 0, -p[0] * 1.4]}>
-                <coneGeometry args={[0.06, 0.24, 8]} />
-                <meshStandardMaterial color={hair} roughness={0.5} />
-              </mesh>
-            ))}
-          </group>
-        )}
+        {C.hat === 'mohawk' && [-0.24, -0.08, 0.08, 0.24].map((z, i) => (
+          <mesh key={i} position={[0, HR - 0.02 + (0.12 - Math.abs(z) * 0.5), z]} rotation={[z * 1.1, 0, 0]}>
+            <coneGeometry args={[0.08, 0.34, 8]} />
+            <meshStandardMaterial color={hair} roughness={0.5} />
+          </mesh>
+        ))}
+        {C.hat === 'spikes' && [[-0.26, 0.4, 0.16], [0, 0.5, 0], [0.26, 0.4, 0.16], [-0.16, 0.46, -0.2], [0.16, 0.46, -0.2]].map((p, i) => (
+          <mesh key={i} position={p} rotation={[p[2] * 1.4, 0, -p[0] * 1.3]}>
+            <coneGeometry args={[0.07, 0.28, 8]} />
+            <meshStandardMaterial color={hair} roughness={0.5} />
+          </mesh>
+        ))}
         {C.hat === 'afro' && (
-          <mesh position={[0, 0.26, -0.02]}>
-            <sphereGeometry args={[0.4, 18, 16]} />
+          <mesh position={[0, 0.3, -0.03]}>
+            <sphereGeometry args={[0.5, 18, 16]} />
             <meshStandardMaterial color={hair} roughness={0.85} />
           </mesh>
         )}
         {C.hat === 'cap' && (
-          <group position={[0, 0.28, 0]} rotation={[0.12, Math.PI, 0]}>
-            <mesh><sphereGeometry args={[0.4, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2.1]} /><meshStandardMaterial color="#c8102e" roughness={0.6} /></mesh>
-            <mesh position={[0, 0.02, 0.4]} rotation={[-0.15, 0, 0]}><boxGeometry args={[0.34, 0.03, 0.26]} /><meshStandardMaterial color="#c8102e" roughness={0.6} /></mesh>
+          <group position={[0, 0.3, 0]} rotation={[0.1, Math.PI, 0]}>
+            <mesh><sphereGeometry args={[0.5, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2.1]} /><meshStandardMaterial color="#c8102e" roughness={0.6} /></mesh>
+            <mesh position={[0, 0.03, 0.5]} rotation={[-0.15, 0, 0]}><boxGeometry args={[0.4, 0.035, 0.3]} /><meshStandardMaterial color="#c8102e" roughness={0.6} /></mesh>
           </group>
         )}
         {C.hat === 'flat' && (
-          <mesh position={[0, 0.33, 0]} scale={[1, 0.4, 1]}>
-            <sphereGeometry args={[0.38, 16, 12]} />
+          <mesh position={[0, 0.36, 0]} scale={[1, 0.42, 1]}>
+            <sphereGeometry args={[0.48, 16, 12]} />
             <meshStandardMaterial color={hair} roughness={0.8} />
           </mesh>
         )}
         {C.hat === 'longhair' && (
           <group>
-            <mesh position={[0, 0.2, -0.06]} scale={[1.05, 0.8, 1.05]}><sphereGeometry args={[0.42, 18, 14, 0, Math.PI * 2, 0, Math.PI / 1.8]} /><meshStandardMaterial color={hair} roughness={0.8} /></mesh>
-            <mesh position={[-0.32, -0.1, -0.12]} rotation={[0, 0, 0.2]}><capsuleGeometry args={[0.09, 0.5, 6, 10]} /><meshStandardMaterial color={hair} roughness={0.8} /></mesh>
-            <mesh position={[0.32, -0.1, -0.12]} rotation={[0, 0, -0.2]}><capsuleGeometry args={[0.09, 0.5, 6, 10]} /><meshStandardMaterial color={hair} roughness={0.8} /></mesh>
+            <mesh position={[0, 0.2, -0.05]} scale={[1.04, 0.85, 1.04]}><sphereGeometry args={[HR, 18, 14, 0, Math.PI * 2, 0, Math.PI / 1.8]} /><meshStandardMaterial color={hair} roughness={0.8} /></mesh>
+            {[-1, 1].map((d, i) => (
+              <mesh key={i} position={[d * 0.4, -0.18, -0.14]} rotation={[0, 0, -d * 0.18]}>
+                <capsuleGeometry args={[0.1, 0.55, 6, 10]} />
+                <meshStandardMaterial color={hair} roughness={0.8} />
+              </mesh>
+            ))}
           </group>
         )}
         {C.hat === 'bun' && (
           <group>
-            <mesh position={[0, 0.2, -0.02]} scale={[1.03, 0.7, 1.03]}><sphereGeometry args={[0.42, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
-            <mesh position={[0, 0.5, -0.05]}><sphereGeometry args={[0.15, 14, 12]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
+            <mesh position={[0, 0.22, -0.02]} scale={[1.03, 0.72, 1.03]}><sphereGeometry args={[HR, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
+            <mesh position={[0, 0.6, -0.06]}><sphereGeometry args={[0.17, 14, 12]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
           </group>
         )}
         {C.hat === 'quiff' && (
-          <mesh position={[0, 0.38, 0.16]} rotation={[0.7, 0, 0]} scale={[1, 0.7, 1.3]}>
-            <sphereGeometry args={[0.24, 14, 12]} />
-            <meshStandardMaterial color={hair} roughness={0.55} />
+          <mesh position={[0, 0.46, 0.2]} rotation={[0.65, 0, 0]} scale={[1, 0.7, 1.35]}>
+            <sphereGeometry args={[0.28, 14, 12]} />
+            <meshStandardMaterial color={hair} roughness={0.5} />
           </mesh>
         )}
         {C.hat === 'dreads' && (
           <group>
-            <mesh position={[0, 0.22, -0.02]} scale={[1.03, 0.6, 1.03]}><sphereGeometry args={[0.42, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
-            {[[-0.3, 0.05, -0.2], [0.3, 0.05, -0.2], [-0.34, 0, 0.08], [0.34, 0, 0.08], [0, 0.1, -0.36]].map((p, i) => (
-              <mesh key={i} position={[p[0], p[1] - 0.12, p[2]]} rotation={[p[2] * 0.6, 0, -p[0] * 0.5]}>
-                <capsuleGeometry args={[0.05, 0.34, 6, 8]} />
+            <mesh position={[0, 0.24, -0.02]} scale={[1.03, 0.62, 1.03]}><sphereGeometry args={[HR, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
+            {[[-0.36, 0.02, -0.24], [0.36, 0.02, -0.24], [-0.42, -0.04, 0.1], [0.42, -0.04, 0.1], [0, 0.1, -0.44]].map((p, i) => (
+              <mesh key={i} position={[p[0], p[1] - 0.14, p[2]]} rotation={[p[2] * 0.5, 0, -p[0] * 0.45]}>
+                <capsuleGeometry args={[0.055, 0.4, 6, 8]} />
                 <meshStandardMaterial color={i % 3 === 0 ? '#c8102e' : i % 3 === 1 ? '#f5b91e' : '#0a6a2f'} roughness={0.7} />
               </mesh>
             ))}
           </group>
         )}
         {C.hat === 'antenna' && (
-          <group position={[0, 0.42, 0]}>
-            <mesh><cylinderGeometry args={[0.02, 0.02, 0.24, 8]} /><meshStandardMaterial color="#5b6a85" roughness={0.4} /></mesh>
-            <mesh position={[0, 0.16, 0]}><sphereGeometry args={[0.06, 10, 8]} /><meshStandardMaterial color="#ff0055" emissive="#ff0055" emissiveIntensity={0.9} /></mesh>
+          <group position={[0, HR, 0]}>
+            <mesh><cylinderGeometry args={[0.022, 0.022, 0.26, 8]} /><meshStandardMaterial color="#5b6a85" roughness={0.4} /></mesh>
+            <mesh position={[0, 0.18, 0]}><sphereGeometry args={[0.07, 10, 8]} /><meshStandardMaterial color="#ff0055" emissive="#ff0055" emissiveIntensity={1} /></mesh>
           </group>
         )}
         {C.hat === 'crown' && (
-          <group position={[0, 0.4, 0]}>
-            <mesh><cylinderGeometry args={[0.24, 0.26, 0.12, 12]} /><meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} /></mesh>
+          <group position={[0, HR - 0.06, 0]}>
+            <mesh><cylinderGeometry args={[0.27, 0.3, 0.13, 12]} /><meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} /></mesh>
             {[0, 1, 2, 3, 4].map((i) => {
               const a = (i / 5) * Math.PI * 2;
               return (
-                <mesh key={i} position={[Math.cos(a) * 0.23, 0.13, Math.sin(a) * 0.23]}>
-                  <coneGeometry args={[0.05, 0.14, 6]} />
+                <mesh key={i} position={[Math.cos(a) * 0.26, 0.14, Math.sin(a) * 0.26]}>
+                  <coneGeometry args={[0.055, 0.15, 6]} />
                   <meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} />
                 </mesh>
               );
@@ -449,9 +444,13 @@ function BuddyModel({ cfg, mood }) {
           </group>
         )}
         {C.extra === 'bow' && (
-          <group position={[0.26, 0.34, 0.18]} rotation={[0, 0, -0.4]}>
-            <mesh position={[-0.05, 0, 0]} scale={[1.3, 0.7, 0.5]}><sphereGeometry args={[0.06, 8, 8]} /><meshStandardMaterial color="#ff0055" roughness={0.5} /></mesh>
-            <mesh position={[0.05, 0, 0]} scale={[1.3, 0.7, 0.5]}><sphereGeometry args={[0.06, 8, 8]} /><meshStandardMaterial color="#ff0055" roughness={0.5} /></mesh>
+          <group position={[0.32, 0.4, 0.2]} rotation={[0, 0, -0.4]}>
+            {[-0.05, 0.05].map((x, i) => (
+              <mesh key={i} position={[x, 0, 0]} scale={[1.3, 0.7, 0.5]}>
+                <sphereGeometry args={[0.07, 8, 8]} />
+                <meshStandardMaterial color="#ff0055" roughness={0.5} />
+              </mesh>
+            ))}
           </group>
         )}
       </group>
@@ -531,7 +530,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v21.2';
+const APP_VERSION = 'v21.3';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -755,6 +754,12 @@ const shuffleDeck = (array) => {
     [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
   }
   return newArray;
+};
+
+// Egy CSS-gradiens szovegbol kiszedi a ket szelso szint (SVG-hez)
+const packColors = (styleStr) => {
+  const m = String(styleStr || '').match(/#[0-9a-fA-F]{3,8}/g) || [];
+  return [m[0] || '#ff0055', m[m.length - 1] || '#00eaff'];
 };
 
 // Lite mod: gyenge keszulekeken minimalis effekt-terheles
@@ -2694,19 +2699,25 @@ export default function App() {
             <span className="cta-shine" />
           </button>
 
-          {/* 4. Pakli-doboz (festekpacsa) */}
-          <button
-            type="button"
-            className="wide-tile blob-box bob"
-            style={{ background: SONG_PACKS[selectedPack].style, animationDelay: '1.3s' }}
-            onClick={() => setShowPackSelection(true)}
-          >
-            <span className="tile-ico"><Layers size={20} /></span>
-            <span className="wt-body">
+          {/* 4. Pakli - szeles festekpacsa */}
+          <button type="button" className="splat-tile wide bob" style={{ animationDelay: '1.3s' }} onClick={() => setShowPackSelection(true)}>
+            <svg className="splat-svg sw1" viewBox="0 0 360 96" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="sg-pack" x1="0" y1="0" x2="1" y2="0.4">
+                  <stop offset="0" stopColor={packColors(SONG_PACKS[selectedPack].style)[0]} />
+                  <stop offset="1" stopColor={packColors(SONG_PACKS[selectedPack].style)[1]} />
+                </linearGradient>
+              </defs>
+              <path fill="url(#sg-pack)" d="M28,44 C16,24 48,8 88,14 C126,2 176,4 208,12 C254,2 304,10 324,24 C354,28 356,54 338,64 C352,80 320,94 288,88 C246,98 186,96 148,88 C108,96 60,92 44,78 C16,78 8,58 28,44 Z" />
+              <circle cx="352" cy="76" r="6" fill="url(#sg-pack)" />
+              <circle cx="8" cy="28" r="5" fill="url(#sg-pack)" />
+              <circle cx="196" cy="92" r="4" fill="url(#sg-pack)" />
+            </svg>
+            <span className="splat-content row">
+              <Layers size={17} />
               <span className="tile-name">PAKLI: {SONG_PACKS[selectedPack].label}</span>
-              <span className="tile-meta">{SONG_PACKS[selectedPack].data.length} dal · koppints a váltáshoz</span>
+              <RefreshCw size={14} className="wt-end" />
             </span>
-            <RefreshCw size={15} className="wt-end" />
           </button>
 
           {/* 5. Negy festekpacsa-doboz */}
@@ -2734,7 +2745,6 @@ export default function App() {
               <span className="splat-content">
                 <Sparkles size={18} />
                 <span className="tile-name">NAPI KIHÍVÁS</span>
-                <span className="tile-meta">{dtoday ? `Ma: ${dtoday.score}/10` : dstore.streak ? `Sorozat: ${dstore.streak} nap` : 'Minden nap új 10 dal'}</span>
               </span>
             </button>
 
@@ -2753,7 +2763,6 @@ export default function App() {
               <span className="splat-content">
                 <Play size={18} />
                 <span className="tile-name">CHRONO-BOT</span>
-                <span className="tile-meta">{botDiff ? `${botDiff} fokozat` : 'Három fokozat'}</span>
               </span>
             </button>
 
@@ -2772,7 +2781,6 @@ export default function App() {
               <span className="splat-content">
                 <Smartphone size={18} />
                 <span className="tile-name">ONLINE SZOBA</span>
-                <span className="tile-meta">{netRole === 'host' ? `Kód: ${roomCode}` : 'Kód vagy QR'}</span>
               </span>
             </button>
 
@@ -2791,22 +2799,26 @@ export default function App() {
               <span className="splat-content">
                 <Trophy size={18} />
                 <span className="tile-name">TRÓFEÁK</span>
-                <span className="tile-meta">{achN} / 12 megszerezve</span>
               </span>
             </button>
           </div>
 
-          {/* 6. Extra modok doboz (festekpacsa) */}
-          <button
-            type="button"
-            className="wide-tile blob-box t-modes bob"
-            style={{ animationDelay: '0.4s' }}
-            onClick={() => setShowSettings(true)}
-          >
-            <span className="tile-ico"><Settings size={20} /></span>
-            <span className="wt-body">
-              <span className="tile-name">EXTRA MÓDOK</span>
-              <span className="tile-meta">{modeN ? `${modeN} aktív — Blind, Speed, Vétó és társaik` : 'Blind, Speed Run, Arany Kártya, Vétó…'}</span>
+          {/* 6. Extra modok - szeles festekpacsa */}
+          <button type="button" className="splat-tile wide bob" style={{ animationDelay: '0.4s' }} onClick={() => setShowSettings(true)}>
+            <svg className="splat-svg sw2" viewBox="0 0 360 96" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="sg-modes" x1="0" y1="0.6" x2="1" y2="0">
+                  <stop offset="0" stopColor="#5b2dff" /><stop offset="1" stopColor="#00c8ff" />
+                </linearGradient>
+              </defs>
+              <path fill="url(#sg-modes)" d="M34,50 C20,28 56,10 96,16 C132,4 184,6 214,14 C262,6 310,14 330,28 C356,34 352,58 334,66 C346,82 312,94 282,88 C238,96 182,94 146,86 C104,94 58,90 44,76 C18,74 12,60 34,50 Z" />
+              <circle cx="10" cy="70" r="6" fill="url(#sg-modes)" />
+              <circle cx="350" cy="20" r="5" fill="url(#sg-modes)" />
+              <circle cx="120" cy="6" r="4" fill="url(#sg-modes)" />
+            </svg>
+            <span className="splat-content row">
+              <Settings size={17} />
+              <span className="tile-name">EXTRA MÓDOK{modeN ? ` · ${modeN} AKTÍV` : ''}</span>
             </span>
           </button>
         </div>

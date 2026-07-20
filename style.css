@@ -2443,3 +2443,35 @@ button:active { transform: scale(0.96); }
 }
 .wordmark.big .wm-line:first-child { text-align: left; padding-left: 4%; }
 .wordmark.big .wm-line:last-child { text-align: right; padding-right: 4%; margin-top: -6px; }
+
+/* ============================================================
+   v21.3 — SZELES PACAK, NEV-CSAK CSEMPEK, LOGO-MELYITES
+   ============================================================ */
+.splat-tile.wide { width: 100%; min-height: 72px; }
+.splat-svg.sw1 { animation-duration: 8.6s; animation-delay: 0.4s; }
+.splat-svg.sw2 { animation-duration: 7.2s; animation-delay: 1s; }
+.splat-content.row {
+  flex-direction: row;
+  gap: var(--s2);
+  padding: var(--s3) var(--s6);
+}
+.splat-content.row .tile-name {
+  font-size: 0.8rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.splat-content .tile-name { text-shadow: 0 2px 5px rgba(0, 0, 0, 0.45); }
+.splat-tile:not(.wide) .splat-content { gap: 5px; }
+.splat-tile:not(.wide) .tile-name { font-size: 0.82rem; line-height: 1.15; }
+
+/* Logo: melyebb, atlos terhatas (a dontessel egyiranyu kihuzas) */
+.wordmark.big .wm-line {
+  text-shadow:
+    1px 1px 0 #6b1258,
+    2px 2px 0 #5c0f4c,
+    3px 3px 0 #4c0c40,
+    4px 4px 0 #3d0a34,
+    5px 5px 0 #2e0728,
+    6px 6px 0 #20051c,
+    7px 7px 0 #140312,
+    3px 14px 26px rgba(255, 65, 200, 0.4);
+}
