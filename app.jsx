@@ -530,7 +530,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v21.4';
+const APP_VERSION = 'v23';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -785,6 +785,108 @@ const fireConfetti = (power = 1) => {
 // ============================================================
 //  HATTER: ZENEI SZINPAD (diszkogomb, bakelitek, hangjegyek)
 // ============================================================
+
+// ============================================================
+//  MENU COVERFLOW - 3D lapozhato menukartyak (nincs WebGL, csak CSS-transzform)
+// ============================================================
+function MenuCarousel({ items, active, setActive, onSelect }) {
+  const stageRef = useRef(null);
+  const [w, setW] = useState(340);
+  const [drag, setDrag] = useState(0);
+  const [isDrag, setIsDrag] = useState(false);
+  const dref = useRef(null);
+  const movedRef = useRef(false);
+
+  useEffect(() => {
+    const measure = () => { if (stageRef.current) setW(stageRef.current.clientWidth); };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  const n = items.length;
+  const clamp = (i) => Math.max(0, Math.min(n - 1, i));
+  const spacing = Math.min(w * 0.5, 200);
+
+  const onDown = (e) => {
+    dref.current = e.clientX;
+    movedRef.current = false;
+    setIsDrag(true);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) {}
+  };
+  const onMove = (e) => {
+    if (dref.current == null) return;
+    const dx = e.clientX - dref.current;
+    if (Math.abs(dx) > 5) movedRef.current = true;
+    setDrag(dx);
+  };
+  const onUp = () => {
+    if (dref.current == null) return;
+    const th = spacing * 0.32;
+    if (drag > th) setActive((a) => clamp(a - 1));
+    else if (drag < -th) setActive((a) => clamp(a + 1));
+    dref.current = null;
+    setDrag(0);
+    setIsDrag(false);
+  };
+
+  const shift = drag / (spacing || 1);
+
+  return (
+    <div
+      className="cf-stage"
+      ref={stageRef}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerLeave={onUp}
+      onPointerCancel={onUp}
+    >
+      <div className="cf-track">
+        {items.map((it, i) => {
+          const off = i - active - shift;
+          const abs = Math.abs(off);
+          const hidden = abs > 2.4;
+          const style = {
+            transform: `translate(-50%, -50%) translateX(${off * spacing}px) translateZ(${-abs * 130}px) rotateY(${off * -34}deg) scale(${Math.max(0.62, 1 - abs * 0.08)})`,
+            opacity: hidden ? 0 : Math.max(0, 1 - abs * 0.26),
+            zIndex: 100 - Math.round(abs * 10),
+            pointerEvents: hidden ? 'none' : 'auto',
+            transition: isDrag ? 'none' : 'transform .45s cubic-bezier(.2,.8,.2,1), opacity .45s',
+          };
+          const isCenter = i === active;
+          return (
+            <button
+              key={it.key}
+              type="button"
+              className={`cf-card ${it.cls} ${isCenter ? 'center' : ''}`}
+              style={style}
+              onClick={() => {
+                if (movedRef.current) return;
+                if (i === active) onSelect(it.key);
+                else setActive(i);
+              }}
+            >
+              <span className="cf-sheen" />
+              <span className="cf-ico">{it.icon}</span>
+              <span className="cf-title">{it.title}</span>
+              {it.meta && <span className="cf-meta">{it.meta}</span>}
+              <span className="cf-go">{isCenter ? (it.cta || 'VÁLASZT') : ''}</span>
+            </button>
+          );
+        })}
+      </div>
+      <button type="button" className="cf-arrow left" aria-label="Előző" onClick={() => setActive(clamp(active - 1))}>‹</button>
+      <button type="button" className="cf-arrow right" aria-label="Következő" onClick={() => setActive(clamp(active + 1))}>›</button>
+      <div className="cf-dots">
+        {items.map((it, i) => (
+          <span key={it.key} className={`cf-dot ${i === active ? 'on' : ''}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const Backdrop = React.memo(function Backdrop() {
   return (
     <div className="backdrop" aria-hidden="true">
@@ -951,9 +1053,7 @@ export default function App() {
 
   const [newName, setNewName] = useState('');
   const [charIndex, setCharIndex] = useState(0);
-  const [slide, setSlide] = useState(0);
-  const carouselRef = useRef(null);
-  const swipeRef = useRef({ startX: 0, active: false, moved: false });
+  const [menuIndex, setMenuIndex] = useState(0);
   const [selectedPack, setSelectedPack] = useState('mix');
   const [showPackSelection, setShowPackSelection] = useState(false);
   const [toast, setToast] = useState(null);
@@ -2659,180 +2759,59 @@ export default function App() {
   );
 
 
-  // ============================================================
-  //  FOMENU — swipe-alapu dia-nézet (5 dia, balra/jobbra lapozhato)
-  // ============================================================
   if (status === 'menu') {
+    const mc = CHARACTERS[charIndex % CHARACTERS.length];
     const dstore = loadDailyStore();
     const dtoday = dstore.history && dstore.history[todayKey()];
     const prof = loadProfile();
     const achN = Object.keys(prof.ach).length;
     const modeN = Object.values(modes).filter(Boolean).length;
-
-    const CARDS = [
-      {
-        key: 'play',
-        title: 'JÁTÉK',
-        grad: 'linear-gradient(135deg, #ff1f5e 0%, #c81fff 48%, #00c8ff 100%)',
-        icon: <Play size={22} />,
-        action: () => setStatus('setup'),
-        sub: 'Indíts egy meccset',
-      },
-      {
-        key: 'daily',
-        title: 'NAPI',
-        grad: 'linear-gradient(135deg, #8a2bff, #ff2f92)',
-        icon: <Sparkles size={22} />,
-        action: () => { if (dtoday) { setDailyView('result'); setStatus('daily-result'); } else startDaily(); },
-        sub: dtoday ? 'Ma már teljesítve' : '10 dal · 3 élet',
-      },
-      {
-        key: 'bot',
-        title: 'BOT',
-        grad: 'linear-gradient(135deg, #00c8ff, #2e5bff)',
-        icon: <Play size={22} />,
-        action: () => setShowBot(true),
-        sub: 'Edzés a gép ellen',
-      },
-      {
-        key: 'online',
-        title: 'ONLINE',
-        grad: 'linear-gradient(135deg, #ff2bd0, #8a2bff)',
-        icon: <Smartphone size={22} />,
-        action: () => setShowRoom(true),
-        sub: 'Több telefon, egy szoba',
-      },
-      {
-        key: 'trophies',
-        title: 'TRÓFEÁK',
-        grad: 'linear-gradient(135deg, #ffb300, #ff6a00)',
-        icon: <Trophy size={22} />,
-        action: () => setStatus('stats'),
-        sub: `${achN}/12 megyszerzve`,
-      },
-    ];
-
-    const onCardNav = (dir) => setSlide((s) => (s + dir + CARDS.length) % CARDS.length);
-    const cur = CARDS[slide];
-
+    let botDiff = '';
+    try { botDiff = localStorage.getItem('cb_botdiff') || ''; } catch (e) {}
     return (
-      <div className={`app-container menu-screen carousel-menu ${liteActive ? 'lite' : ''}`}>
+      <div className={`app-container menu-screen ${liteActive ? 'lite' : ''}`}>
         <Backdrop />
         {ToastView}
-        <div className="menu-head">
-          <span />
-          <button type="button" className="gear-ghost" onClick={() => setShowSettings(true)} aria-label="Beállítások">
-            <Settings size={20} />
-          </button>
-        </div>
-
-        <div className="wordmark big bob" style={{ animationDelay: '0.2s' }}>
-          <span className="wm-line">CHRONO</span>
-          <span className="wm-line">BEATS</span>
-        </div>
-
-        <div className="carousel-stage">
-          <button type="button" className="carousel-arrow left" aria-label="Előző" onClick={() => onCardNav(-1)}>‹</button>
-
-          <div
-            className="carousel-viewport"
-            ref={carouselRef}
-            onPointerDown={(e) => {
-              const el = carouselRef.current;
-              if (!el) return;
-              el.setPointerCapture(e.pointerId);
-              swipeRef.current = { startX: e.clientX, active: true, moved: false };
-            }}
-            onPointerMove={(e) => {
-              const s = swipeRef.current;
-              if (!s.active) return;
-              const dx = e.clientX - s.startX;
-              if (Math.abs(dx) > 6) s.moved = true;
-              const el = carouselRef.current;
-              if (el) el.style.setProperty('--drag-x', `${dx}px`);
-            }}
-            onPointerUp={(e) => {
-              const s = swipeRef.current;
-              const el = carouselRef.current;
-              if (el) el.style.setProperty('--drag-x', `0px`);
-              if (s.active && s.moved) {
-                const dx = e.clientX - s.startX;
-                if (dx < -50) onCardNav(1);
-                else if (dx > 50) onCardNav(-1);
-              }
-              swipeRef.current = { startX: 0, active: false, moved: false };
-            }}
-            onPointerCancel={() => {
-              const el = carouselRef.current;
-              if (el) el.style.setProperty('--drag-x', `0px`);
-              swipeRef.current = { startX: 0, active: false, moved: false };
-            }}
-          >
-            <div
-              className="carousel-track"
-              style={{ transform: `translateX(calc(-${slide * 100}% + var(--drag-x, 0px)))` }}
-            >
-              {CARDS.map((c, i) => (
-                <div className="carousel-card" key={c.key} data-active={i === slide}>
-                  <div className="card-bg" style={{ background: c.grad }} />
-                  <div className="card-glow" style={{ background: c.grad }} />
-                  <div className="card-inner">
-                    {c.key === 'play' && (
-                      <div className="hero-stage center bob" style={{ animationDelay: '0.4s' }}>
-                        <div className="spot-cone" />
-                        <CharacterStage charIndex={charIndex} size={130} mood="idle" />
-                        <div className="stage-ring" />
-                        <div className="stage-arrows">
-                          <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={(e) => { e.stopPropagation(); setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length); }}>‹</button>
-                          <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={(e) => { e.stopPropagation(); setCharIndex((p) => (p + 1) % CHARACTERS.length); }}>›</button>
-                        </div>
-                      </div>
-                    )}
-                    {c.key !== 'play' && <span className="card-icon">{c.icon}</span>}
-                    <h2 className="card-title">{c.title}</h2>
-                    <span className="card-sub">{c.sub}</span>
-                    <button type="button" className="card-cta" style={{ background: c.grad }} onClick={(e) => { e.stopPropagation(); c.action(); }}>
-                      {c.key === 'play' ? <><Play size={18} /> INDÍTÁS</> : c.key === 'trophies' ? <><Trophy size={18} /> MEGNYIT</> : <ChevronRight size={18} />}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="menu-scroll">
+          {/* 1. Fejlec: csak a fogaskerek (az overline szandekosan kimarad) */}
+          <div className="menu-head">
+            <span />
+            <button type="button" className="gear-ghost" onClick={() => setShowSettings(true)} aria-label="Beállítások">
+              <Settings size={20} />
+            </button>
           </div>
 
-          <button type="button" className="carousel-arrow right" aria-label="Következő" onClick={() => onCardNav(1)}>›</button>
-        </div>
+          {/* 2. Marka + karakter-szinpad (kozepre rendezve) */}
+          <div className="wordmark big bob" style={{ animationDelay: '0.2s' }}>
+            <span className="wm-line">CHRONO</span>
+            <span className="wm-line">BEATS</span>
+          </div>
 
-        <div className="carousel-dots">
-          {CARDS.map((c, i) => (
-            <button
-              type="button"
-              key={c.key}
-              className={`carousel-dot ${i === slide ? 'on' : ''}`}
-              style={i === slide ? { background: c.grad } : undefined}
-              onClick={() => setSlide(i)}
-              aria-label={`${i + 1}. kártya`}
-            />
-          ))}
+          <MenuCarousel
+            active={menuIndex}
+            setActive={setMenuIndex}
+            onSelect={(key) => {
+              if (key === 'start') setStatus('setup');
+              else if (key === 'daily') {
+                if (dtoday) { setDailyView('result'); setStatus('daily-result'); }
+                else startDaily();
+              } else if (key === 'bot') setShowBot(true);
+              else if (key === 'online') setShowRoom(true);
+              else if (key === 'trophy') setStatus('stats');
+              else if (key === 'pack') setShowPackSelection(true);
+              else if (key === 'modes') setShowSettings(true);
+            }}
+            items={[
+              { key: 'start', cls: 'c-start', icon: <Play size={40} />, title: 'JÁTÉK INDÍTÁSA', meta: 'Helyi parti · add hozzá a csapatot', cta: 'INDÍTÁS' },
+              { key: 'daily', cls: 'c-daily', icon: <Sparkles size={38} />, title: 'NAPI KIHÍVÁS', meta: dtoday ? `Ma: ${dtoday.score}/10` : dstore.streak ? `Sorozat: ${dstore.streak} nap` : 'Minden nap új 10 dal' },
+              { key: 'bot', cls: 'c-bot', icon: <Play size={38} />, title: 'CHRONO-BOT', meta: botDiff ? `${botDiff} fokozat` : 'Gyakorolj gép ellen' },
+              { key: 'online', cls: 'c-online', icon: <Smartphone size={38} />, title: 'ONLINE SZOBA', meta: netRole === 'host' ? `Kód: ${roomCode}` : 'Kód vagy QR-kód' },
+              { key: 'trophy', cls: 'c-trophy', icon: <Trophy size={38} />, title: 'TRÓFEÁK', meta: `${achN} / 12 megszerezve` },
+              { key: 'pack', cls: 'c-pack', icon: <Layers size={38} />, title: 'PAKLI', meta: `${SONG_PACKS[selectedPack].label} · ${SONG_PACKS[selectedPack].data.length} dal` },
+              { key: 'modes', cls: 'c-modes', icon: <Settings size={38} />, title: 'EXTRA MÓDOK', meta: modeN ? `${modeN} aktív` : 'Blind, Speed, Vétó…' },
+            ]}
+          />
         </div>
-
-        <button type="button" className="splat-tile wide bob modes-strip" style={{ animationDelay: '0.4s' }} onClick={() => setShowSettings(true)}>
-          <svg className="splat-svg sw2" viewBox="0 0 360 100" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="sg-modes" x1="0" y1="0.6" x2="1" y2="0">
-                <stop offset="0" stopColor="#5b2dff" /><stop offset="1" stopColor="#00c8ff" />
-              </linearGradient>
-            </defs>
-            <path fill="url(#sg-modes)" d="M345,50 C346,52 286,54 283,57 C280,61 331,70 325,72 C320,74 258,65 250,68 C243,72 287,94 280,95 C273,96 222,75 206,75 C190,75 188,96 180,96 C172,95 173,72 158,72 C142,71 92,94 83,94 C74,94 115,73 104,70 C93,67 17,77 14,75 C12,73 93,60 91,56 C89,52 8,52 8,50 C8,48 94,48 95,44 C97,40 9,26 12,25 C16,23 105,36 117,34 C129,31 81,9 87,8 C93,7 140,27 155,26 C170,24 173,5 180,5 C187,6 186,29 199,31 C213,33 258,11 266,11 C274,11 237,29 249,32 C262,34 337,24 342,25 C347,27 279,39 279,43 C280,47 345,48 345,50 Z" />
-            <circle cx="10" cy="70" r="6" fill="url(#sg-modes)" />
-            <circle cx="350" cy="20" r="5" fill="url(#sg-modes)" />
-            <circle cx="120" cy="6" r="4" fill="url(#sg-modes)" />
-          </svg>
-          <span className="splat-content row">
-            <Settings size={17} />
-            <span className="tile-name">EXTRA MÓDOK{modeN ? ` · ${modeN} AKTÍV` : ''}</span>
-          </span>
-        </button>
 
         {SettingsView}
         {BotModalView}

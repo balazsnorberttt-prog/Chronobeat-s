@@ -2074,254 +2074,164 @@ button:active { transform: scale(0.96); }
 
 
 
+
+
 /* ============================================================
-   v21.4 — FOMENU HELYREALLITAS: elrendezes-fix, eles pacak, vilagos logo
+   v23 — FOMENU COVERFLOW (3D lapozhato kartyak)
    ============================================================ */
 .menu-screen { background: var(--bg-0); }
 .menu-scroll {
   position: relative; z-index: 2;
   flex: 1;
-  display: flex; flex-direction: column;
-  align-items: stretch;
-  gap: var(--s4);
-  padding: calc(var(--s3) + env(safe-area-inset-top)) var(--s5) calc(var(--s7) + env(safe-area-inset-bottom));
-  max-width: 480px; width: 100%; margin: 0 auto;
-  overflow-y: auto;
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: var(--s3);
+  padding: calc(var(--s3) + env(safe-area-inset-top)) var(--s4) calc(var(--s5) + env(safe-area-inset-bottom));
+  max-width: 560px; width: 100%; margin: 0 auto;
+  overflow: hidden;
 }
 .menu-head { display: flex; justify-content: flex-end; align-items: center; min-height: 26px; }
 .gear-ghost { background: none; border: none; color: var(--text-2); padding: var(--s2); }
 
-/* --- CHRONO BEATS: vilagos, chrome-neon logo, atlos terhatas --- */
-.wordmark.big {
-  display: flex; flex-direction: column;
-  width: 100%; max-width: 360px; margin: 2px auto 0;
-  line-height: 0.9;
-}
+/* CHRONO BEATS - vilagos chrome-neon logo */
+.wordmark.big { display: flex; flex-direction: column; width: 100%; max-width: 340px; margin: 0 auto; line-height: 0.9; }
 .wordmark.big .wm-line {
   font-family: var(--font-display);
-  font-size: clamp(46px, 14vw, 66px);
+  font-size: clamp(40px, 12vw, 58px);
   letter-spacing: 2px;
   transform: skewX(-7deg);
   background: linear-gradient(178deg, #ffffff 0%, #b8f4ff 30%, #7ad4ff 50%, #ff7ae0 72%, #ffd36a 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  text-shadow:
-    1px 1px 0 #00c8ff,
-    2px 2px 0 #12a6e6,
-    3px 3px 0 #2e5bff,
-    4px 4px 0 #6a2bff,
-    5px 5px 0 #8a2bff,
-    3px 10px 20px rgba(0, 200, 255, 0.45);
+  text-shadow: 1px 1px 0 #00c8ff, 2px 2px 0 #12a6e6, 3px 3px 0 #2e5bff, 4px 4px 0 #6a2bff, 5px 5px 0 #8a2bff, 3px 10px 20px rgba(0,200,255,.45);
 }
 .wordmark.big .wm-line:first-child { text-align: left; padding-left: 2%; }
-.wordmark.big .wm-line:last-child { text-align: right; padding-right: 2%; margin-top: -8px; }
+.wordmark.big .wm-line:last-child { text-align: right; padding-right: 2%; margin-top: -6px; }
 
-/* --- Karakter-szinpad --- */
-.hero-stage.center { position: relative; width: 168px; margin: 4px auto 0; display: flex; flex-direction: column; align-items: center; }
-.spot-cone {
-  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
-  width: 148px; height: 160px;
-  background: linear-gradient(180deg, rgba(160, 120, 255, 0.30), transparent 78%);
-  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
-  pointer-events: none;
+/* --- Coverflow szinpad --- */
+.cf-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(300px, 52vh, 440px);
+  perspective: 1200px;
+  margin: 0 auto;
+  touch-action: pan-y;
+  user-select: none; -webkit-user-select: none;
 }
-.stage-ring {
-  width: 110px; height: 24px; border-radius: 50%;
-  border: 2px solid rgba(0, 234, 255, 0.8);
-  box-shadow: 0 0 18px rgba(0, 234, 255, 0.5), inset 0 0 12px rgba(0, 234, 255, 0.35);
-  margin-top: -16px;
-}
-.stage-arrows { display: flex; justify-content: space-between; width: 100%; margin-top: var(--s2); padding: 0 var(--s3); }
-.arrow-ghost { background: none; border: none; color: var(--text-3); font-size: 1.5rem; line-height: 1; padding: 4px 14px; min-width: 44px; min-height: 34px; }
-
-/* --- Fo CTA: garantalt sajat sav, semmi nem log ra --- */
-.cta-primary {
-  position: relative; overflow: hidden;
-  width: 100%; height: 60px; flex: 0 0 auto;
-  border: none; border-radius: var(--r-pill);
-  background: linear-gradient(90deg, #ff1f5e 0%, #c81fff 48%, #00c8ff 100%);
-  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
-  font-family: Montserrat, sans-serif; font-weight: 800; font-size: 1.05rem;
-  text-transform: uppercase; letter-spacing: 2px; color: #fff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
-  box-shadow: 0 12px 24px rgba(0,0,0,.45), 0 14px 30px rgba(200,31,255,.30), inset 0 1.5px 0 rgba(255,255,255,.4), inset 0 -3px 8px rgba(0,0,0,.25);
-}
-.cta-shine {
-  position: absolute; top: -20%; bottom: -20%; width: 34%; left: -60%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
-  transform: skewX(-18deg); filter: blur(7px);
-  animation: ctaShine 5s ease-in-out infinite; pointer-events: none;
-}
-@keyframes ctaShine { 0%,74% { left: -60%; } 86% { left: 130%; } 100% { left: 130%; } }
-
-/* --- Festekpacak: eles kontur, tomor szin, cseppekkel --- */
-.tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
-.splat-tile {
-  position: relative; min-height: 118px; flex: 0 0 auto;
-  background: none; border: none; box-shadow: none; padding: 0;
-  color: #fff; overflow: visible;
-}
-.splat-tile.wide { width: 100%; min-height: 84px; }
-.splat-svg {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,.5));
-  animation: splatWobble 7s ease-in-out infinite alternate;
-  transform-origin: 50% 50%;
-}
-.splat-svg.s2 { animation-duration: 8.2s; animation-delay: .5s; }
-.splat-svg.s3 { animation-duration: 6.4s; animation-delay: 1.1s; }
-.splat-svg.s4 { animation-duration: 7.6s; animation-delay: .3s; }
-.splat-svg.sw1 { animation-duration: 8.6s; animation-delay: .4s; }
-.splat-svg.sw2 { animation-duration: 7.2s; animation-delay: 1s; }
-@keyframes splatWobble {
-  0% { transform: rotate(-1.4deg) scale(1); }
-  50% { transform: rotate(1.2deg) scale(1.035); }
-  100% { transform: rotate(-.6deg) scale(1.01); }
-}
-.splat-content {
-  position: relative; z-index: 1;
+.cf-track { position: absolute; inset: 0; transform-style: preserve-3d; }
+.cf-card {
+  position: absolute; top: 50%; left: 50%;
+  width: clamp(158px, 52vw, 232px);
+  height: clamp(214px, 70vw, 312px);
+  border: none;
+  border-radius: 26px;
+  padding: 0;
+  overflow: hidden;
+  will-change: transform, opacity;
+  cursor: pointer;
+  /* Enyhen atlatszo uveg: a hatter atsejlik */
+  background:
+    radial-gradient(120% 80% at 30% 12%, rgba(255,255,255,.14), transparent 55%),
+    linear-gradient(160deg, rgba(30,24,70,.62), rgba(11,7,34,.52));
+  -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.3),
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    0 26px 48px rgba(0,0,0,.6);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; height: 100%; padding: var(--s3);
+  gap: 12px;
+  color: #fff;
   text-align: center;
 }
-.splat-content.row { flex-direction: row; gap: var(--s2); padding: var(--s3) var(--s5); }
-.splat-content .tile-name {
-  font-family: Montserrat, sans-serif; font-weight: 800;
-  font-size: 0.86rem; text-transform: uppercase; letter-spacing: .5px;
-  text-shadow: 0 2px 5px rgba(0,0,0,.5);
-  white-space: nowrap;
+/* Kategoria-szinek: felso derenges + also szinsav */
+.cf-card::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+  background: var(--cf-accent, #00eaff);
+  box-shadow: 0 0 18px var(--cf-accent, #00eaff);
 }
-.splat-content.row .tile-name { overflow: hidden; text-overflow: ellipsis; }
-.wt-end { opacity: .9; flex: 0 0 auto; }
-.splat-tile:active .splat-svg { transform: scale(.94); }
+.cf-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(90% 60% at 50% 0%, var(--cf-glow, rgba(0,234,255,.25)), transparent 60%);
+  pointer-events: none;
+}
+.c-start  { --cf-accent: #ff2f6e; --cf-glow: rgba(255,47,110,.34); }
+.c-daily  { --cf-accent: #ff2f92; --cf-glow: rgba(160,60,255,.34); }
+.c-bot    { --cf-accent: #2e9bff; --cf-glow: rgba(46,120,255,.32); }
+.c-online { --cf-accent: #b02bff; --cf-glow: rgba(180,43,255,.32); }
+.c-trophy { --cf-accent: #ffb300; --cf-glow: rgba(255,140,0,.32); }
+.c-pack   { --cf-accent: #00eaff; --cf-glow: rgba(0,234,255,.30); }
+.c-modes  { --cf-accent: #7bff6a; --cf-glow: rgba(90,220,120,.28); }
+
+.cf-sheen {
+  position: absolute; top: -30%; left: -40%; width: 50%; height: 160%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  opacity: 0;
+}
+.cf-card.center .cf-sheen { opacity: 1; animation: cardSheen 4.5s ease-in-out infinite; }
+@keyframes cardSheen { 0%,72% { left: -40%; } 88% { left: 120%; } 100% { left: 120%; } }
+
+.cf-ico {
+  position: relative; z-index: 1;
+  color: #fff;
+  filter: drop-shadow(0 0 12px var(--cf-accent, #00eaff));
+}
+.cf-title {
+  position: relative; z-index: 1;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 4.4vw, 1.3rem);
+  letter-spacing: 0.5px;
+  line-height: 1.05;
+  padding: 0 10px;
+  text-shadow: 0 2px 8px rgba(0,0,0,.6);
+}
+.cf-meta {
+  position: relative; z-index: 1;
+  font-size: 0.7rem; font-weight: 600;
+  color: var(--text-2);
+  padding: 0 14px;
+}
+.cf-go {
+  position: relative; z-index: 1;
+  min-height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-top: 4px;
+  padding: 7px 20px;
+  border-radius: var(--r-pill);
+  font-family: Montserrat, sans-serif; font-weight: 800; font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  color: #05030f;
+  background: var(--cf-accent, #00eaff);
+  box-shadow: 0 4px 14px rgba(0,0,0,.4), 0 0 16px var(--cf-accent, #00eaff);
+}
+.cf-go:empty { background: none; box-shadow: none; min-height: 30px; }
+
+/* Nyilak + pontok */
+.cf-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 200;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(10,7,30,.55);
+  border: 1px solid rgba(255,255,255,.16);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  color: #fff; font-size: 1.6rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.cf-arrow.left { left: 2px; }
+.cf-arrow.right { right: 2px; }
+.cf-dots {
+  position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  z-index: 200;
+  display: flex; gap: 7px;
+}
+.cf-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.24); transition: all .3s; }
+.cf-dot.on { background: #00eaff; box-shadow: 0 0 8px #00eaff; width: 20px; border-radius: 4px; }
 
 @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 .bob { animation: bob 4.6s ease-in-out infinite; }
-.cta-primary:active { transform: scale(.97) translateY(2px); }
-
-/* ============================================================
-   v22 — SWIPE CAROUSEL FOMENU (kartya-nézet)
-   ============================================================ */
-.carousel-menu {
-  display: flex; flex-direction: column;
-  gap: var(--s3);
-  padding: calc(var(--s3) + env(safe-area-inset-top)) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom));
-  max-width: 480px; width: 100%; margin: 0 auto;
-  overflow-y: auto;
-  min-height: 100dvh;
-  box-sizing: border-box;
-}
-.carousel-menu .menu-head { display: flex; justify-content: flex-end; align-items: center; min-height: 26px; flex: 0 0 auto; }
-.carousel-menu .wordmark.big { flex: 0 0 auto; }
-
-.carousel-stage {
-  position: relative;
-  display: flex; align-items: stretch;
-  width: 100%;
-  flex: 1 1 auto; min-height: 0;
-  gap: var(--s2);
-}
-.carousel-viewport {
-  position: relative; flex: 1; overflow: hidden; border-radius: var(--r3);
-  touch-action: pan-y;
-}
-.carousel-track {
-  display: flex; width: 100%; height: 100%;
-  transition: transform 0.32s cubic-bezier(.22,.61,.36,1);
-}
-.carousel-card {
-  flex: 0 0 100%; width: 100%; height: 100%;
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-  padding: var(--s4);
-  border-radius: var(--r3);
-  overflow: hidden;
-  box-sizing: border-box;
-}
-.card-bg {
-  position: absolute; inset: 0;
-  border-radius: var(--r3);
-  opacity: .22;
-}
-.card-glow {
-  position: absolute; inset: -30% -10% -10% -10%;
-  filter: blur(50px);
-  opacity: .35;
-  border-radius: 50%;
-  z-index: 0;
-  pointer-events: none;
-}
-.card-inner {
-  position: relative; z-index: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: var(--s3);
-  text-align: center;
-  width: 100%;
-}
-.card-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 64px; height: 64px; border-radius: 18px;
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.2);
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(0,0,0,.35);
-}
-.card-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 7vw, 2rem);
-  letter-spacing: 2px; margin: 0; color: #fff;
-  text-shadow: 0 2px 8px rgba(0,0,0,.6);
-}
-.card-sub {
-  font-size: .85rem; color: rgba(255,255,255,.85); font-weight: 600;
-  text-shadow: 0 1px 4px rgba(0,0,0,.5);
-}
-.card-cta {
-  display: inline-flex; align-items: center; gap: var(--s2);
-  padding: var(--s2) var(--s5);
-  border: 1px solid rgba(255,255,255,.3);
-  border-radius: 999px;
-  color: #fff; font-weight: 800; font-size: .9rem; letter-spacing: 1px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.4);
-  cursor: pointer;
-  transition: transform var(--t-fast);
-}
-.card-cta:active { transform: scale(.94); }
-
-.carousel-arrow {
-  background: rgba(255,255,255,.08);
-  border: 1px solid var(--line);
-  color: var(--text-2);
-  width: 40px; flex: 0 0 40px;
-  border-radius: 14px;
-  font-size: 1.7rem; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--t-fast), transform var(--t-fast);
-  z-index: 5;
-  cursor: pointer;
-}
-.carousel-arrow:active { transform: scale(.9); background: rgba(0,234,255,.2); }
-
-.carousel-dots {
-  display: flex; justify-content: center; gap: var(--s2);
-  padding: var(--s2) 0;
-  flex: 0 0 auto;
-}
-.carousel-dot {
-  width: 9px; height: 9px; border-radius: 50%;
-  background: rgba(255,255,255,.22);
-  border: none; padding: 0;
-  transition: transform var(--t-fast), background var(--t-fast);
-  cursor: pointer;
-}
-.carousel-dot.on { transform: scale(1.5); box-shadow: 0 0 10px rgba(255,255,255,.4); }
-
-.modes-strip { flex: 0 0 auto; }
-
-@media (prefers-reduced-motion: reduce) {
-  .bob, .splat-svg, .cta-shine { animation: none; }
-  .carousel-track { transition: none; }
-}
-.menu-screen.lite .bob, .menu-screen.lite .splat-svg, .menu-screen.lite .cta-shine { animation: none; }
+@media (prefers-reduced-motion: reduce) { .bob, .cf-sheen { animation: none; } }
+.menu-screen.lite .cf-card { -webkit-backdrop-filter: none; backdrop-filter: none; background: linear-gradient(160deg, rgba(30,24,70,.92), rgba(11,7,34,.9)); }
+.menu-screen.lite .cf-sheen, .menu-screen.lite .bob { animation: none; }
 
 /* Parti-beallitas segedek */
 .back-menu {
@@ -2331,8 +2241,5 @@ button:active { transform: scale(0.96); }
 }
 .setup-title { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 1px; margin: 0; }
 .setup-sub { font-size: .72rem; color: var(--text-2); margin: 2px 0 6px; }
-.room-inline {
-  display: inline-flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 700;
-  padding: 8px 14px; border-radius: var(--r-pill); border-color: rgba(0,234,255,.4);
-}
+.room-inline { display: inline-flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 700; padding: 8px 14px; border-radius: var(--r-pill); border-color: rgba(0,234,255,.4); }
 .room-inline b { color: var(--gold); letter-spacing: 2px; }
