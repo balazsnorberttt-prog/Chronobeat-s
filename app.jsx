@@ -531,7 +531,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v20';
+const APP_VERSION = 'v21';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -924,7 +924,7 @@ function MysteryCard({ flipped, card }) {
 //  FO KOMPONENS
 // ============================================================
 export default function App() {
-  const [status, setStatus] = useState('setup');
+  const [status, setStatus] = useState('menu');
   const [players, setPlayers] = useState([]);
   const [turnIndex, setTurnIndex] = useState(0);
   const [cardsLeft, setCardsLeft] = useState(0);
@@ -1214,6 +1214,7 @@ export default function App() {
       ? { id: players[0].id, name: players[0].name, char: players[0].char }
       : { id: 'me', name: 'Te', char: 0 };
     botRef.current = { sigma, label };
+    try { localStorage.setItem('cb_botdiff', label); } catch (e) {}
     setShowBot(false);
     beginMatch([human, { id: 'bot', name: `Chrono-bot (${label})`, char: 0, isBot: true }]);
   };
@@ -2496,8 +2497,242 @@ export default function App() {
   //  SETUP
   // ============================================================
   // ============================================================
+  //  FOMENU (4.5 - veglegesitett latvanyterv)
+  // ============================================================
+  if (status === 'menu') {
+    const mc = CHARACTERS[charIndex % CHARACTERS.length];
+    const dstore = loadDailyStore();
+    const dtoday = dstore.history && dstore.history[todayKey()];
+    const prof = loadProfile();
+    const achN = Object.keys(prof.ach).length;
+    const modeN = Object.values(modes).filter(Boolean).length;
+    let botDiff = '';
+    try { botDiff = localStorage.getItem('cb_botdiff') || ''; } catch (e) {}
+    return (
+      <div className={`app-container menu-screen ${liteActive ? 'lite' : ''}`}>
+        {ToastView}
+        <div className="menu-scroll">
+          {/* 1. Fejlec: csak a fogaskerek (az overline szandekosan kimarad) */}
+          <div className="menu-head">
+            <span />
+            <button type="button" className="gear-ghost" onClick={() => setShowSettings(true)} aria-label="Beállítások">
+              <Settings size={20} />
+            </button>
+          </div>
+
+          {/* 2. Hos-sor: terhatasu wordmark + karakter-szinpad */}
+          <div className="hero-row">
+            <div className="wordmark bob" style={{ animationDelay: '0.2s' }}>
+              <span className="wm-line">CHRONO</span>
+              <span className="wm-line">BEATS</span>
+            </div>
+            <div className="hero-stage bob" style={{ animationDelay: '0.9s' }}>
+              <div className="spot-cone" />
+              <CharacterStage charIndex={charIndex} size={148} mood="idle" />
+              <div className="stage-ring" />
+              <div className="stage-arrows">
+                <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
+                <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Fo CTA */}
+          <button type="button" className="cta-primary bob" style={{ animationDelay: '1.5s' }} onClick={() => setStatus('setup')}>
+            <Play size={19} /> JÁTÉK INDÍTÁSA
+            <span className="cta-shine" />
+          </button>
+
+          {/* 4. Pakli-sor */}
+          <button type="button" className="deck-row" onClick={() => setShowPackSelection(true)}>
+            Pakli: {SONG_PACKS[selectedPack].label} · {SONG_PACKS[selectedPack].data.length} dal <RefreshCw size={12} />
+          </button>
+
+          {/* 5. 2x2 csemperacs */}
+          <div className="tile-grid">
+            
+            <button type="button" className="menu-tile t-bot bob" style={{ animationDelay: '1.1s' }} onClick={() => setShowBot(true)}>
+              <span className="tile-ico"><Play size={20} /></span>
+              <span className="tile-name">CHRONO-BOT</span>
+              <span className="tile-meta">{botDiff ? `${botDiff} fokozat` : 'Három fokozat'}</span>
+            </button>
+            
+            <button type="button" className="menu-tile t-trophy bob" style={{ animationDelay: '0.7s' }} onClick={() => setStatus('stats')}>
+              <span className="tile-ico"><Trophy size={20} /></span>
+              <span className="tile-name">TRÓFEÁK</span>
+              <span className="tile-meta">{achN} / 12 megszerezve</span>
+            </button>
+          </div>
+
+          {/* 6. Labsor */}
+          <button type="button" className="menu-foot" onClick={() => setShowSettings(true)}>
+            Extra módok · {modeN} aktív
+          </button>
+        </div>
+
+        {SettingsView}
+        {BotModalView}
+        {RoomModalView}
+        {PackModalView}
+        {TutorialView}
+      </div>
+    );
+  }
+
+  // ============================================================
   //  STATISZTIKA ES TROFEAK
   // ============================================================
+  const BotModalView = (
+    <AnimatePresence>
+          {showBot && (
+            <div className="modal-overlay" onClick={() => setShowBot(false)}>
+              <motion.div
+                onClick={(e) => e.stopPropagation()}
+                className="modal-box glass settings-modal"
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+              >
+                <button type="button" className="close-modal" onClick={() => setShowBot(false)}><X size={22} /></button>
+                <h3 className="modal-title">CHRONO-BOT EDZÉS</h3>
+                <p className="modal-sub">A bot ugyanazokkal a szabályokkal játszik — csak a füle különbözik. Te kezdesz!</p>
+                <div className="mode-list">
+                  <button type="button" className="mode-row" onClick={() => startBot(6, 'Könnyű')}>
+                    <span className="mr-icon"><Play size={18} /></span>
+                    <span className="mr-body"><span className="mr-name">Könnyű</span><span className="mr-desc">A bot átlagosan ±6 évet téved — kezdőknek.</span></span>
+                  </button>
+                  <button type="button" className="mode-row" onClick={() => startBot(3, 'Közepes')}>
+                    <span className="mr-icon"><Play size={18} /></span>
+                    <span className="mr-body"><span className="mr-name">Közepes</span><span className="mr-desc">±3 év szórás — kiegyenlített meccs.</span></span>
+                  </button>
+                  <button type="button" className="mode-row" onClick={() => startBot(1.5, 'Nehéz')}>
+                    <span className="mr-icon"><Play size={18} /></span>
+                    <span className="mr-body"><span className="mr-name">Nehéz</span><span className="mr-desc">±1.5 év — a Gépverő trófea ellenfele.</span></span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+  );
+
+  const RoomModalView = (
+    <AnimatePresence>
+          {showRoom && (
+            <div className="modal-overlay" onClick={() => setShowRoom(false)}>
+              <motion.div
+                onClick={(e) => e.stopPropagation()}
+                className="modal-box glass settings-modal"
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+              >
+                <button type="button" className="close-modal" onClick={() => setShowRoom(false)}><X size={22} /></button>
+                <h3 className="modal-title">ONLINE SZOBA</h3>
+                {netRole === 'host' ? (
+                  <>
+                    <div className="room-code-big">{roomCode}</div>
+                    {qrUrl && (
+                      <div className="qr-wrap">
+                        <img src={qrUrl} alt="Szoba QR-kód" className="qr-img" />
+                        <span className="qr-hint">Olvasd be telefonnal — a kód már ki lesz töltve!</span>
+                      </div>
+                    )}
+                    <button type="button" className="btn-3d ghost small" onClick={shareRoomLink}>
+                      LINK MEGOSZTÁSA / MÁSOLÁSA
+                    </button>
+                    <p className="modal-sub">…vagy írjátok be kézzel a 4 betűs kódot!</p>
+                    <div className="audio-mode-row">
+                      <button
+                        type="button"
+                        className={`am-btn ${audioMode === 'own' ? 'on' : ''}`}
+                        onClick={() => { setAudioMode('own'); try { localStorage.setItem('cb_audiomode', 'own'); } catch (e) {} }}
+                      >
+                        <Smartphone size={15} /> SAJÁT TELEFON MÓD
+                        <small>a soros játékos telefonján szól a zene</small>
+                      </button>
+                      <button
+                        type="button"
+                        className={`am-btn ${audioMode === 'speaker' ? 'on' : ''}`}
+                        onClick={() => { setAudioMode('speaker'); try { localStorage.setItem('cb_audiomode', 'speaker'); } catch (e) {} }}
+                      >
+                        <Volume2 size={15} /> KIHANGOSÍTÓ MÓD
+                        <small>a házigazda telefonján szól — a soros játékos indítja a sajátjáról</small>
+                      </button>
+                    </div>
+                    <div className="room-players">
+                      {players.filter((p) => p.peerId).length === 0
+                        ? <span className="room-wait">Várakozás a csatlakozókra…</span>
+                        : players.filter((p) => p.peerId).map((p) => <span key={p.id} className="room-pill">📱 {p.name}</span>)}
+                    </div>
+                    <button type="button" className="btn-3d ghost small" onClick={leaveRoom}>SZOBA BEZÁRÁSA</button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" className="btn-3d gold wide" disabled={netBusy} onClick={createRoom}>
+                      {netBusy ? 'KAPCSOLÓDÁS…' : '📡 SZOBA LÉTREHOZÁSA (házigazda)'}
+                    </button>
+                    <div className="room-divider">vagy csatlakozz</div>
+                    <div className="modal-inputs">
+                      <input
+                        type="text"
+                        placeholder="SZOBAKÓD (4 betű)"
+                        maxLength={4}
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                        style={{ textTransform: 'uppercase', letterSpacing: '4px', textAlign: 'center' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="A neved"
+                        maxLength={14}
+                        value={joinName}
+                        onChange={(e) => setJoinName(e.target.value)}
+                      />
+                    </div>
+                    <button type="button" className="btn-3d start wide" disabled={netBusy} onClick={joinRoom}>
+                      {netBusy ? 'KAPCSOLÓDÁS…' : 'CSATLAKOZÁS 🚀'}
+                    </button>
+                  </>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+  );
+
+  const PackModalView = (
+    <AnimatePresence>
+          {showPackSelection && (
+            <div className="modal-overlay">
+              <motion.div
+                className="pack-modal glass"
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+              >
+                <button type="button" className="close-modal" onClick={() => setShowPackSelection(false)}><X size={26} /></button>
+                <h2 className="text-chrome">VÁLASSZ STÍLUST</h2>
+                <div className="pack-grid">
+                  {Object.keys(SONG_PACKS).map((packKey) => (
+                    <button
+                      key={packKey}
+                      className={`pack-card ${selectedPack === packKey ? 'selected' : ''}`}
+                      style={{ background: SONG_PACKS[packKey].style }}
+                      onClick={() => { setSelectedPack(packKey); setShowPackSelection(false); }}
+                    >
+                      <h3>{SONG_PACKS[packKey].label}</h3>
+                      <p>{SONG_PACKS[packKey].desc}</p>
+                      <span className="pack-count">{SONG_PACKS[packKey].data.length} dal</span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+  );
+
   if (status === 'stats') {
     const P = loadProfile();
     const DS = loadDailyStore();
@@ -2552,7 +2787,7 @@ export default function App() {
             </div>
           </div>
 
-          <button type="button" className="btn-3d ghost" onClick={() => setStatus('setup')}>VISSZA</button>
+          <button type="button" className="btn-3d ghost" onClick={() => setStatus('menu')}>VISSZA</button>
         </div>
       </div>
     );
@@ -2616,7 +2851,7 @@ export default function App() {
             </div>
           )}
 
-          <button type="button" className="btn-3d ghost" onClick={() => { dailyRef.current = null; setStatus('setup'); }}>VISSZA A FŐOLDALRA</button>
+          <button type="button" className="btn-3d ghost" onClick={() => { dailyRef.current = null; setStatus('menu'); }}>VISSZA A FŐOLDALRA</button>
         </div>
       </div>
     );
@@ -2802,133 +3037,16 @@ export default function App() {
         <Backdrop />
         {ToastView}
         {SettingsView}
-        <AnimatePresence>
-          {showBot && (
-            <div className="modal-overlay" onClick={() => setShowBot(false)}>
-              <motion.div
-                onClick={(e) => e.stopPropagation()}
-                className="modal-box glass settings-modal"
-                initial={{ scale: 0.85, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.85, opacity: 0 }}
-              >
-                <button type="button" className="close-modal" onClick={() => setShowBot(false)}><X size={22} /></button>
-                <h3 className="modal-title">CHRONO-BOT EDZÉS</h3>
-                <p className="modal-sub">A bot ugyanazokkal a szabályokkal játszik — csak a füle különbözik. Te kezdesz!</p>
-                <div className="mode-list">
-                  <button type="button" className="mode-row" onClick={() => startBot(6, 'Könnyű')}>
-                    <span className="mr-icon"><Play size={18} /></span>
-                    <span className="mr-body"><span className="mr-name">Könnyű</span><span className="mr-desc">A bot átlagosan ±6 évet téved — kezdőknek.</span></span>
-                  </button>
-                  <button type="button" className="mode-row" onClick={() => startBot(3, 'Közepes')}>
-                    <span className="mr-icon"><Play size={18} /></span>
-                    <span className="mr-body"><span className="mr-name">Közepes</span><span className="mr-desc">±3 év szórás — kiegyenlített meccs.</span></span>
-                  </button>
-                  <button type="button" className="mode-row" onClick={() => startBot(1.5, 'Nehéz')}>
-                    <span className="mr-icon"><Play size={18} /></span>
-                    <span className="mr-body"><span className="mr-name">Nehéz</span><span className="mr-desc">±1.5 év — a Gépverő trófea ellenfele.</span></span>
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-        <AnimatePresence>
-          {showRoom && (
-            <div className="modal-overlay" onClick={() => setShowRoom(false)}>
-              <motion.div
-                onClick={(e) => e.stopPropagation()}
-                className="modal-box glass settings-modal"
-                initial={{ scale: 0.85, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.85, opacity: 0 }}
-              >
-                <button type="button" className="close-modal" onClick={() => setShowRoom(false)}><X size={22} /></button>
-                <h3 className="modal-title">ONLINE SZOBA</h3>
-                {netRole === 'host' ? (
-                  <>
-                    <div className="room-code-big">{roomCode}</div>
-                    {qrUrl && (
-                      <div className="qr-wrap">
-                        <img src={qrUrl} alt="Szoba QR-kód" className="qr-img" />
-                        <span className="qr-hint">Olvasd be telefonnal — a kód már ki lesz töltve!</span>
-                      </div>
-                    )}
-                    <button type="button" className="btn-3d ghost small" onClick={shareRoomLink}>
-                      LINK MEGOSZTÁSA / MÁSOLÁSA
-                    </button>
-                    <p className="modal-sub">…vagy írjátok be kézzel a 4 betűs kódot!</p>
-                    <div className="audio-mode-row">
-                      <button
-                        type="button"
-                        className={`am-btn ${audioMode === 'own' ? 'on' : ''}`}
-                        onClick={() => { setAudioMode('own'); try { localStorage.setItem('cb_audiomode', 'own'); } catch (e) {} }}
-                      >
-                        <Smartphone size={15} /> SAJÁT TELEFON MÓD
-                        <small>a soros játékos telefonján szól a zene</small>
-                      </button>
-                      <button
-                        type="button"
-                        className={`am-btn ${audioMode === 'speaker' ? 'on' : ''}`}
-                        onClick={() => { setAudioMode('speaker'); try { localStorage.setItem('cb_audiomode', 'speaker'); } catch (e) {} }}
-                      >
-                        <Volume2 size={15} /> KIHANGOSÍTÓ MÓD
-                        <small>a házigazda telefonján szól — a soros játékos indítja a sajátjáról</small>
-                      </button>
-                    </div>
-                    <div className="room-players">
-                      {players.filter((p) => p.peerId).length === 0
-                        ? <span className="room-wait">Várakozás a csatlakozókra…</span>
-                        : players.filter((p) => p.peerId).map((p) => <span key={p.id} className="room-pill">📱 {p.name}</span>)}
-                    </div>
-                    <button type="button" className="btn-3d ghost small" onClick={leaveRoom}>SZOBA BEZÁRÁSA</button>
-                  </>
-                ) : (
-                  <>
-                    <button type="button" className="btn-3d gold wide" disabled={netBusy} onClick={createRoom}>
-                      {netBusy ? 'KAPCSOLÓDÁS…' : '📡 SZOBA LÉTREHOZÁSA (házigazda)'}
-                    </button>
-                    <div className="room-divider">vagy csatlakozz</div>
-                    <div className="modal-inputs">
-                      <input
-                        type="text"
-                        placeholder="SZOBAKÓD (4 betű)"
-                        maxLength={4}
-                        value={joinCode}
-                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                        style={{ textTransform: 'uppercase', letterSpacing: '4px', textAlign: 'center' }}
-                      />
-                      <input
-                        type="text"
-                        placeholder="A neved"
-                        maxLength={14}
-                        value={joinName}
-                        onChange={(e) => setJoinName(e.target.value)}
-                      />
-                    </div>
-                    <button type="button" className="btn-3d start wide" disabled={netBusy} onClick={joinRoom}>
-                      {netBusy ? 'KAPCSOLÓDÁS…' : 'CSATLAKOZÁS 🚀'}
-                    </button>
-                  </>
-                )}
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+        {BotModalView}
+        {RoomModalView}
         <button type="button" className="gear-btn glass gear-float" onClick={() => setShowSettings(true)} title="Játékmódok">
           <Settings size={19} />
         </button>
+        <button type="button" className="back-menu" onClick={() => setStatus('menu')} aria-label="Vissza a főmenübe">‹ FŐMENÜ</button>
         <div className="setup-scroll">
           <div className="setup-card glass">
-            <h1 className="text-chrome huge">CHRONO<br />BEATS</h1>
-
-            <button className="mode-display" onClick={() => setShowPackSelection(true)}>
-              <span className="mode-label">JÁTÉKMÓD</span>
-              <span className="mode-value" style={{ background: SONG_PACKS[selectedPack].style }}>
-                {SONG_PACKS[selectedPack].label}
-              </span>
-              <span className="mode-count">{SONG_PACKS[selectedPack].data.length} dal · koppints a váltáshoz</span>
-            </button>
+            <h2 className="setup-title">PARTI-BEÁLLÍTÁS</h2>
+            <p className="setup-sub">Adjátok hozzá a játékosokat, aztán indulhat a buli!</p>
 
             <button
               className="mode-display daily-launcher"
@@ -2949,17 +3067,9 @@ export default function App() {
               </span>
             </button>
 
-            <button className="mode-display" onClick={() => setShowBot(true)}>
-              <span className="mode-label"><Play size={13} /> CHRONO-BOT EDZÉS</span>
-              <span className="mode-count">Gyakorolj gép ellen — Könnyű / Közepes / Nehéz</span>
-            </button>
+            
 
-            <button className="mode-display" onClick={() => setStatus('stats')}>
-              <span className="mode-label"><Trophy size={13} /> STATISZTIKA ÉS TRÓFEÁK</span>
-              <span className="mode-count">
-                {(() => { const P = loadProfile(); const n = Object.keys(P.ach).length; return `${P.m} meccs · ${P.w} győzelem · ${n}/12 trófea`; })()}
-              </span>
-            </button>
+            
 
             <button className="mode-display" onClick={() => setShowRoom(true)}>
               <span className="mode-label"><Smartphone size={13} /> ONLINE SZOBA</span>
@@ -2970,6 +3080,11 @@ export default function App() {
               </span>
             </button>
 
+            {netRole === 'host' && (
+              <div className="room-inline glass">
+                <Smartphone size={13} /> Szoba él: <b>{roomCode}</b> · {players.filter((p) => p.peerId).length} telefon
+              </div>
+            )}
             <button className="mode-display" onClick={() => setShowSettings(true)}>
               <span className="mode-label"><Settings size={13} /> JÁTÉKMÓDOK</span>
               <span className="mode-count">
@@ -3016,35 +3131,7 @@ export default function App() {
           </div>
         </div>
 
-        <AnimatePresence>
-          {showPackSelection && (
-            <div className="modal-overlay">
-              <motion.div
-                className="pack-modal glass"
-                initial={{ scale: 0.85, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.85, opacity: 0 }}
-              >
-                <button type="button" className="close-modal" onClick={() => setShowPackSelection(false)}><X size={26} /></button>
-                <h2 className="text-chrome">VÁLASSZ STÍLUST</h2>
-                <div className="pack-grid">
-                  {Object.keys(SONG_PACKS).map((packKey) => (
-                    <button
-                      key={packKey}
-                      className={`pack-card ${selectedPack === packKey ? 'selected' : ''}`}
-                      style={{ background: SONG_PACKS[packKey].style }}
-                      onClick={() => { setSelectedPack(packKey); setShowPackSelection(false); }}
-                    >
-                      <h3>{SONG_PACKS[packKey].label}</h3>
-                      <p>{SONG_PACKS[packKey].desc}</p>
-                      <span className="pack-count">{SONG_PACKS[packKey].data.length} dal</span>
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+        {PackModalView}
       </div>
     );
   }

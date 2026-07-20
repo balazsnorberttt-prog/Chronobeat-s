@@ -21,6 +21,12 @@
   --r1: 10px; --r2: 14px; --r3: 22px; --r-pill: 999px;
   --t-fast: 120ms; --t-med: 240ms; --t-slow: 400ms;
   --spring: cubic-bezier(0.2, 1.4, 0.3, 1);
+  /* Gomb-atmenetek - az "Ultimate Mix recept" szinparjai */
+  --grad-primary: linear-gradient(90deg, #ff1f5e 0%, #c81fff 48%, #00c8ff 100%);
+  --grad-daily:   linear-gradient(135deg, #7b2dff, #ff2f92);
+  --grad-bot:     linear-gradient(135deg, #00c8ff, #2e5bff);
+  --grad-online:  linear-gradient(135deg, #ff2bd0, #8a2bff);
+  --grad-trophy:  linear-gradient(135deg, #ffb300, #ff6a00);
 }
 
 /* ============================================================
@@ -2065,3 +2071,223 @@ button:active { transform: scale(0.96); }
   .app-container.in-game .history-card,
   .app-container.in-game .ghost-card { width: 186px; }
 }
+
+
+/* ============================================================
+   v21 — FOMENU (4.5 vegleges latvanyterv)
+   ============================================================ */
+.menu-screen {
+  background:
+    radial-gradient(120% 60% at 50% 116%, rgba(123, 45, 255, 0.50), transparent 60%),
+    radial-gradient(80% 45% at 10% -8%, rgba(255, 0, 85, 0.20), transparent 55%),
+    radial-gradient(80% 45% at 90% -8%, rgba(0, 234, 255, 0.16), transparent 55%),
+    linear-gradient(180deg, #070312 0%, #12062e 55%, #1e0538 100%);
+}
+.menu-scroll {
+  position: relative; z-index: 2;
+  flex: 1;
+  display: flex; flex-direction: column;
+  gap: var(--s4);
+  padding: calc(var(--s3) + env(safe-area-inset-top)) var(--s5) var(--s6);
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+  overflow-y: auto;
+}
+
+/* 1. Fejlec */
+.menu-head { display: flex; justify-content: space-between; align-items: center; min-height: 30px; }
+.gear-ghost {
+  background: none; border: none;
+  color: var(--text-3);
+  padding: var(--s2);
+}
+
+/* 2. Hos-sor */
+.hero-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s3);
+}
+.wordmark { display: flex; flex-direction: column; line-height: 0.98; }
+.wm-line {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 8.6vw, 40px);
+  letter-spacing: 1px;
+  background: linear-gradient(180deg, #ffffff 0%, #e2e6f8 55%, #a9b2da 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Terhatas: retegzett "extruzio" + lagy talp-arnyek */
+  text-shadow:
+    0 1px 0 #6b5aa8,
+    0 2px 0 #5b4a96,
+    0 3px 0 #4a3a80,
+    0 4px 0 #3a2c66,
+    0 5px 0 #2b2050,
+    0 10px 22px rgba(0, 0, 0, 0.65);
+}
+.hero-stage {
+  position: relative;
+  width: 168px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.spot-cone {
+  position: absolute;
+  top: -16px; left: 50%;
+  transform: translateX(-50%);
+  width: 150px; height: 165px;
+  background: linear-gradient(180deg, rgba(160, 120, 255, 0.32), transparent 78%);
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+.stage-ring {
+  width: 112px; height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 234, 255, 0.8);
+  box-shadow: 0 0 18px rgba(0, 234, 255, 0.5), inset 0 0 12px rgba(0, 234, 255, 0.35);
+  margin-top: -18px;
+}
+.stage-arrows {
+  display: flex; justify-content: space-between;
+  width: 100%;
+  margin-top: var(--s2);
+  padding: 0 var(--s2);
+}
+.arrow-ghost {
+  background: none; border: none;
+  color: var(--text-3);
+  font-size: 1.5rem; line-height: 1;
+  padding: 4px 12px;
+  min-width: 44px; min-height: 34px;
+}
+
+/* 3. Fo CTA - az "Ultimate Mix recept" */
+.cta-primary {
+  position: relative;
+  overflow: hidden;
+  height: 58px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: var(--grad-primary);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+  font-family: Montserrat, sans-serif;
+  font-weight: 800; font-size: 1rem;
+  text-transform: uppercase; letter-spacing: 2px;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.45),
+    0 14px 30px rgba(200, 31, 255, 0.30),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.40),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.25);
+}
+.cta-shine {
+  position: absolute;
+  top: -20%; bottom: -20%;
+  width: 34%;
+  left: -60%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-18deg);
+  filter: blur(7px);
+  animation: ctaShine 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ctaShine {
+  0%, 74% { left: -60%; }
+  86% { left: 130%; }
+  100% { left: 130%; }
+}
+
+/* 4. Pakli-sor */
+.deck-row {
+  background: none; border: none;
+  color: var(--text-2);
+  font-size: 0.72rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 2px 0 0;
+}
+
+/* 5. Csemperacs */
+.tile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+.menu-tile {
+  position: relative;
+  min-height: 78px;
+  border: none;
+  border-radius: 20px;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  gap: 3px;
+  padding: var(--s3) var(--s4);
+  color: #fff;
+  text-align: left;
+}
+.menu-tile .tile-ico { opacity: 0.95; }
+.tile-name {
+  font-family: Montserrat, sans-serif;
+  font-weight: 800; font-size: 0.82rem;
+  text-transform: uppercase; letter-spacing: 1px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+.tile-meta {
+  font-size: 10px; font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+}
+.t-daily  { background: var(--grad-daily);  box-shadow: 0 12px 24px rgba(0,0,0,.45), 0 14px 30px rgba(255,47,146,.30), inset 0 1.5px 0 rgba(255,255,255,.40), inset 0 -3px 8px rgba(0,0,0,.25); }
+.t-bot    { background: var(--grad-bot);    box-shadow: 0 12px 24px rgba(0,0,0,.45), 0 14px 30px rgba(46,91,255,.30),  inset 0 1.5px 0 rgba(255,255,255,.40), inset 0 -3px 8px rgba(0,0,0,.25); }
+.t-online { background: var(--grad-online); box-shadow: 0 12px 24px rgba(0,0,0,.45), 0 14px 30px rgba(138,43,255,.30), inset 0 1.5px 0 rgba(255,255,255,.40), inset 0 -3px 8px rgba(0,0,0,.25); }
+.t-trophy { background: var(--grad-trophy); box-shadow: 0 12px 24px rgba(0,0,0,.45), 0 14px 30px rgba(255,106,0,.30),  inset 0 1.5px 0 rgba(255,255,255,.40), inset 0 -3px 8px rgba(0,0,0,.25); }
+
+/* 6. Labsor */
+.menu-foot {
+  background: none; border: none;
+  color: var(--text-3);
+  font-size: 0.68rem; font-weight: 700;
+  padding: var(--s2) 0 0;
+}
+
+/* Lebeges - eltolt fazisokkal */
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.bob { animation: bob 4.6s ease-in-out infinite; }
+.cta-primary:active, .menu-tile:active {
+  transform: scale(0.97) translateY(2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.45), inset 0 1.5px 0 rgba(255, 255, 255, 0.4), inset 0 -3px 8px rgba(0, 0, 0, 0.25);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bob { animation: none; }
+  .cta-shine { display: none; }
+}
+.menu-screen.lite .bob { animation: none; }
+.menu-screen.lite .cta-shine { display: none; }
+
+/* Parti-beallitas kiegeszitok */
+.back-menu {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top)); left: 12px;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--text-2);
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 1px;
+  padding: 8px 14px;
+}
+.setup-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem; letter-spacing: 1px;
+  margin: 0;
+}
+.setup-sub { font-size: 0.72rem; color: var(--text-2); margin: 2px 0 6px; }
+.room-inline {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.7rem; font-weight: 700;
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  border-color: rgba(0, 234, 255, 0.4);
+}
+.room-inline b { color: var(--gold); letter-spacing: 2px; }
