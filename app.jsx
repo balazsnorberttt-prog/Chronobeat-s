@@ -2499,89 +2499,6 @@ export default function App() {
   // ============================================================
   //  FOMENU (4.5 - veglegesitett latvanyterv)
   // ============================================================
-  if (status === 'menu') {
-    const mc = CHARACTERS[charIndex % CHARACTERS.length];
-    const dstore = loadDailyStore();
-    const dtoday = dstore.history && dstore.history[todayKey()];
-    const prof = loadProfile();
-    const achN = Object.keys(prof.ach).length;
-    const modeN = Object.values(modes).filter(Boolean).length;
-    let botDiff = '';
-    try { botDiff = localStorage.getItem('cb_botdiff') || ''; } catch (e) {}
-    return (
-      <div className={`app-container menu-screen ${liteActive ? 'lite' : ''}`}>
-        {ToastView}
-        <div className="menu-scroll">
-          {/* 1. Fejlec: csak a fogaskerek (az overline szandekosan kimarad) */}
-          <div className="menu-head">
-            <span />
-            <button type="button" className="gear-ghost" onClick={() => setShowSettings(true)} aria-label="Beállítások">
-              <Settings size={20} />
-            </button>
-          </div>
-
-          {/* 2. Hos-sor: terhatasu wordmark + karakter-szinpad */}
-          <div className="hero-row">
-            <div className="wordmark bob" style={{ animationDelay: '0.2s' }}>
-              <span className="wm-line">CHRONO</span>
-              <span className="wm-line">BEATS</span>
-            </div>
-            <div className="hero-stage bob" style={{ animationDelay: '0.9s' }}>
-              <div className="spot-cone" />
-              <CharacterStage charIndex={charIndex} size={148} mood="idle" />
-              <div className="stage-ring" />
-              <div className="stage-arrows">
-                <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
-                <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Fo CTA */}
-          <button type="button" className="cta-primary bob" style={{ animationDelay: '1.5s' }} onClick={() => setStatus('setup')}>
-            <Play size={19} /> JÁTÉK INDÍTÁSA
-            <span className="cta-shine" />
-          </button>
-
-          {/* 4. Pakli-sor */}
-          <button type="button" className="deck-row" onClick={() => setShowPackSelection(true)}>
-            Pakli: {SONG_PACKS[selectedPack].label} · {SONG_PACKS[selectedPack].data.length} dal <RefreshCw size={12} />
-          </button>
-
-          {/* 5. 2x2 csemperacs */}
-          <div className="tile-grid">
-            
-            <button type="button" className="menu-tile t-bot bob" style={{ animationDelay: '1.1s' }} onClick={() => setShowBot(true)}>
-              <span className="tile-ico"><Play size={20} /></span>
-              <span className="tile-name">CHRONO-BOT</span>
-              <span className="tile-meta">{botDiff ? `${botDiff} fokozat` : 'Három fokozat'}</span>
-            </button>
-            
-            <button type="button" className="menu-tile t-trophy bob" style={{ animationDelay: '0.7s' }} onClick={() => setStatus('stats')}>
-              <span className="tile-ico"><Trophy size={20} /></span>
-              <span className="tile-name">TRÓFEÁK</span>
-              <span className="tile-meta">{achN} / 12 megszerezve</span>
-            </button>
-          </div>
-
-          {/* 6. Labsor */}
-          <button type="button" className="menu-foot" onClick={() => setShowSettings(true)}>
-            Extra módok · {modeN} aktív
-          </button>
-        </div>
-
-        {SettingsView}
-        {BotModalView}
-        {RoomModalView}
-        {PackModalView}
-        {TutorialView}
-      </div>
-    );
-  }
-
-  // ============================================================
-  //  STATISZTIKA ES TROFEAK
-  // ============================================================
   const BotModalView = (
     <AnimatePresence>
           {showBot && (
@@ -2733,6 +2650,90 @@ export default function App() {
         </AnimatePresence>
   );
 
+
+  if (status === 'menu') {
+    const mc = CHARACTERS[charIndex % CHARACTERS.length];
+    const dstore = loadDailyStore();
+    const dtoday = dstore.history && dstore.history[todayKey()];
+    const prof = loadProfile();
+    const achN = Object.keys(prof.ach).length;
+    const modeN = Object.values(modes).filter(Boolean).length;
+    let botDiff = '';
+    try { botDiff = localStorage.getItem('cb_botdiff') || ''; } catch (e) {}
+    return (
+      <div className={`app-container menu-screen ${liteActive ? 'lite' : ''}`}>
+        {ToastView}
+        <div className="menu-scroll">
+          {/* 1. Fejlec: csak a fogaskerek (az overline szandekosan kimarad) */}
+          <div className="menu-head">
+            <span />
+            <button type="button" className="gear-ghost" onClick={() => setShowSettings(true)} aria-label="Beállítások">
+              <Settings size={20} />
+            </button>
+          </div>
+
+          {/* 2. Hos-sor: terhatasu wordmark + karakter-szinpad */}
+          <div className="hero-row">
+            <div className="wordmark bob" style={{ animationDelay: '0.2s' }}>
+              <span className="wm-line">CHRONO</span>
+              <span className="wm-line">BEATS</span>
+            </div>
+            <div className="hero-stage bob" style={{ animationDelay: '0.9s' }}>
+              <div className="spot-cone" />
+              <CharacterStage charIndex={charIndex} size={148} mood="idle" />
+              <div className="stage-ring" />
+              <div className="stage-arrows">
+                <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
+                <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Fo CTA */}
+          <button type="button" className="cta-primary bob" style={{ animationDelay: '1.5s' }} onClick={() => setStatus('setup')}>
+            <Play size={19} /> JÁTÉK INDÍTÁSA
+            <span className="cta-shine" />
+          </button>
+
+          {/* 4. Pakli-sor */}
+          <button type="button" className="deck-row" onClick={() => setShowPackSelection(true)}>
+            Pakli: {SONG_PACKS[selectedPack].label} · {SONG_PACKS[selectedPack].data.length} dal <RefreshCw size={12} />
+          </button>
+
+          {/* 5. 2x2 csemperacs */}
+          <div className="tile-grid">
+            
+            <button type="button" className="menu-tile t-bot bob" style={{ animationDelay: '1.1s' }} onClick={() => setShowBot(true)}>
+              <span className="tile-ico"><Play size={20} /></span>
+              <span className="tile-name">CHRONO-BOT</span>
+              <span className="tile-meta">{botDiff ? `${botDiff} fokozat` : 'Három fokozat'}</span>
+            </button>
+            
+            <button type="button" className="menu-tile t-trophy bob" style={{ animationDelay: '0.7s' }} onClick={() => setStatus('stats')}>
+              <span className="tile-ico"><Trophy size={20} /></span>
+              <span className="tile-name">TRÓFEÁK</span>
+              <span className="tile-meta">{achN} / 12 megszerezve</span>
+            </button>
+          </div>
+
+          {/* 6. Labsor */}
+          <button type="button" className="menu-foot" onClick={() => setShowSettings(true)}>
+            Extra módok · {modeN} aktív
+          </button>
+        </div>
+
+        {SettingsView}
+        {BotModalView}
+        {RoomModalView}
+        {PackModalView}
+        {TutorialView}
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  STATISZTIKA ES TROFEAK
+  // ============================================================
   if (status === 'stats') {
     const P = loadProfile();
     const DS = loadDailyStore();
