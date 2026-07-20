@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "18.2.0",
@@ -14,7 +15,8 @@
     "lucide-react": "0.383.0",
     "canvas-confetti": "1.9.2",
     "three": "0.160.1",
-    "@react-three/fiber": "8.17.10"
+    "@react-three/fiber": "8.17.10",
+    "peerjs": "^1.5.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "4.3.4",

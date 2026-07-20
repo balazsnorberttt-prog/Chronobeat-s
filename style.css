@@ -1397,3 +1397,63 @@ button:active { transform: scale(0.96); }
   0%, 100% { box-shadow: 0 0 6px rgba(255, 0, 85, 0.4); }
   50% { box-shadow: 0 0 20px rgba(255, 0, 85, 0.85); }
 }
+
+/* ============================================================
+   v8 — ONLINE SZOBA
+   ============================================================ */
+.room-code-big {
+  font-family: 'Anton', sans-serif;
+  font-size: 3rem;
+  letter-spacing: 14px;
+  padding-left: 14px; /* a betukoz kiegyenlitese */
+  color: #fff;
+  text-shadow: 0 0 24px var(--neon-blue), 0 3px 6px rgba(0, 0, 0, 0.6);
+  margin: 6px 0 4px;
+}
+.room-code-inline { color: var(--gold); letter-spacing: 2px; }
+.room-divider {
+  font-size: 0.66rem; font-weight: 800; color: #8890b5;
+  margin: 12px 0 8px;
+  text-transform: uppercase; letter-spacing: 2px;
+}
+.room-players {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  justify-content: center;
+  margin: 10px 0 14px;
+}
+.room-pill {
+  background: rgba(0, 234, 255, 0.1);
+  border: 1px solid rgba(0, 234, 255, 0.4);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.74rem; font-weight: 800;
+}
+.room-wait { font-size: 0.74rem; color: #8890b5; }
+.btn-3d.wide { width: 100%; justify-content: center; }
+
+/* ---------- Kliens nezet ---------- */
+.client-banner {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 18px 22px;
+  border-radius: 20px;
+  text-align: center;
+  max-width: min(88vw, 380px);
+}
+.client-banner.mine { border-color: rgba(255, 215, 0, 0.55); box-shadow: 0 0 24px rgba(255, 215, 0, 0.25); }
+.client-banner.good { border-color: rgba(0, 255, 135, 0.6); }
+.client-banner.bad { border-color: rgba(255, 0, 85, 0.6); }
+.cb-big { font-family: 'Anton', sans-serif; font-size: 1.25rem; letter-spacing: 1px; }
+.cb-sub { font-size: 0.78rem; color: #cfd6f4; line-height: 1.4; }
+.client-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 4px; }
+.leave-room {
+  position: absolute;
+  top: calc(64px + env(safe-area-inset-top)); right: 10px;
+  z-index: 40;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: #aab2d6;
+  font-size: 0.62rem; font-weight: 800;
+  padding: 6px 10px;
+}

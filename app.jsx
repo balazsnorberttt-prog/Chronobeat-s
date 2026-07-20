@@ -6,6 +6,7 @@ import {
   Settings, Mic, BookOpen, Timer, EyeOff, Rewind, Sparkles,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import Peer from 'peerjs';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -213,7 +214,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v7.3';
+const APP_VERSION = 'v8';
 
 // ============================================================
 //  JATEKSZABALY-KONSTANSOK
@@ -488,6 +489,21 @@ export default function App() {
     catch (e) { return { blind: false, speed: false, gold: false, reverse: false }; }
   });
   const [showSettings, setShowSettings] = useState(false);
+
+  // ---------- ONLINE SZOBA (PeerJS - szerver nelkuli WebRTC) ----------
+  const [netRole, setNetRole] = useState(null);        // null | 'host' | 'client'
+  const [roomCode, setRoomCode] = useState('');
+  const [showRoom, setShowRoom] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinName, setJoinName] = useState('');
+  const [netBusy, setNetBusy] = useState(false);
+  const [snap, setSnap] = useState(null);              // kliens: jatekallapot-pillanatkep
+  const [myPeerId, setMyPeerId] = useState(null);
+  const [clientBet, setClientBet] = useState(null);    // kliens tipp-ablak
+  const peerRef = useRef(null);
+  const connsRef = useRef({});                          // host: peerId -> conn
+  const hostConnRef = useRef(null);                     // kliens: kapcsolat a hosthoz
+  const actRef = useRef({});                            // friss fuggvenyek a peer-hendlereknek
   const [activeModes, setActiveModes] = useState({ blind: false, speed: false, gold: false, reverse: false });
   const [, setCharTick] = useState(0); // ujrarender, ha sajat figurak toltodnek be
   const [tutStep, setTutStep] = useState(-1);      // -1 = nincs tanulokor
@@ -886,6 +902,169 @@ export default function App() {
     }
   };
 
+  // ============================================================
+  //  ONLINE SZOBA - halozati logika
+  // ============================================================
+  // Minden rendernel frissitjuk, igy a peer-esemenyek mindig a
+  // legfrissebb allapotot es fuggvenyeket erik el (nincs "beragadas")
+  actRef.current = { players, turnIndex, status, handlePlace, handleSwap, currentCard, showToast, setPlayers, setBetResult, fireConfetti, goldCard };
+
+  const makeCode = () => {
+    const AB = 'ABCDEFGHJKLMNPRSTUVWXYZ';
+    let c = '';
+    for (let i = 0; i < 4; i++) c += AB[Math.floor(Math.random() * AB.length)];
+    return c;
+  };
+
+  const netSnapshot = () => ({
+    type: 'state',
+    status,
+    players: players.map((p) => ({ id: p.id, peerId: p.peerId || null, name: p.name, char: p.char, tokens: p.tokens || 0, timeline: p.timeline || [] })),
+    turnIndex,
+    cardsLeft,
+    flipped,
+    feedback,
+    wrongIndex,
+    timeLeft,
+    goldCard,
+    activeModes,
+    card: currentCard ? (flipped || feedback ? currentCard : { masked: true }) : null,
+  });
+
+  const broadcast = () => {
+    Object.values(connsRef.current).forEach((c) => {
+      try { if (c.open) c.send(netSnapshot()); } catch (e) {}
+    });
+  };
+
+  // A host minden fontos valtozasnal automatikusan szetkuldi az allapotot
+  useEffect(() => {
+    if (netRole === 'host') broadcast();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [netRole, players, turnIndex, currentCard, flipped, feedback, wrongIndex, status, cardsLeft, timeLeft, goldCard, activeModes]);
+
+  const hostHandleAction = (fromPeer, msg) => {
+    const A = actRef.current;
+    const idx = A.players.findIndex((p) => p.peerId === fromPeer);
+    if (idx === -1) return;
+    if (msg.a === 'place') {
+      if (idx !== A.turnIndex || A.status !== 'game') return;
+      A.handlePlace(msg.index);
+    } else if (msg.a === 'swap') {
+      if (idx !== A.turnIndex || A.status !== 'game') return;
+      A.handleSwap();
+    } else if (msg.a === 'bet') {
+      if (idx !== A.turnIndex || A.status !== 'game' || !A.currentCard) return;
+      const d = msg.data || {};
+      const ys = yearScore(d.year, A.currentCard.y);
+      let earned = ys;
+      if (isCloseEnough(d.artist, A.currentCard.a)) earned += 1;
+      if (isCloseEnough(d.title, A.currentCard.t)) earned += 1;
+      if (A.goldCard) earned *= 2;
+      if (earned > 0) {
+        A.fireConfetti(Math.min(earned, 3));
+        A.setPlayers(A.players.map((p, i) => (i === idx ? { ...p, tokens: (p.tokens || 0) + earned } : p)));
+        A.setBetResult({ total: earned, exactYear: ys === 2 });
+      } else {
+        A.setBetResult({ total: 0 });
+      }
+      setTimeout(() => A.setBetResult(null), 2600);
+    }
+  };
+
+  const createRoom = () => {
+    if (netBusy) return;
+    setNetBusy(true);
+    const code = makeCode();
+    const peer = new Peer(`cbeats-${code}`);
+    peerRef.current = peer;
+    peer.on('open', () => {
+      setRoomCode(code);
+      setNetRole('host');
+      setNetBusy(false);
+      showToast(`📡 Szoba kész! Kód: ${code}`);
+    });
+    peer.on('connection', (conn) => {
+      conn.on('data', (msg) => {
+        if (msg && msg.type === 'join') {
+          const A = actRef.current;
+          if (A.status !== 'setup') { try { conn.send({ type: 'reject', why: 'A játék már elindult!' }); } catch (e) {} return; }
+          connsRef.current[conn.peer] = conn;
+          A.setPlayers((prev) => {
+            if (prev.length >= MAX_PLAYERS) { try { conn.send({ type: 'reject', why: 'Megtelt a szoba!' }); } catch (e) {} return prev; }
+            if (prev.some((p) => p.peerId === conn.peer)) return prev;
+            const name = String(msg.name || 'Játékos').slice(0, 14);
+            try { conn.send({ type: 'welcome' }); } catch (e) {}
+            A.showToast(`📱 ${name} csatlakozott!`);
+            return [...prev, { id: Date.now() + Math.random(), peerId: conn.peer, name, char: prev.length % CHARACTERS.length }];
+          });
+        } else if (msg && msg.type === 'action') {
+          hostHandleAction(conn.peer, msg);
+        }
+      });
+      conn.on('close', () => {
+        delete connsRef.current[conn.peer];
+        const A = actRef.current;
+        if (A.status === 'setup') A.setPlayers((prev) => prev.filter((p) => p.peerId !== conn.peer));
+      });
+    });
+    peer.on('error', (err) => {
+      setNetBusy(false);
+      if (String(err.type) === 'unavailable-id') { createRoomRetry(); }
+      else showToast('📡 Hálózati hiba – próbáld újra!');
+    });
+  };
+  const createRoomRetry = () => { try { peerRef.current && peerRef.current.destroy(); } catch (e) {} setTimeout(createRoom, 200); };
+
+  const joinRoom = () => {
+    const code = joinCode.trim().toUpperCase();
+    const name = joinName.trim();
+    if (code.length !== 4 || !name) { showToast('Add meg a 4 betűs kódot és a neved!'); return; }
+    if (netBusy) return;
+    setNetBusy(true);
+    const peer = new Peer();
+    peerRef.current = peer;
+    peer.on('open', (pid) => {
+      setMyPeerId(pid);
+      const conn = peer.connect(`cbeats-${code}`, { reliable: true });
+      hostConnRef.current = conn;
+      const failT = setTimeout(() => { setNetBusy(false); showToast('Nincs ilyen szoba, vagy nem elérhető. 😕'); }, 8000);
+      conn.on('open', () => {
+        conn.send({ type: 'join', name });
+      });
+      conn.on('data', (msg) => {
+        if (!msg) return;
+        if (msg.type === 'welcome') {
+          clearTimeout(failT);
+          setNetBusy(false);
+          setNetRole('client');
+          setRoomCode(code);
+          setStatus('client');
+        } else if (msg.type === 'reject') {
+          clearTimeout(failT);
+          setNetBusy(false);
+          showToast(msg.why || 'Nem sikerült csatlakozni.');
+        } else if (msg.type === 'state') {
+          setSnap(msg);
+        }
+      });
+      conn.on('close', () => { showToast('📡 A kapcsolat megszakadt.'); setStatus('setup'); setNetRole(null); setSnap(null); });
+      conn.on('error', () => { clearTimeout(failT); setNetBusy(false); showToast('Nem sikerült csatlakozni. 😕'); });
+    });
+    peer.on('error', () => { setNetBusy(false); showToast('Nem sikerült csatlakozni. 😕'); });
+  };
+
+  const sendAction = (a, extra = {}) => {
+    try { if (hostConnRef.current && hostConnRef.current.open) hostConnRef.current.send({ type: 'action', a, ...extra }); } catch (e) {}
+  };
+
+  const leaveRoom = () => {
+    try { peerRef.current && peerRef.current.destroy(); } catch (e) {}
+    peerRef.current = null; connsRef.current = {}; hostConnRef.current = null;
+    setNetRole(null); setRoomCode(''); setSnap(null);
+    setStatus('setup');
+  };
+
   // ---------- Hangvezerles (Push-to-Talk, Web Speech API) ----------
   const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
@@ -1028,6 +1207,139 @@ export default function App() {
   // ============================================================
   //  SETUP
   // ============================================================
+  // ============================================================
+  //  KLIENS NEZET (csatlakozott telefon)
+  // ============================================================
+  if (status === 'client') {
+    const st = snap;
+    const me = st ? st.players.find((p) => p.peerId === myPeerId) : null;
+    const active = st && st.players[st.turnIndex];
+    const myTurn = !!(st && me && active && active.peerId === myPeerId && st.status === 'game');
+    const myChar = me ? CHARACTERS[me.char % CHARACTERS.length] : CHARACTERS[0];
+    const canAct = myTurn && !st.flipped && !st.feedback;
+    const tl = me ? me.timeline : [];
+    return (
+      <div className="app-container">
+        <Backdrop />
+        <div className="ver-tag">{APP_VERSION}</div>
+        {ToastView}
+        <div className="top-hud">
+          <div className="player-info glass" style={{ '--pc': myChar.color }}>
+            <div className="hud-avatar"><span>{me ? me.name.charAt(0).toUpperCase() : '?'}</span></div>
+            <div className="hud-text">
+              <div className="hud-label">TE VAGY</div>
+              <div className="hud-name">{me ? me.name : '…'}</div>
+            </div>
+            <span className="hud-tokens"><Coins size={15} /> {me ? me.tokens : 0}</span>
+          </div>
+          <div className="hud-right">
+            <div className="deck-chip glass">🚪 {roomCode}</div>
+            {st && st.timeLeft !== null && st.timeLeft !== undefined && (
+              <div className={`timer-chip glass ${st.timeLeft <= 20 ? 'low' : ''}`}>
+                <Timer size={13} /> {Math.floor(st.timeLeft / 60)}:{String(st.timeLeft % 60).padStart(2, '0')}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="main-arena">
+          {!st && <div className="client-banner glass">📡 Kapcsolódva! Várakozás a házigazdára…</div>}
+          {st && st.status === 'setup' && <div className="client-banner glass">🛋️ A házigazda még állítgat… mindjárt indulunk!</div>}
+          {st && (st.status === 'handoff' || st.status === 'game') && !myTurn && active && (
+            <div className="client-banner glass">
+              <span className="cb-big">🎧 {active.name} játszik…</span>
+              <span className="cb-sub">Figyeld a zenét a házigazda készülékén!</span>
+            </div>
+          )}
+          {st && st.status === 'win' && (
+            <div className="client-banner glass">
+              <span className="cb-big">🏆 Vége a meccsnek!</span>
+              <span className="cb-sub">Az eredmény a házigazda képernyőjén!</span>
+            </div>
+          )}
+          {myTurn && (
+            <>
+              <div className="client-banner glass mine">
+                <span className="cb-big">🎤 TE JÖSSZ!</span>
+                <span className="cb-sub">{st.card && !st.card.masked ? `${st.card.y} · ${st.card.t}` : 'Hallgasd meg a dalt a házigazdánál, aztán helyezd el!'}</span>
+                {st.goldCard && <span className="gold-badge">✨ ARANY KÁRTYA ✨</span>}
+              </div>
+              {canAct && (
+                <div className="client-actions">
+                  <motion.button className="bet-fab" whileTap={{ scale: 0.94 }} onClick={() => setClientBet({ year: '', artist: '', title: '' })}>
+                    <MessageCircle size={17} /> TIPPELJ ZSETONÉRT!
+                  </motion.button>
+                  <button type="button" className="btn-3d swap" onClick={() => sendAction('swap')}>
+                    <RefreshCw size={16} /> CSERE {SWAP_COST}🪙
+                  </button>
+                </div>
+              )}
+              {st.feedback && (
+                <div className={`client-banner glass ${st.feedback === 'correct' ? 'good' : 'bad'}`}>
+                  <span className="cb-big">{st.feedback === 'correct' ? '🎉 TALÁLT!' : '😅 Nem talált…'}</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Sajat idovonal (mindig latszik, sajat korben lerakhato) */}
+        <div className="timeline-zone">
+          <div className="tl-chip glass">
+            <span className="tl-dot" style={{ background: myChar.color, color: myChar.color }} />
+            <span className="tl-name">{me ? me.name : ''}</span>
+            <div className="tl-progress"><div style={{ width: `${me ? Math.min(100, Math.round((tl.length / WIN_CARDS) * 100)) : 0}%` }} /></div>
+            <span className="tl-count">{tl.length}/{WIN_CARDS}</span>
+          </div>
+          <div className="timeline-track" ref={scrollRef}>
+            {canAct && <button className="slot-btn" onClick={() => sendAction('place', { index: 0 })}>+</button>}
+            {tl.map((card, i) => (
+              <React.Fragment key={`${card.a}-${card.t}-${i}`}>
+                <div className="history-card">
+                  <div className="year-capsule">{st && st.activeModes && st.activeModes.blind && st.status === 'game' ? '?' : card.y}</div>
+                  <div className="history-title">{card.t}</div>
+                  <div className="history-artist">{card.a}</div>
+                </div>
+                {canAct && <button className="slot-btn" onClick={() => sendAction('place', { index: i + 1 })}>+</button>}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* Kliens tipp-ablak */}
+        <AnimatePresence>
+          {clientBet && (
+            <div className="modal-overlay" onClick={() => setClientBet(null)}>
+              <motion.div
+                onClick={(e) => e.stopPropagation()}
+                className="modal-box glass"
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+              >
+                <button type="button" className="close-modal" onClick={() => setClientBet(null)}><X size={22} /></button>
+                <h2 className="text-chrome">MI A TIPPED?</h2>
+                <div className="modal-inputs">
+                  <input type="number" inputMode="numeric" placeholder="Évszám (pl. 2001)" value={clientBet.year}
+                    onChange={(e) => setClientBet({ ...clientBet, year: e.target.value })} />
+                  <input type="text" placeholder="Előadó" value={clientBet.artist}
+                    onChange={(e) => setClientBet({ ...clientBet, artist: e.target.value })} />
+                  <input type="text" placeholder="Dal címe" value={clientBet.title}
+                    onChange={(e) => setClientBet({ ...clientBet, title: e.target.value })} />
+                </div>
+                <button className="btn-3d start wide" onClick={() => { sendAction('bet', { data: clientBet }); setClientBet(null); }}>
+                  TIPP BEKÜLDÉSE
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <button type="button" className="leave-room" onClick={leaveRoom}><X size={14} /> Kilépés</button>
+      </div>
+    );
+  }
+
   if (status === 'setup') {
     const cur = CHARACTERS[charIndex % CHARACTERS.length];
     return (
@@ -1036,6 +1348,61 @@ export default function App() {
         <div className="ver-tag">{APP_VERSION}</div>
         {ToastView}
         {SettingsView}
+        <AnimatePresence>
+          {showRoom && (
+            <div className="modal-overlay" onClick={() => setShowRoom(false)}>
+              <motion.div
+                onClick={(e) => e.stopPropagation()}
+                className="modal-box glass settings-modal"
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+              >
+                <button type="button" className="close-modal" onClick={() => setShowRoom(false)}><X size={22} /></button>
+                <h3 className="modal-title">ONLINE SZOBA</h3>
+                {netRole === 'host' ? (
+                  <>
+                    <div className="room-code-big">{roomCode}</div>
+                    <p className="modal-sub">Ezt a kódot írják be a többiek a saját telefonjukon!<br />A zene ezen a készüléken fog szólni. 🔊</p>
+                    <div className="room-players">
+                      {players.filter((p) => p.peerId).length === 0
+                        ? <span className="room-wait">Várakozás a csatlakozókra…</span>
+                        : players.filter((p) => p.peerId).map((p) => <span key={p.id} className="room-pill">📱 {p.name}</span>)}
+                    </div>
+                    <button type="button" className="btn-3d ghost small" onClick={leaveRoom}>SZOBA BEZÁRÁSA</button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" className="btn-3d gold wide" disabled={netBusy} onClick={createRoom}>
+                      {netBusy ? 'KAPCSOLÓDÁS…' : '📡 SZOBA LÉTREHOZÁSA (házigazda)'}
+                    </button>
+                    <div className="room-divider">vagy csatlakozz</div>
+                    <div className="modal-inputs">
+                      <input
+                        type="text"
+                        placeholder="SZOBAKÓD (4 betű)"
+                        maxLength={4}
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                        style={{ textTransform: 'uppercase', letterSpacing: '4px', textAlign: 'center' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="A neved"
+                        maxLength={14}
+                        value={joinName}
+                        onChange={(e) => setJoinName(e.target.value)}
+                      />
+                    </div>
+                    <button type="button" className="btn-3d start wide" disabled={netBusy} onClick={joinRoom}>
+                      {netBusy ? 'KAPCSOLÓDÁS…' : 'CSATLAKOZÁS 🚀'}
+                    </button>
+                  </>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
         <button type="button" className="gear-btn glass gear-float" onClick={() => setShowSettings(true)} title="Játékmódok">
           <Settings size={19} />
         </button>
@@ -1049,6 +1416,15 @@ export default function App() {
                 {SONG_PACKS[selectedPack].label}
               </span>
               <span className="mode-count">{SONG_PACKS[selectedPack].data.length} dal · koppints a váltáshoz</span>
+            </button>
+
+            <button className="mode-display" onClick={() => setShowRoom(true)}>
+              <span className="mode-label">📱 ONLINE SZOBA</span>
+              <span className="mode-count">
+                {netRole === 'host'
+                  ? <>Szobakód: <b className="room-code-inline">{roomCode}</b> · {players.filter((p) => p.peerId).length} telefon csatlakozva</>
+                  : 'Hozz létre szobát, vagy csatlakozz kóddal!'}
+              </span>
             </button>
 
             <button className="mode-display" onClick={() => setShowSettings(true)}>
