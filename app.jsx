@@ -951,6 +951,7 @@ export default function App() {
 
   const [newName, setNewName] = useState('');
   const [charIndex, setCharIndex] = useState(0);
+  const [slide, setSlide] = useState(0);
   const [selectedPack, setSelectedPack] = useState('mix');
   const [showPackSelection, setShowPackSelection] = useState(false);
   const [toast, setToast] = useState(null);
@@ -2656,172 +2657,255 @@ export default function App() {
   );
 
 
+  // ============================================================
+  //  FOMENU — swipe-alapu dia-nézet (5 dia, balra/jobbra lapozhato)
+  // ============================================================
   if (status === 'menu') {
-    const mc = CHARACTERS[charIndex % CHARACTERS.length];
     const dstore = loadDailyStore();
     const dtoday = dstore.history && dstore.history[todayKey()];
     const prof = loadProfile();
     const achN = Object.keys(prof.ach).length;
     const modeN = Object.values(modes).filter(Boolean).length;
-    let botDiff = '';
-    try { botDiff = localStorage.getItem('cb_botdiff') || ''; } catch (e) {}
+    const SLIDES = [
+      {
+        key: 'play',
+        title: 'JÁTÉK INDÍTÁSA',
+        grad: 'linear-gradient(135deg, #ff1f5e 0%, #c81fff 48%, #00c8ff 100%)',
+        icon: <Play size={22} />,
+        body: (
+          <>
+            <div className="hero-stage center bob" style={{ animationDelay: '0.4s' }}>
+              <div className="spot-cone" />
+              <CharacterStage charIndex={charIndex} size={150} mood="idle" />
+              <div className="stage-ring" />
+              <div className="stage-arrows">
+                <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
+                <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
+              </div>
+            </div>
+            <button type="button" className="cta-primary bob" style={{ animationDelay: '0.9s' }} onClick={() => setStatus('setup')}>
+              <Play size={19} /> JÁTÉK INDÍTÁSA
+              <span className="cta-shine" />
+            </button>
+            <button type="button" className="splat-tile wide bob" style={{ animationDelay: '0.7s' }} onClick={() => setShowPackSelection(true)}>
+              <svg className="splat-svg sw1" viewBox="0 0 360 100" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="sg-pack" x1="0" y1="0" x2="1" y2="0.4">
+                    <stop offset="0" stopColor={packColors(SONG_PACKS[selectedPack].style)[0]} />
+                    <stop offset="1" stopColor={packColors(SONG_PACKS[selectedPack].style)[1]} />
+                  </linearGradient>
+                </defs>
+                <path fill="url(#sg-pack)" d="M353,50 C352,52 275,52 275,56 C274,60 353,72 350,73 C347,75 269,66 257,68 C245,70 284,86 276,87 C269,87 221,69 209,70 C197,71 206,94 200,94 C194,94 184,71 170,71 C156,72 117,98 111,98 C106,97 147,69 136,67 C125,64 46,83 41,82 C37,81 113,63 108,60 C103,56 13,63 11,61 C8,59 95,54 91,50 C88,46 8,39 8,37 C8,36 84,41 96,38 C108,36 53,23 59,22 C65,21 123,34 133,32 C143,30 115,10 121,9 C126,7 154,25 167,23 C181,21 196,4 204,4 C212,5 202,24 216,25 C230,26 287,6 293,7 C299,8 244,30 255,33 C265,36 353,25 356,27 C359,29 280,40 278,44 C277,48 353,48 353,50 Z" />
+                <circle cx="352" cy="76" r="6" fill="url(#sg-pack)" />
+                <circle cx="8" cy="28" r="5" fill="url(#sg-pack)" />
+                <circle cx="196" cy="92" r="4" fill="url(#sg-pack)" />
+              </svg>
+              <span className="splat-content row">
+                <Layers size={17} />
+                <span className="tile-name">PAKLI: {SONG_PACKS[selectedPack].label}</span>
+                <RefreshCw size={14} className="wt-end" />
+              </span>
+            </button>
+          </>
+        ),
+      },
+      {
+        key: 'daily',
+        title: 'NAPI KIHÍVÁS',
+        grad: 'linear-gradient(135deg, #8a2bff, #ff2f92)',
+        icon: <Sparkles size={22} />,
+        body: (
+          <button
+            type="button"
+            className="splat-tile big bob"
+            style={{ animationDelay: '0.3s' }}
+            onClick={() => { if (dtoday) { setDailyView('result'); setStatus('daily-result'); } else startDaily(); }}
+          >
+            <svg className="splat-svg s1" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="sg-daily" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#8a2bff" /><stop offset="1" stopColor="#ff2f92" />
+                </linearGradient>
+              </defs>
+              <path fill="url(#sg-daily)" d="M215,75 C213,79 157,78 154,86 C152,94 201,122 198,124 C194,127 144,97 133,101 C122,105 134,147 129,148 C124,149 112,112 101,109 C90,106 66,133 61,132 C56,130 75,104 68,98 C61,93 20,101 18,97 C16,94 57,82 57,75 C57,68 15,56 17,53 C20,49 69,62 75,55 C81,49 52,16 56,13 C60,9 88,35 99,35 C111,34 122,7 127,9 C133,11 123,44 134,47 C146,50 191,24 197,26 C203,28 167,53 170,60 C173,68 218,71 215,75 Z" />
+              <circle cx="14" cy="30" r="7" fill="url(#sg-daily)" />
+              <circle cx="207" cy="112" r="9" fill="url(#sg-daily)" />
+              <circle cx="196" cy="16" r="5" fill="url(#sg-daily)" />
+            </svg>
+            <span className="splat-content">
+              <Sparkles size={28} />
+              <span className="tile-name big">NAPI KIHÍVÁS</span>
+              <span className="slide-sub">{dtoday ? '✅ Ma már teljesítve' : '10 dal · 3 élet'}</span>
+            </span>
+          </button>
+        ),
+      },
+      {
+        key: 'bot',
+        title: 'CHRONO-BOT',
+        grad: 'linear-gradient(135deg, #00c8ff, #2e5bff)',
+        icon: <Play size={22} />,
+        body: (
+          <button type="button" className="splat-tile big bob" style={{ animationDelay: '0.3s' }} onClick={() => setShowBot(true)}>
+            <svg className="splat-svg s2" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="sg-bot" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0" stopColor="#00c8ff" /><stop offset="1" stopColor="#2e5bff" />
+                </linearGradient>
+              </defs>
+              <path fill="url(#sg-bot)" d="M211,75 C213,79 167,81 164,90 C161,99 196,126 191,129 C185,132 144,106 131,108 C118,111 117,143 110,143 C103,144 100,114 87,112 C73,110 30,135 26,131 C22,127 64,98 59,89 C55,80 3,79 3,75 C3,71 58,70 65,62 C71,55 38,33 42,29 C46,26 79,48 90,43 C101,38 104,3 110,3 C116,4 114,44 127,47 C141,50 189,17 194,19 C198,22 152,54 155,63 C158,71 210,71 211,75 Z" />
+              <circle cx="210" cy="30" r="7" fill="url(#sg-bot)" />
+              <circle cx="10" cy="102" r="8" fill="url(#sg-bot)" />
+              <circle cx="118" cy="6" r="4" fill="url(#sg-bot)" />
+            </svg>
+            <span className="splat-content">
+              <Play size={28} />
+              <span className="tile-name big">CHRONO-BOT</span>
+              <span className="slide-sub">Edzés a gép ellen</span>
+            </span>
+          </button>
+        ),
+      },
+      {
+        key: 'online',
+        title: 'ONLINE SZOBA',
+        grad: 'linear-gradient(135deg, #ff2bd0, #8a2bff)',
+        icon: <Smartphone size={22} />,
+        body: (
+          <button type="button" className="splat-tile big bob" style={{ animationDelay: '0.3s' }} onClick={() => setShowRoom(true)}>
+            <svg className="splat-svg s3" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="sg-online" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#ff2bd0" /><stop offset="1" stopColor="#8a2bff" />
+                </linearGradient>
+              </defs>
+              <path fill="url(#sg-online)" d="M220,75 C220,78 157,78 152,84 C148,91 196,113 194,116 C192,119 146,96 139,101 C131,107 151,147 146,149 C141,151 122,113 110,114 C98,114 77,150 73,148 C68,146 91,105 83,100 C75,94 25,120 23,117 C20,115 70,91 67,84 C65,77 9,78 8,75 C7,72 54,70 58,64 C62,58 27,39 31,37 C35,35 75,54 82,49 C89,43 70,6 75,5 C79,3 99,37 110,38 C121,39 136,9 142,10 C147,11 133,42 143,45 C153,48 205,25 206,28 C207,32 149,58 152,66 C155,73 220,72 220,75 Z" />
+              <circle cx="16" cy="26" r="6" fill="url(#sg-online)" />
+              <circle cx="204" cy="118" r="7" fill="url(#sg-online)" />
+              <circle cx="110" cy="128" r="4" fill="url(#sg-online)" />
+            </svg>
+            <span className="splat-content">
+              <Smartphone size={28} />
+              <span className="tile-name big">ONLINE SZOBA</span>
+              <span className="slide-sub">Több telefon, egy szoba</span>
+            </span>
+          </button>
+        ),
+      },
+      {
+        key: 'trophies',
+        title: 'TRÓFEÁK',
+        grad: 'linear-gradient(135deg, #ffb300, #ff6a00)',
+        icon: <Trophy size={22} />,
+        body: (
+          <button type="button" className="splat-tile big bob" style={{ animationDelay: '0.3s' }} onClick={() => setStatus('stats')}>
+            <svg className="splat-svg s4" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="sg-trophy" x1="1" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#ffb300" /><stop offset="1" stopColor="#ff6a00" />
+                </linearGradient>
+              </defs>
+              <path fill="url(#sg-trophy)" d="M217,75 C217,79 158,78 155,86 C153,94 206,123 203,127 C200,130 150,105 139,108 C127,111 135,147 129,148 C123,149 112,114 100,114 C87,113 56,146 50,144 C45,142 71,107 65,100 C60,93 19,102 16,98 C13,94 45,82 45,75 C45,68 11,55 16,52 C21,49 67,61 74,55 C81,49 55,19 59,16 C64,14 90,43 101,40 C112,38 125,3 130,3 C135,4 124,43 134,48 C143,53 183,29 187,32 C192,34 156,56 161,63 C165,70 218,71 217,75 Z" />
+              <circle cx="208" cy="22" r="6" fill="url(#sg-trophy)" />
+              <circle cx="12" cy="112" r="7" fill="url(#sg-trophy)" />
+              <circle cx="60" cy="6" r="4" fill="url(#sg-trophy)" />
+            </svg>
+            <span className="splat-content">
+              <Trophy size={28} />
+              <span className="tile-name big">TRÓFEÁK</span>
+              <span className="slide-sub">{achN}/12 megyszerzve</span>
+            </span>
+          </button>
+        ),
+      },
+    ];
+
     return (
-      <div className={`app-container menu-screen ${liteActive ? 'lite' : ''}`}>
+      <div className={`app-container menu-screen carousel-menu ${liteActive ? 'lite' : ''}`}>
         <Backdrop />
         {ToastView}
-        <div className="menu-scroll">
-          {/* 1. Fejlec: csak a fogaskerek (az overline szandekosan kimarad) */}
-          <div className="menu-head">
-            <span />
-            <button type="button" className="gear-ghost" onClick={() => setShowSettings(true)} aria-label="Beállítások">
-              <Settings size={20} />
-            </button>
-          </div>
-
-          {/* 2. Marka + karakter-szinpad (kozepre rendezve) */}
-          <div className="wordmark big bob" style={{ animationDelay: '0.2s' }}>
-            <span className="wm-line">CHRONO</span>
-            <span className="wm-line">BEATS</span>
-          </div>
-          <div className="hero-stage center bob" style={{ animationDelay: '0.9s' }}>
-            <div className="spot-cone" />
-            <CharacterStage charIndex={charIndex} size={150} mood="idle" />
-            <div className="stage-ring" />
-            <div className="stage-arrows">
-              <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
-              <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
-            </div>
-          </div>
-
-          {/* 3. Fo CTA */}
-          <button type="button" className="cta-primary bob" style={{ animationDelay: '1.5s' }} onClick={() => setStatus('setup')}>
-            <Play size={19} /> JÁTÉK INDÍTÁSA
-            <span className="cta-shine" />
-          </button>
-
-          {/* 4. Pakli - szeles festekpacsa */}
-          <button type="button" className="splat-tile wide bob" style={{ animationDelay: '1.3s' }} onClick={() => setShowPackSelection(true)}>
-            <svg className="splat-svg sw1" viewBox="0 0 360 100" preserveAspectRatio="none" aria-hidden="true">
-              <defs>
-                <linearGradient id="sg-pack" x1="0" y1="0" x2="1" y2="0.4">
-                  <stop offset="0" stopColor={packColors(SONG_PACKS[selectedPack].style)[0]} />
-                  <stop offset="1" stopColor={packColors(SONG_PACKS[selectedPack].style)[1]} />
-                </linearGradient>
-              </defs>
-              <path fill="url(#sg-pack)" d="M353,50 C352,52 275,52 275,56 C274,60 353,72 350,73 C347,75 269,66 257,68 C245,70 284,86 276,87 C269,87 221,69 209,70 C197,71 206,94 200,94 C194,94 184,71 170,71 C156,72 117,98 111,98 C106,97 147,69 136,67 C125,64 46,83 41,82 C37,81 113,63 108,60 C103,56 13,63 11,61 C8,59 95,54 91,50 C88,46 8,39 8,37 C8,36 84,41 96,38 C108,36 53,23 59,22 C65,21 123,34 133,32 C143,30 115,10 121,9 C126,7 154,25 167,23 C181,21 196,4 204,4 C212,5 202,24 216,25 C230,26 287,6 293,7 C299,8 244,30 255,33 C265,36 353,25 356,27 C359,29 280,40 278,44 C277,48 353,48 353,50 Z" />
-              <circle cx="352" cy="76" r="6" fill="url(#sg-pack)" />
-              <circle cx="8" cy="28" r="5" fill="url(#sg-pack)" />
-              <circle cx="196" cy="92" r="4" fill="url(#sg-pack)" />
-            </svg>
-            <span className="splat-content row">
-              <Layers size={17} />
-              <span className="tile-name">PAKLI: {SONG_PACKS[selectedPack].label}</span>
-              <RefreshCw size={14} className="wt-end" />
-            </span>
-          </button>
-
-          {/* 5. Negy festekpacsa-doboz */}
-          <div className="tile-grid splat-grid">
-            <button
-              type="button"
-              className="splat-tile bob"
-              style={{ animationDelay: '0.5s' }}
-              onClick={() => {
-                if (dtoday) { setDailyView('result'); setStatus('daily-result'); }
-                else startDaily();
-              }}
-            >
-              <svg className="splat-svg s1" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
-                <defs>
-                  <linearGradient id="sg-daily" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor="#8a2bff" /><stop offset="1" stopColor="#ff2f92" />
-                  </linearGradient>
-                </defs>
-                <path fill="url(#sg-daily)" d="M215,75 C213,79 157,78 154,86 C152,94 201,122 198,124 C194,127 144,97 133,101 C122,105 134,147 129,148 C124,149 112,112 101,109 C90,106 66,133 61,132 C56,130 75,104 68,98 C61,93 20,101 18,97 C16,94 57,82 57,75 C57,68 15,56 17,53 C20,49 69,62 75,55 C81,49 52,16 56,13 C60,9 88,35 99,35 C111,34 122,7 127,9 C133,11 123,44 134,47 C146,50 191,24 197,26 C203,28 167,53 170,60 C173,68 218,71 215,75 Z" />
-                <circle cx="14" cy="30" r="7" fill="url(#sg-daily)" />
-                <circle cx="207" cy="112" r="9" fill="url(#sg-daily)" />
-                <circle cx="196" cy="16" r="5" fill="url(#sg-daily)" />
-              </svg>
-              <span className="splat-content">
-                <Sparkles size={18} />
-                <span className="tile-name">NAPI KIHÍVÁS</span>
-              </span>
-            </button>
-
-            <button type="button" className="splat-tile bob" style={{ animationDelay: '1.1s' }} onClick={() => setShowBot(true)}>
-              <svg className="splat-svg s2" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
-                <defs>
-                  <linearGradient id="sg-bot" x1="0" y1="1" x2="1" y2="0">
-                    <stop offset="0" stopColor="#00c8ff" /><stop offset="1" stopColor="#2e5bff" />
-                  </linearGradient>
-                </defs>
-                <path fill="url(#sg-bot)" d="M211,75 C213,79 167,81 164,90 C161,99 196,126 191,129 C185,132 144,106 131,108 C118,111 117,143 110,143 C103,144 100,114 87,112 C73,110 30,135 26,131 C22,127 64,98 59,89 C55,80 3,79 3,75 C3,71 58,70 65,62 C71,55 38,33 42,29 C46,26 79,48 90,43 C101,38 104,3 110,3 C116,4 114,44 127,47 C141,50 189,17 194,19 C198,22 152,54 155,63 C158,71 210,71 211,75 Z" />
-                <circle cx="210" cy="30" r="7" fill="url(#sg-bot)" />
-                <circle cx="10" cy="102" r="8" fill="url(#sg-bot)" />
-                <circle cx="118" cy="6" r="4" fill="url(#sg-bot)" />
-              </svg>
-              <span className="splat-content">
-                <Play size={18} />
-                <span className="tile-name">CHRONO-BOT</span>
-              </span>
-            </button>
-
-            <button type="button" className="splat-tile bob" style={{ animationDelay: '1.8s' }} onClick={() => setShowRoom(true)}>
-              <svg className="splat-svg s3" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
-                <defs>
-                  <linearGradient id="sg-online" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor="#ff2bd0" /><stop offset="1" stopColor="#8a2bff" />
-                  </linearGradient>
-                </defs>
-                <path fill="url(#sg-online)" d="M220,75 C220,78 157,78 152,84 C148,91 196,113 194,116 C192,119 146,96 139,101 C131,107 151,147 146,149 C141,151 122,113 110,114 C98,114 77,150 73,148 C68,146 91,105 83,100 C75,94 25,120 23,117 C20,115 70,91 67,84 C65,77 9,78 8,75 C7,72 54,70 58,64 C62,58 27,39 31,37 C35,35 75,54 82,49 C89,43 70,6 75,5 C79,3 99,37 110,38 C121,39 136,9 142,10 C147,11 133,42 143,45 C153,48 205,25 206,28 C207,32 149,58 152,66 C155,73 220,72 220,75 Z" />
-                <circle cx="16" cy="26" r="6" fill="url(#sg-online)" />
-                <circle cx="204" cy="118" r="7" fill="url(#sg-online)" />
-                <circle cx="110" cy="128" r="4" fill="url(#sg-online)" />
-              </svg>
-              <span className="splat-content">
-                <Smartphone size={18} />
-                <span className="tile-name">ONLINE SZOBA</span>
-              </span>
-            </button>
-
-            <button type="button" className="splat-tile bob" style={{ animationDelay: '0.7s' }} onClick={() => setStatus('stats')}>
-              <svg className="splat-svg s4" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
-                <defs>
-                  <linearGradient id="sg-trophy" x1="1" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor="#ffb300" /><stop offset="1" stopColor="#ff6a00" />
-                  </linearGradient>
-                </defs>
-                <path fill="url(#sg-trophy)" d="M217,75 C217,79 158,78 155,86 C153,94 206,123 203,127 C200,130 150,105 139,108 C127,111 135,147 129,148 C123,149 112,114 100,114 C87,113 56,146 50,144 C45,142 71,107 65,100 C60,93 19,102 16,98 C13,94 45,82 45,75 C45,68 11,55 16,52 C21,49 67,61 74,55 C81,49 55,19 59,16 C64,14 90,43 101,40 C112,38 125,3 130,3 C135,4 124,43 134,48 C143,53 183,29 187,32 C192,34 156,56 161,63 C165,70 218,71 217,75 Z" />
-                <circle cx="208" cy="22" r="6" fill="url(#sg-trophy)" />
-                <circle cx="12" cy="112" r="7" fill="url(#sg-trophy)" />
-                <circle cx="60" cy="6" r="4" fill="url(#sg-trophy)" />
-              </svg>
-              <span className="splat-content">
-                <Trophy size={18} />
-                <span className="tile-name">TRÓFEÁK</span>
-              </span>
-            </button>
-          </div>
-
-          {/* 6. Extra modok - szeles festekpacsa */}
-          <button type="button" className="splat-tile wide bob" style={{ animationDelay: '0.4s' }} onClick={() => setShowSettings(true)}>
-            <svg className="splat-svg sw2" viewBox="0 0 360 100" preserveAspectRatio="none" aria-hidden="true">
-              <defs>
-                <linearGradient id="sg-modes" x1="0" y1="0.6" x2="1" y2="0">
-                  <stop offset="0" stopColor="#5b2dff" /><stop offset="1" stopColor="#00c8ff" />
-                </linearGradient>
-              </defs>
-              <path fill="url(#sg-modes)" d="M345,50 C346,52 286,54 283,57 C280,61 331,70 325,72 C320,74 258,65 250,68 C243,72 287,94 280,95 C273,96 222,75 206,75 C190,75 188,96 180,96 C172,95 173,72 158,72 C142,71 92,94 83,94 C74,94 115,73 104,70 C93,67 17,77 14,75 C12,73 93,60 91,56 C89,52 8,52 8,50 C8,48 94,48 95,44 C97,40 9,26 12,25 C16,23 105,36 117,34 C129,31 81,9 87,8 C93,7 140,27 155,26 C170,24 173,5 180,5 C187,6 186,29 199,31 C213,33 258,11 266,11 C274,11 237,29 249,32 C262,34 337,24 342,25 C347,27 279,39 279,43 C280,47 345,48 345,50 Z" />
-              <circle cx="10" cy="70" r="6" fill="url(#sg-modes)" />
-              <circle cx="350" cy="20" r="5" fill="url(#sg-modes)" />
-              <circle cx="120" cy="6" r="4" fill="url(#sg-modes)" />
-            </svg>
-            <span className="splat-content row">
-              <Settings size={17} />
-              <span className="tile-name">EXTRA MÓDOK{modeN ? ` · ${modeN} AKTÍV` : ''}</span>
-            </span>
+        <div className="menu-head">
+          <span />
+          <button type="button" className="gear-ghost" onClick={() => setShowSettings(true)} aria-label="Beállítások">
+            <Settings size={20} />
           </button>
         </div>
+
+        <div className="wordmark big bob" style={{ animationDelay: '0.2s' }}>
+          <span className="wm-line">CHRONO</span>
+          <span className="wm-line">BEATS</span>
+        </div>
+
+        <div className="carousel-track-wrap">
+          <button
+            type="button"
+            className="carousel-arrow left"
+            aria-label="Előző"
+            onClick={() => setSlide((s) => (s - 1 + SLIDES.length) % SLIDES.length)}
+          >‹</button>
+          <div className="carousel-viewport">
+            <motion.div
+              className="carousel-track"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.18}
+              onDragEnd={(_, info) => {
+                const thresh = 60;
+                if (info.offset.x < -thresh) setSlide((s) => Math.min(SLIDES.length - 1, s + 1));
+                else if (info.offset.x > thresh) setSlide((s) => Math.max(0, s - 1));
+              }}
+              animate={{ x: `-${slide * 100}%` }}
+              transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+            >
+              {SLIDES.map((sl) => (
+                <div className="carousel-slide" key={sl.key}>
+                  <div className="slide-header">
+                    <span className="slide-badge" style={{ background: sl.grad }}>{sl.icon}</span>
+                    <h2 className="slide-title">{sl.title}</h2>
+                  </div>
+                  {sl.body}
+                </div>
+              ))}
+            </motion.div>
+          </div>
+          <button
+            type="button"
+            className="carousel-arrow right"
+            aria-label="Következő"
+            onClick={() => setSlide((s) => (s + 1) % SLIDES.length)}
+          >›</button>
+        </div>
+
+        <div className="carousel-dots">
+          {SLIDES.map((sl, i) => (
+            <button
+              type="button"
+              key={sl.key}
+              className={`carousel-dot ${i === slide ? 'on' : ''}`}
+              style={i === slide ? { background: sl.grad } : undefined}
+              onClick={() => setSlide(i)}
+              aria-label={`${i + 1}. dia`}
+            />
+          ))}
+        </div>
+
+        <button type="button" className="splat-tile wide bob modes-strip" style={{ animationDelay: '0.4s' }} onClick={() => setShowSettings(true)}>
+          <svg className="splat-svg sw2" viewBox="0 0 360 100" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="sg-modes" x1="0" y1="0.6" x2="1" y2="0">
+                <stop offset="0" stopColor="#5b2dff" /><stop offset="1" stopColor="#00c8ff" />
+              </linearGradient>
+            </defs>
+            <path fill="url(#sg-modes)" d="M345,50 C346,52 286,54 283,57 C280,61 331,70 325,72 C320,74 258,65 250,68 C243,72 287,94 280,95 C273,96 222,75 206,75 C190,75 188,96 180,96 C172,95 173,72 158,72 C142,71 92,94 83,94 C74,94 115,73 104,70 C93,67 17,77 14,75 C12,73 93,60 91,56 C89,52 8,52 8,50 C8,48 94,48 95,44 C97,40 9,26 12,25 C16,23 105,36 117,34 C129,31 81,9 87,8 C93,7 140,27 155,26 C170,24 173,5 180,5 C187,6 186,29 199,31 C213,33 258,11 266,11 C274,11 237,29 249,32 C262,34 337,24 342,25 C347,27 279,39 279,43 C280,47 345,48 345,50 Z" />
+            <circle cx="10" cy="70" r="6" fill="url(#sg-modes)" />
+            <circle cx="350" cy="20" r="5" fill="url(#sg-modes)" />
+            <circle cx="120" cy="6" r="4" fill="url(#sg-modes)" />
+          </svg>
+          <span className="splat-content row">
+            <Settings size={17} />
+            <span className="tile-name">EXTRA MÓDOK{modeN ? ` · ${modeN} AKTÍV` : ''}</span>
+          </span>
+        </button>
 
         {SettingsView}
         {BotModalView}
