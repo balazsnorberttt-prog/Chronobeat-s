@@ -530,7 +530,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v24';
+const APP_VERSION = 'v25';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -853,9 +853,14 @@ function MenuCarousel({ items, active, setActive, onSelect }) {
   const stageRef = useRef(null);
   const [w, setW] = useState(340);
   const [drag, setDrag] = useState(0);
-  const [isDrag, setIsDrag] = useState(false);
-  const dref = useRef(null);
-  const movedRef = useRef(false);
+  const S = useRef({ down: false, x0: 0, y0: 0, dx: 0, moved: false, dir: 0 });
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  const spacingRef = useRef(200);
+
+  const n = items.length;
+  const clamp = (i) => Math.max(0, Math.min(n - 1, i));
+  spacingRef.current = Math.min(w * 0.5, 200);
 
   useEffect(() => {
     const measure = () => { if (stageRef.current) setW(stageRef.current.clientWidth); };
@@ -864,44 +869,58 @@ function MenuCarousel({ items, active, setActive, onSelect }) {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
-  const n = items.length;
-  const clamp = (i) => Math.max(0, Math.min(n - 1, i));
-  const spacing = Math.min(w * 0.5, 200);
+  // Natv touch + eger huzas (megbizhatobb mobilon, mint a szintetikus pointer)
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return undefined;
+    const s = S.current;
+    const onDown = (e) => {
+      const p = e.touches ? e.touches[0] : e;
+      s.down = true; s.x0 = p.clientX; s.y0 = p.clientY; s.dx = 0; s.moved = false; s.dir = 0;
+    };
+    const onMove = (e) => {
+      if (!s.down) return;
+      const p = e.touches ? e.touches[0] : e;
+      const dx = p.clientX - s.x0;
+      const dy = p.clientY - s.y0;
+      if (s.dir === 0 && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) s.dir = Math.abs(dx) > Math.abs(dy) ? 1 : -1;
+      if (s.dir === 1) {
+        if (e.cancelable) e.preventDefault();
+        s.moved = true; s.dx = dx; setDrag(dx);
+      }
+    };
+    const onUp = () => {
+      if (!s.down) return;
+      s.down = false;
+      const th = spacingRef.current * 0.28;
+      if (s.dx > th) setActive(clamp(activeRef.current - 1));
+      else if (s.dx < -th) setActive(clamp(activeRef.current + 1));
+      s.dx = 0; setDrag(0);
+    };
+    el.addEventListener('touchstart', onDown, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onUp);
+    el.addEventListener('touchcancel', onUp);
+    el.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      el.removeEventListener('touchstart', onDown);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onUp);
+      el.removeEventListener('touchcancel', onUp);
+      el.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [n]);
 
-  const onDown = (e) => {
-    dref.current = e.clientX;
-    movedRef.current = false;
-    setIsDrag(true);
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) {}
-  };
-  const onMove = (e) => {
-    if (dref.current == null) return;
-    const dx = e.clientX - dref.current;
-    if (Math.abs(dx) > 5) movedRef.current = true;
-    setDrag(dx);
-  };
-  const onUp = () => {
-    if (dref.current == null) return;
-    const th = spacing * 0.32;
-    if (drag > th) setActive((a) => clamp(a - 1));
-    else if (drag < -th) setActive((a) => clamp(a + 1));
-    dref.current = null;
-    setDrag(0);
-    setIsDrag(false);
-  };
-
+  const spacing = spacingRef.current;
   const shift = drag / (spacing || 1);
 
   return (
-    <div
-      className="cf-stage"
-      ref={stageRef}
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
-      onPointerLeave={onUp}
-      onPointerCancel={onUp}
-    >
+    <div className="cf-stage" ref={stageRef}>
       <div className="cf-track">
         {items.map((it, i) => {
           const off = i - active - shift;
@@ -912,7 +931,7 @@ function MenuCarousel({ items, active, setActive, onSelect }) {
             opacity: hidden ? 0 : Math.max(0, 1 - abs * 0.26),
             zIndex: 100 - Math.round(abs * 10),
             pointerEvents: hidden ? 'none' : 'auto',
-            transition: isDrag ? 'none' : 'transform .45s cubic-bezier(.2,.8,.2,1), opacity .45s',
+            transition: S.current.down ? 'none' : 'transform .45s cubic-bezier(.2,.8,.2,1), opacity .45s',
           };
           const isCenter = i === active;
           return (
@@ -922,7 +941,7 @@ function MenuCarousel({ items, active, setActive, onSelect }) {
               className={`cf-card ${it.cls} ${isCenter ? 'center' : ''}`}
               style={style}
               onClick={() => {
-                if (movedRef.current) return;
+                if (S.current.moved) return;
                 if (i === active) onSelect(it.key);
                 else setActive(i);
               }}
@@ -2873,17 +2892,6 @@ export default function App() {
             ]}
           />
 
-          {/* Karakter-szinpad a karusszel alatt */}
-          <div className="menu-charstage">
-            <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
-            <div className="mini-stage">
-              <div className="spot-cone" />
-              <CharacterStage charIndex={charIndex} size={116} mood="idle" />
-              <div className="stage-ring" />
-            </div>
-            <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
-          </div>
-          <div className="charstage-hint">VÁLASZD KI A FIGURÁD</div>
         </div>
 
         {SettingsView}
