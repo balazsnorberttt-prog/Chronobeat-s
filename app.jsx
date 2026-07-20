@@ -530,7 +530,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v21.3';
+const APP_VERSION = 'v21.4';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -2701,14 +2701,14 @@ export default function App() {
 
           {/* 4. Pakli - szeles festekpacsa */}
           <button type="button" className="splat-tile wide bob" style={{ animationDelay: '1.3s' }} onClick={() => setShowPackSelection(true)}>
-            <svg className="splat-svg sw1" viewBox="0 0 360 96" preserveAspectRatio="none" aria-hidden="true">
+            <svg className="splat-svg sw1" viewBox="0 0 360 100" preserveAspectRatio="none" aria-hidden="true">
               <defs>
                 <linearGradient id="sg-pack" x1="0" y1="0" x2="1" y2="0.4">
                   <stop offset="0" stopColor={packColors(SONG_PACKS[selectedPack].style)[0]} />
                   <stop offset="1" stopColor={packColors(SONG_PACKS[selectedPack].style)[1]} />
                 </linearGradient>
               </defs>
-              <path fill="url(#sg-pack)" d="M28,44 C16,24 48,8 88,14 C126,2 176,4 208,12 C254,2 304,10 324,24 C354,28 356,54 338,64 C352,80 320,94 288,88 C246,98 186,96 148,88 C108,96 60,92 44,78 C16,78 8,58 28,44 Z" />
+              <path fill="url(#sg-pack)" d="M353,50 C352,52 275,52 275,56 C274,60 353,72 350,73 C347,75 269,66 257,68 C245,70 284,86 276,87 C269,87 221,69 209,70 C197,71 206,94 200,94 C194,94 184,71 170,71 C156,72 117,98 111,98 C106,97 147,69 136,67 C125,64 46,83 41,82 C37,81 113,63 108,60 C103,56 13,63 11,61 C8,59 95,54 91,50 C88,46 8,39 8,37 C8,36 84,41 96,38 C108,36 53,23 59,22 C65,21 123,34 133,32 C143,30 115,10 121,9 C126,7 154,25 167,23 C181,21 196,4 204,4 C212,5 202,24 216,25 C230,26 287,6 293,7 C299,8 244,30 255,33 C265,36 353,25 356,27 C359,29 280,40 278,44 C277,48 353,48 353,50 Z" />
               <circle cx="352" cy="76" r="6" fill="url(#sg-pack)" />
               <circle cx="8" cy="28" r="5" fill="url(#sg-pack)" />
               <circle cx="196" cy="92" r="4" fill="url(#sg-pack)" />
@@ -2731,13 +2731,13 @@ export default function App() {
                 else startDaily();
               }}
             >
-              <svg className="splat-svg s1" viewBox="0 0 220 132" preserveAspectRatio="none" aria-hidden="true">
+              <svg className="splat-svg s1" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
                 <defs>
                   <linearGradient id="sg-daily" x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0" stopColor="#8a2bff" /><stop offset="1" stopColor="#ff2f92" />
                   </linearGradient>
                 </defs>
-                <path fill="url(#sg-daily)" d="M34,50 C20,28 52,10 82,16 C100,2 138,4 154,18 C184,10 210,30 198,54 C218,70 206,98 182,104 C172,124 136,130 114,118 C92,130 58,124 46,108 C18,104 8,76 22,62 C16,56 28,54 34,50 Z" />
+                <path fill="url(#sg-daily)" d="M215,75 C213,79 157,78 154,86 C152,94 201,122 198,124 C194,127 144,97 133,101 C122,105 134,147 129,148 C124,149 112,112 101,109 C90,106 66,133 61,132 C56,130 75,104 68,98 C61,93 20,101 18,97 C16,94 57,82 57,75 C57,68 15,56 17,53 C20,49 69,62 75,55 C81,49 52,16 56,13 C60,9 88,35 99,35 C111,34 122,7 127,9 C133,11 123,44 134,47 C146,50 191,24 197,26 C203,28 167,53 170,60 C173,68 218,71 215,75 Z" />
                 <circle cx="14" cy="30" r="7" fill="url(#sg-daily)" />
                 <circle cx="207" cy="112" r="9" fill="url(#sg-daily)" />
                 <circle cx="196" cy="16" r="5" fill="url(#sg-daily)" />
@@ -2749,13 +2749,13 @@ export default function App() {
             </button>
 
             <button type="button" className="splat-tile bob" style={{ animationDelay: '1.1s' }} onClick={() => setShowBot(true)}>
-              <svg className="splat-svg s2" viewBox="0 0 220 132" preserveAspectRatio="none" aria-hidden="true">
+              <svg className="splat-svg s2" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
                 <defs>
                   <linearGradient id="sg-bot" x1="0" y1="1" x2="1" y2="0">
                     <stop offset="0" stopColor="#00c8ff" /><stop offset="1" stopColor="#2e5bff" />
                   </linearGradient>
                 </defs>
-                <path fill="url(#sg-bot)" d="M28,58 C10,40 30,14 62,18 C82,4 120,2 142,14 C170,4 204,20 200,46 C220,58 214,90 192,100 C186,122 148,130 122,120 C100,132 64,128 50,112 C24,110 6,86 18,70 C12,64 22,62 28,58 Z" />
+                <path fill="url(#sg-bot)" d="M211,75 C213,79 167,81 164,90 C161,99 196,126 191,129 C185,132 144,106 131,108 C118,111 117,143 110,143 C103,144 100,114 87,112 C73,110 30,135 26,131 C22,127 64,98 59,89 C55,80 3,79 3,75 C3,71 58,70 65,62 C71,55 38,33 42,29 C46,26 79,48 90,43 C101,38 104,3 110,3 C116,4 114,44 127,47 C141,50 189,17 194,19 C198,22 152,54 155,63 C158,71 210,71 211,75 Z" />
                 <circle cx="210" cy="30" r="7" fill="url(#sg-bot)" />
                 <circle cx="10" cy="102" r="8" fill="url(#sg-bot)" />
                 <circle cx="118" cy="6" r="4" fill="url(#sg-bot)" />
@@ -2767,13 +2767,13 @@ export default function App() {
             </button>
 
             <button type="button" className="splat-tile bob" style={{ animationDelay: '1.8s' }} onClick={() => setShowRoom(true)}>
-              <svg className="splat-svg s3" viewBox="0 0 220 132" preserveAspectRatio="none" aria-hidden="true">
+              <svg className="splat-svg s3" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
                 <defs>
                   <linearGradient id="sg-online" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0" stopColor="#ff2bd0" /><stop offset="1" stopColor="#8a2bff" />
                   </linearGradient>
                 </defs>
-                <path fill="url(#sg-online)" d="M40,44 C34,20 70,6 94,14 C116,0 152,6 164,20 C196,16 214,42 202,62 C216,80 200,104 176,106 C164,126 126,132 106,118 C82,128 50,120 42,102 C16,96 10,68 26,58 C20,50 32,48 40,44 Z" />
+                <path fill="url(#sg-online)" d="M220,75 C220,78 157,78 152,84 C148,91 196,113 194,116 C192,119 146,96 139,101 C131,107 151,147 146,149 C141,151 122,113 110,114 C98,114 77,150 73,148 C68,146 91,105 83,100 C75,94 25,120 23,117 C20,115 70,91 67,84 C65,77 9,78 8,75 C7,72 54,70 58,64 C62,58 27,39 31,37 C35,35 75,54 82,49 C89,43 70,6 75,5 C79,3 99,37 110,38 C121,39 136,9 142,10 C147,11 133,42 143,45 C153,48 205,25 206,28 C207,32 149,58 152,66 C155,73 220,72 220,75 Z" />
                 <circle cx="16" cy="26" r="6" fill="url(#sg-online)" />
                 <circle cx="204" cy="118" r="7" fill="url(#sg-online)" />
                 <circle cx="110" cy="128" r="4" fill="url(#sg-online)" />
@@ -2785,13 +2785,13 @@ export default function App() {
             </button>
 
             <button type="button" className="splat-tile bob" style={{ animationDelay: '0.7s' }} onClick={() => setStatus('stats')}>
-              <svg className="splat-svg s4" viewBox="0 0 220 132" preserveAspectRatio="none" aria-hidden="true">
+              <svg className="splat-svg s4" viewBox="0 0 220 150" preserveAspectRatio="none" aria-hidden="true">
                 <defs>
                   <linearGradient id="sg-trophy" x1="1" y1="0" x2="0" y2="1">
                     <stop offset="0" stopColor="#ffb300" /><stop offset="1" stopColor="#ff6a00" />
                   </linearGradient>
                 </defs>
-                <path fill="url(#sg-trophy)" d="M30,46 C24,22 58,8 84,14 C108,2 144,6 158,20 C188,14 212,36 200,58 C214,76 202,100 178,104 C166,126 130,130 110,118 C86,128 54,122 44,104 C18,100 8,72 24,60 C18,52 24,50 30,46 Z" />
+                <path fill="url(#sg-trophy)" d="M217,75 C217,79 158,78 155,86 C153,94 206,123 203,127 C200,130 150,105 139,108 C127,111 135,147 129,148 C123,149 112,114 100,114 C87,113 56,146 50,144 C45,142 71,107 65,100 C60,93 19,102 16,98 C13,94 45,82 45,75 C45,68 11,55 16,52 C21,49 67,61 74,55 C81,49 55,19 59,16 C64,14 90,43 101,40 C112,38 125,3 130,3 C135,4 124,43 134,48 C143,53 183,29 187,32 C192,34 156,56 161,63 C165,70 218,71 217,75 Z" />
                 <circle cx="208" cy="22" r="6" fill="url(#sg-trophy)" />
                 <circle cx="12" cy="112" r="7" fill="url(#sg-trophy)" />
                 <circle cx="60" cy="6" r="4" fill="url(#sg-trophy)" />
@@ -2805,13 +2805,13 @@ export default function App() {
 
           {/* 6. Extra modok - szeles festekpacsa */}
           <button type="button" className="splat-tile wide bob" style={{ animationDelay: '0.4s' }} onClick={() => setShowSettings(true)}>
-            <svg className="splat-svg sw2" viewBox="0 0 360 96" preserveAspectRatio="none" aria-hidden="true">
+            <svg className="splat-svg sw2" viewBox="0 0 360 100" preserveAspectRatio="none" aria-hidden="true">
               <defs>
                 <linearGradient id="sg-modes" x1="0" y1="0.6" x2="1" y2="0">
                   <stop offset="0" stopColor="#5b2dff" /><stop offset="1" stopColor="#00c8ff" />
                 </linearGradient>
               </defs>
-              <path fill="url(#sg-modes)" d="M34,50 C20,28 56,10 96,16 C132,4 184,6 214,14 C262,6 310,14 330,28 C356,34 352,58 334,66 C346,82 312,94 282,88 C238,96 182,94 146,86 C104,94 58,90 44,76 C18,74 12,60 34,50 Z" />
+              <path fill="url(#sg-modes)" d="M345,50 C346,52 286,54 283,57 C280,61 331,70 325,72 C320,74 258,65 250,68 C243,72 287,94 280,95 C273,96 222,75 206,75 C190,75 188,96 180,96 C172,95 173,72 158,72 C142,71 92,94 83,94 C74,94 115,73 104,70 C93,67 17,77 14,75 C12,73 93,60 91,56 C89,52 8,52 8,50 C8,48 94,48 95,44 C97,40 9,26 12,25 C16,23 105,36 117,34 C129,31 81,9 87,8 C93,7 140,27 155,26 C170,24 173,5 180,5 C187,6 186,29 199,31 C213,33 258,11 266,11 C274,11 237,29 249,32 C262,34 337,24 342,25 C347,27 279,39 279,43 C280,47 345,48 345,50 Z" />
               <circle cx="10" cy="70" r="6" fill="url(#sg-modes)" />
               <circle cx="350" cy="20" r="5" fill="url(#sg-modes)" />
               <circle cx="120" cy="6" r="4" fill="url(#sg-modes)" />
