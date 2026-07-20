@@ -530,7 +530,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v23';
+const APP_VERSION = 'v24';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -786,6 +786,66 @@ const fireConfetti = (power = 1) => {
 //  HATTER: ZENEI SZINPAD (diszkogomb, bakelitek, hangjegyek)
 // ============================================================
 
+
+// ---------- Egyedi menu-ikonok (nem lucide, sajat SVG) ----------
+const IcoVinyl = () => (
+  <svg viewBox="0 0 48 48" width="44" height="44" fill="none" aria-hidden="true">
+    <circle cx="24" cy="24" r="21" fill="#0c0a16" stroke="currentColor" strokeWidth="2.5" />
+    <circle cx="24" cy="24" r="14" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+    <circle cx="24" cy="24" r="9.5" fill="currentColor" opacity="0.9" />
+    <circle cx="24" cy="24" r="2.4" fill="#0c0a16" />
+    <path d="M21 18.5v11l9-5.5z" fill="#0c0a16" />
+  </svg>
+);
+const IcoDaily = () => (
+  <svg viewBox="0 0 48 48" width="42" height="42" fill="none" aria-hidden="true">
+    <rect x="7" y="9" width="34" height="32" rx="5" stroke="currentColor" strokeWidth="2.5" />
+    <path d="M7 17h34" stroke="currentColor" strokeWidth="2.5" />
+    <path d="M15 5v7M33 5v7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M24 21l2.3 4.6 5.1.7-3.7 3.6.9 5.1L24 32.6l-4.5 2.4.9-5.1-3.7-3.6 5.1-.7z" fill="currentColor" />
+  </svg>
+);
+const IcoBot = () => (
+  <svg viewBox="0 0 48 48" width="42" height="42" fill="none" aria-hidden="true">
+    <rect x="9" y="15" width="30" height="24" rx="7" stroke="currentColor" strokeWidth="2.5" />
+    <circle cx="18" cy="27" r="3.4" fill="currentColor" />
+    <circle cx="30" cy="27" r="3.4" fill="currentColor" />
+    <path d="M19 33.5h10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M24 8v7M24 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    <circle cx="24" cy="7" r="2.6" fill="currentColor" />
+    <path d="M5 24v6M43 24v6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+const IcoPhone = () => (
+  <svg viewBox="0 0 48 48" width="42" height="42" fill="none" aria-hidden="true">
+    <rect x="14" y="5" width="20" height="38" rx="5" stroke="currentColor" strokeWidth="2.5" />
+    <path d="M21 38h6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M20 14h8M20 19h8M20 24h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+  </svg>
+);
+const IcoTrophy = () => (
+  <svg viewBox="0 0 48 48" width="42" height="42" fill="none" aria-hidden="true">
+    <path d="M15 8h18v9a9 9 0 01-18 0z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+    <path d="M15 11H9v3a6 6 0 006 6M33 11h6v3a6 6 0 01-6 6" stroke="currentColor" strokeWidth="2.5" />
+    <path d="M24 26v7M18 40h12M20 40l1-7h6l1 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IcoPack = () => (
+  <svg viewBox="0 0 48 48" width="42" height="42" fill="none" aria-hidden="true">
+    <rect x="16" y="12" width="20" height="28" rx="3.5" stroke="currentColor" strokeWidth="2.5" transform="rotate(9 26 26)" />
+    <rect x="10" y="9" width="20" height="28" rx="3.5" fill="#0c0a16" stroke="currentColor" strokeWidth="2.5" />
+    <path d="M20 20l3 3-3 3M17 26h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+  </svg>
+);
+const IcoModes = () => (
+  <svg viewBox="0 0 48 48" width="42" height="42" fill="none" aria-hidden="true">
+    <path d="M10 15h28M10 24h28M10 33h28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.5" />
+    <circle cx="18" cy="15" r="4" fill="#0c0a16" stroke="currentColor" strokeWidth="2.5" />
+    <circle cx="31" cy="24" r="4" fill="#0c0a16" stroke="currentColor" strokeWidth="2.5" />
+    <circle cx="20" cy="33" r="4" fill="#0c0a16" stroke="currentColor" strokeWidth="2.5" />
+  </svg>
+);
+
 // ============================================================
 //  MENU COVERFLOW - 3D lapozhato menukartyak (nincs WebGL, csak CSS-transzform)
 // ============================================================
@@ -867,6 +927,7 @@ function MenuCarousel({ items, active, setActive, onSelect }) {
                 else setActive(i);
               }}
             >
+              <span className="cf-run" />
               <span className="cf-sheen" />
               <span className="cf-ico">{it.icon}</span>
               <span className="cf-title">{it.title}</span>
@@ -2802,15 +2863,27 @@ export default function App() {
               else if (key === 'modes') setShowSettings(true);
             }}
             items={[
-              { key: 'start', cls: 'c-start', icon: <Play size={40} />, title: 'JÁTÉK INDÍTÁSA', meta: 'Helyi parti · add hozzá a csapatot', cta: 'INDÍTÁS' },
-              { key: 'daily', cls: 'c-daily', icon: <Sparkles size={38} />, title: 'NAPI KIHÍVÁS', meta: dtoday ? `Ma: ${dtoday.score}/10` : dstore.streak ? `Sorozat: ${dstore.streak} nap` : 'Minden nap új 10 dal' },
-              { key: 'bot', cls: 'c-bot', icon: <Play size={38} />, title: 'CHRONO-BOT', meta: botDiff ? `${botDiff} fokozat` : 'Gyakorolj gép ellen' },
-              { key: 'online', cls: 'c-online', icon: <Smartphone size={38} />, title: 'ONLINE SZOBA', meta: netRole === 'host' ? `Kód: ${roomCode}` : 'Kód vagy QR-kód' },
-              { key: 'trophy', cls: 'c-trophy', icon: <Trophy size={38} />, title: 'TRÓFEÁK', meta: `${achN} / 12 megszerezve` },
-              { key: 'pack', cls: 'c-pack', icon: <Layers size={38} />, title: 'PAKLI', meta: `${SONG_PACKS[selectedPack].label} · ${SONG_PACKS[selectedPack].data.length} dal` },
-              { key: 'modes', cls: 'c-modes', icon: <Settings size={38} />, title: 'EXTRA MÓDOK', meta: modeN ? `${modeN} aktív` : 'Blind, Speed, Vétó…' },
+              { key: 'start', cls: 'c-start', icon: <IcoVinyl />, title: 'JÁTÉK INDÍTÁSA', meta: 'Helyi parti · add hozzá a csapatot', cta: 'INDÍTÁS' },
+              { key: 'daily', cls: 'c-daily', icon: <IcoDaily />, title: 'NAPI KIHÍVÁS', meta: dtoday ? `Ma: ${dtoday.score}/10` : dstore.streak ? `Sorozat: ${dstore.streak} nap` : 'Minden nap új 10 dal' },
+              { key: 'bot', cls: 'c-bot', icon: <IcoBot />, title: 'CHRONO-BOT', meta: botDiff ? `${botDiff} fokozat` : 'Gyakorolj gép ellen' },
+              { key: 'online', cls: 'c-online', icon: <IcoPhone />, title: 'ONLINE SZOBA', meta: netRole === 'host' ? `Kód: ${roomCode}` : 'Kód vagy QR-kód' },
+              { key: 'trophy', cls: 'c-trophy', icon: <IcoTrophy />, title: 'TRÓFEÁK', meta: `${achN} / 12 megszerezve` },
+              { key: 'pack', cls: 'c-pack', icon: <IcoPack />, title: 'PAKLI', meta: `${SONG_PACKS[selectedPack].label} · ${SONG_PACKS[selectedPack].data.length} dal` },
+              { key: 'modes', cls: 'c-modes', icon: <IcoModes />, title: 'EXTRA MÓDOK', meta: modeN ? `${modeN} aktív` : 'Blind, Speed, Vétó…' },
             ]}
           />
+
+          {/* Karakter-szinpad a karusszel alatt */}
+          <div className="menu-charstage">
+            <button type="button" className="arrow-ghost" aria-label="Előző figura" onClick={() => setCharIndex((p) => (p - 1 + CHARACTERS.length) % CHARACTERS.length)}>‹</button>
+            <div className="mini-stage">
+              <div className="spot-cone" />
+              <CharacterStage charIndex={charIndex} size={116} mood="idle" />
+              <div className="stage-ring" />
+            </div>
+            <button type="button" className="arrow-ghost" aria-label="Következő figura" onClick={() => setCharIndex((p) => (p + 1) % CHARACTERS.length)}>›</button>
+          </div>
+          <div className="charstage-hint">VÁLASZD KI A FIGURÁD</div>
         </div>
 
         {SettingsView}

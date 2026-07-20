@@ -2076,6 +2076,9 @@ button:active { transform: scale(0.96); }
 
 
 
+/* Bakelit lemezek es fenygombok VEGLEG le a hatterrol (minden kepernyon) */
+.float-vinyl, .orb { display: none !important; }
+
 /* ============================================================
    v23 — FOMENU COVERFLOW (3D lapozhato kartyak)
    ============================================================ */
@@ -2096,12 +2099,17 @@ button:active { transform: scale(0.96); }
 .wordmark.big { display: flex; flex-direction: column; width: 100%; max-width: 340px; margin: 0 auto; line-height: 0.9; }
 .wordmark.big .wm-line {
   font-family: var(--font-display);
-  font-size: clamp(40px, 12vw, 58px);
-  letter-spacing: 2px;
-  transform: skewX(-7deg);
-  background: linear-gradient(178deg, #ffffff 0%, #b8f4ff 30%, #7ad4ff 50%, #ff7ae0 72%, #ffd36a 100%);
+  font-size: clamp(42px, 12.5vw, 62px);
+  letter-spacing: 3px;
+  transform: skewX(-3deg) scaleY(1.08);
+  background: linear-gradient(180deg, #ffffff 0%, #cdefff 24%, #66c8ff 50%, #ff5fd6 74%, #ffbe4a 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  text-shadow: 1px 1px 0 #00c8ff, 2px 2px 0 #12a6e6, 3px 3px 0 #2e5bff, 4px 4px 0 #6a2bff, 5px 5px 0 #8a2bff, 3px 10px 20px rgba(0,200,255,.45);
+  /* szogletes, melyebb 3D-kihuzas (egyenletes lepcsok) */
+  text-shadow:
+    1px 1px 0 #2aa8ff, 2px 2px 0 #2496f0, 3px 3px 0 #1f7fe0,
+    4px 4px 0 #2a5bff, 5px 5px 0 #4a3bff, 6px 6px 0 #6a2bff,
+    7px 7px 0 #5a1fb0, 8px 8px 0 #430f86,
+    9px 12px 22px rgba(0, 0, 0, 0.6);
 }
 .wordmark.big .wm-line:first-child { text-align: left; padding-left: 2%; }
 .wordmark.big .wm-line:last-child { text-align: right; padding-right: 2%; margin-top: -6px; }
@@ -2110,7 +2118,7 @@ button:active { transform: scale(0.96); }
 .cf-stage {
   position: relative;
   width: 100%;
-  height: clamp(300px, 52vh, 440px);
+  height: clamp(238px, 40vh, 340px);
   perspective: 1200px;
   margin: 0 auto;
   touch-action: pan-y;
@@ -2160,6 +2168,25 @@ button:active { transform: scale(0.96); }
 .c-pack   { --cf-accent: #00eaff; --cf-glow: rgba(0,234,255,.30); }
 .c-modes  { --cf-accent: #7bff6a; --cf-glow: rgba(90,220,120,.28); }
 
+/* Futofeny-szegely (csak a kozepso kartyan) */
+@property --cfang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.cf-run { display: none; }
+.cf-card.center .cf-run {
+  display: block;
+  position: absolute; inset: 0;
+  border-radius: 26px;
+  padding: 2.5px;
+  background: conic-gradient(from var(--cfang), transparent 0 62%, var(--cf-accent, #00eaff) 80%, #ffffff 90%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: cfSpin 2.8s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+@keyframes cfSpin { to { --cfang: 360deg; } }
+
 .cf-sheen {
   position: absolute; top: -30%; left: -40%; width: 50%; height: 160%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
@@ -2173,8 +2200,10 @@ button:active { transform: scale(0.96); }
 .cf-ico {
   position: relative; z-index: 1;
   color: #fff;
-  filter: drop-shadow(0 0 12px var(--cf-accent, #00eaff));
+  transform: translateZ(30px);
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.55)) drop-shadow(0 0 12px var(--cf-accent, #00eaff));
 }
+.cf-card { transform-style: preserve-3d; }
 .cf-title {
   position: relative; z-index: 1;
   font-family: var(--font-display);
@@ -2243,3 +2272,37 @@ button:active { transform: scale(0.96); }
 .setup-sub { font-size: .72rem; color: var(--text-2); margin: 2px 0 6px; }
 .room-inline { display: inline-flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 700; padding: 8px 14px; border-radius: var(--r-pill); border-color: rgba(0,234,255,.4); }
 .room-inline b { color: var(--gold); letter-spacing: 2px; }
+
+
+/* ============================================================
+   v24 — MENU KARAKTER-SZINPAD + FINOMSAGOK
+   ============================================================ */
+.menu-charstage {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--s3);
+  margin-top: 2px;
+}
+.mini-stage {
+  position: relative;
+  width: 128px; height: 118px;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.mini-stage .spot-cone {
+  position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+  width: 118px; height: 118px;
+  background: linear-gradient(180deg, rgba(160,120,255,.34), transparent 78%);
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+.mini-stage .stage-ring {
+  position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+  width: 96px; height: 20px; border-radius: 50%;
+  border: 2px solid rgba(0,234,255,.8);
+  box-shadow: 0 0 18px rgba(0,234,255,.5), inset 0 0 12px rgba(0,234,255,.35);
+}
+.charstage-hint {
+  text-align: center;
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 2px;
+  color: var(--text-3);
+  margin-top: -2px;
+}
