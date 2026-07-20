@@ -214,7 +214,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v8';
+const APP_VERSION = 'v8.1';
 
 // ============================================================
 //  JATEKSZABALY-KONSTANSOK
@@ -729,7 +729,8 @@ export default function App() {
     setGoldCard(false);
     setTimeLeft(modes.speed ? 120 : null);
     setCurrentCard(firstCard);
-    setStatus('handoff');
+    const onlineStart = netRole === 'host' && roster.some((p) => p.peerId);
+    setStatus(onlineStart ? 'game' : 'handoff');
     // Tanulokor automatikus inditasa az elso jatszmanal
     try {
       if (localStorage.getItem('cb_tut') !== '1') setTutStep(0);
@@ -845,7 +846,10 @@ export default function App() {
     setGoldCard(gold);
     if (gold) showToast('✨ ARANY KÁRTYA! Dupla tippnyeremény + 2 bónuszzseton a helyes lerakásért!');
     setCurrentCard(c);
-    setStatus('handoff');
+    // Online szobaban nincs "add tovabb a telefont" - azonnal a
+    // kovetkezo jatekos telefonja aktivalodik
+    const online = netRole === 'host' && players.some((p) => p.peerId);
+    setStatus(online ? 'game' : 'handoff');
   };
 
   const handlePlace = (index) => {
@@ -929,6 +933,8 @@ export default function App() {
     goldCard,
     activeModes,
     card: currentCard ? (flipped || feedback ? currentCard : { masked: true }) : null,
+    audioUrl: audioUrl || null,
+    audioLoading: isLoading,
   });
 
   const broadcast = () => {
@@ -941,7 +947,7 @@ export default function App() {
   useEffect(() => {
     if (netRole === 'host') broadcast();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [netRole, players, turnIndex, currentCard, flipped, feedback, wrongIndex, status, cardsLeft, timeLeft, goldCard, activeModes]);
+  }, [netRole, players, turnIndex, currentCard, flipped, feedback, wrongIndex, status, cardsLeft, timeLeft, goldCard, activeModes, audioUrl, isLoading]);
 
   const hostHandleAction = (fromPeer, msg) => {
     const A = actRef.current;
@@ -1022,6 +1028,11 @@ export default function App() {
     if (code.length !== 4 || !name) { showToast('Add meg a 4 betűs kódot és a neved!'); return; }
     if (netBusy) return;
     setNetBusy(true);
+    // Hang-feloldas: a csatlakozas-koppintas "engedelyt ad" a kesobbi zenere
+    if (audioRef.current) {
+      audioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAGZGF0YQQAAAAAAA==';
+      audioRef.current.play().then(() => audioRef.current.pause()).catch(() => {});
+    }
     const peer = new Peer();
     peerRef.current = peer;
     peer.on('open', (pid) => {
@@ -1052,6 +1063,35 @@ export default function App() {
       conn.on('error', () => { clearTimeout(failT); setNetBusy(false); showToast('Nem sikerült csatlakozni. 😕'); });
     });
     peer.on('error', () => { setNetBusy(false); showToast('Nem sikerült csatlakozni. 😕'); });
+  };
+
+  // A soros jatekos telefonjan automatikusan elokeszul a dal
+  useEffect(() => {
+    if (status !== 'client' || !audioRef.current) return;
+    const st = snap;
+    const active = st && st.players && st.players[st.turnIndex];
+    const mine = !!(st && active && active.peerId === myPeerId && st.status === 'game');
+    if (mine && st.audioUrl) {
+      if (audioRef.current.src !== st.audioUrl) {
+        audioRef.current.src = st.audioUrl;
+        setIsPlaying(false);
+      }
+    } else {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [snap, status, myPeerId]);
+
+  const clientToggleMusic = () => {
+    if (!audioRef.current || !snap || !snap.audioUrl) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => showToast('Koppints még egyszer a lejátszáshoz!'));
+    }
   };
 
   const sendAction = (a, extra = {}) => {
@@ -1261,8 +1301,14 @@ export default function App() {
             <>
               <div className="client-banner glass mine">
                 <span className="cb-big">🎤 TE JÖSSZ!</span>
-                <span className="cb-sub">{st.card && !st.card.masked ? `${st.card.y} · ${st.card.t}` : 'Hallgasd meg a dalt a házigazdánál, aztán helyezd el!'}</span>
+                <span className="cb-sub">{st.card && !st.card.masked ? `${st.card.y} · ${st.card.t}` : 'Játszd le a dalt, aztán tedd az idővonaladra!'}</span>
                 {st.goldCard && <span className="gold-badge">✨ ARANY KÁRTYA ✨</span>}
+                {st.audioLoading && <span className="cb-sub">🎵 A dal betöltése…</span>}
+                {canAct && st.audioUrl && (
+                  <button type="button" className="btn-3d gold wide" onClick={clientToggleMusic}>
+                    {isPlaying ? <><Pause size={17} /> SZÜNET</> : <><Play size={17} /> ZENE INDÍTÁSA ITT</>}
+                  </button>
+                )}
               </div>
               {canAct && (
                 <div className="client-actions">
