@@ -2341,3 +2341,26 @@ button:active { transform: scale(0.96); }
   display: flex; align-items: center; justify-content: center;
   color: var(--text-2);
 }
+
+/* ============================================================
+   v27 — ONSZABALYOZO LATVANY (adaptiv FX) + diszkogomb ki
+   ============================================================ */
+/* Diszkogomb vegleg le (gagyi hatas) */
+.discoball, .db-string, .db-sphere, .db-glow { display: none !important; }
+
+/* Az adaptiv rendszer ezekkel a body-osztalyokkal allitja meg EGY-EGY
+   effekt MOZGASAT (az elem lathato marad, csak nem animalodik) */
+body.nofx-beams .beam { animation: none !important; }
+body.nofx-stars .stars { animation: none !important; }
+body.nofx-grid .grid-floor { animation: none !important; }
+body.nofx-bob .bob { animation: none !important; }
+body.nofx-sheen .cf-sheen,
+body.nofx-sheen .cf-card.center .cf-run { animation: none !important; }
+body.nofx-notes .note { animation: none !important; }
+
+/* Vegso vedvonal nagyon gyenge gepen: az uveg-elmosas tomorre valt */
+body.nofx-glass .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(14, 10, 36, 0.92) !important;
+}

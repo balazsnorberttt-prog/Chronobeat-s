@@ -530,7 +530,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v26';
+const APP_VERSION = 'v27';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -994,11 +994,6 @@ const Backdrop = React.memo(function Backdrop() {
       <div className="stars" />
       <div className="beam b1" />
       <div className="beam b2" />
-      <div className="discoball">
-        <div className="db-string" />
-        <div className="db-sphere" />
-        <div className="db-glow" />
-      </div>
       <div className="float-vinyl v1"><span /></div>
       <div className="float-vinyl v2"><span /></div>
       <div className="orb o1" />
@@ -1597,6 +1592,63 @@ export default function App() {
     setLiteSetting(v);
     try { localStorage.setItem('cb_lite', v); } catch (e) {}
   };
+
+  // ---------- ONSZABALYOZO LATVANY (adaptiv FX-koltsegvetes) ----------
+  // Kezdetben minden animacio megy. Ha esik az FPS, NEM kapcsol le mindent,
+  // hanem korbeforgatva random kevesebb effektet tart egyszerre aktivan,
+  // igy marad "elet" a kepernyon, de a terheles a plafon alatt marad.
+  useEffect(() => {
+    // Lite modban / csokkentett mozgasnal a meglevo szabalyok intezik -> nem futtatjuk
+    if (liteActive || REDUCED_MOTION) {
+      document.body.classList.remove('nofx-beams', 'nofx-stars', 'nofx-grid', 'nofx-bob', 'nofx-sheen', 'nofx-notes', 'nofx-glass');
+      return undefined;
+    }
+    const POOL = ['beams', 'stars', 'grid', 'bob', 'sheen', 'notes']; // korbeforgathato effektek
+    let budget = POOL.length;   // hany effekt lehet EGYSZERRE aktiv (kezdetben mind)
+    let glassCut = false;       // vegso vedvonal: az uveg-elmosas is lekapcsol
+    let selection = [...POOL];  // eppen aktiv effektek
+    let tick = 0;
+
+    const shuffle = (arr) => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+      return a;
+    };
+    const apply = () => {
+      const off = POOL.filter((e) => !selection.includes(e));
+      POOL.forEach((e) => document.body.classList.toggle('nofx-' + e, off.includes(e)));
+      document.body.classList.toggle('nofx-glass', glassCut);
+    };
+
+    // FPS-mero: masodpercenkent atlag
+    let frames = 0;
+    let last = performance.now();
+    let raf = 0;
+    const loop = (t) => {
+      frames += 1;
+      if (t - last >= 1000) {
+        const fps = (frames * 1000) / (t - last);
+        frames = 0; last = t;
+        // koltsegvetes-igazitas hiszterezissel
+        if (fps < 50 && budget > 0) budget -= 1;
+        else if (fps > 56 && budget < POOL.length) budget += 1;
+        if (budget === 0 && fps < 44) glassCut = true;
+        else if (fps > 57) glassCut = false;
+        tick += 1;
+        // ~4 mp-enkent (vagy ha valtozott a keret) ujra sorsolunk: MAS effektek maradnak
+        if (selection.length !== budget || tick % 4 === 0) {
+          selection = shuffle(POOL).slice(0, budget);
+          apply();
+        }
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.body.classList.remove('nofx-beams', 'nofx-stars', 'nofx-grid', 'nofx-bob', 'nofx-sheen', 'nofx-notes', 'nofx-glass');
+    };
+  }, [liteActive]);
 
   // ---------- PWA: service worker regisztracio + frissites-figyeles ----------
   useEffect(() => {
