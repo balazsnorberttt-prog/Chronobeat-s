@@ -2364,3 +2364,30 @@ body.nofx-glass .glass {
   -webkit-backdrop-filter: none !important;
   background: rgba(14, 10, 36, 0.92) !important;
 }
+
+/* ============================================================
+   v28 — CHRONOBEATS BAKELIT-EMBLÉMA LOGÓ (B)
+   ============================================================ */
+.cb-logo {
+  width: clamp(148px, 44vw, 200px);
+  margin: 2px auto 0;
+  display: flex; justify-content: center;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.5));
+}
+.cb-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.cb-top { fill: #ffffff; }
+.cb-bot { fill: #ffd36a; }
+.cb-svg text { text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); }
+
+/* Lassú, finom lemez-forgás (a felirat és a kar áll) */
+.cb-disc {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cbSpin 9s linear infinite;
+}
+@keyframes cbSpin { to { transform: rotate(360deg); } }
+
+/* Teljesítmény-barát: gyenge gépen / csökkentett mozgásnál megáll */
+@media (prefers-reduced-motion: reduce) { .cb-disc { animation: none; } }
+.menu-screen.lite .cb-disc { animation: none; }
+body.nofx-sheen .cb-disc { animation: none; }

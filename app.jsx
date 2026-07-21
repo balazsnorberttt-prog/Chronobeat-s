@@ -530,7 +530,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v27';
+const APP_VERSION = 'v28';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -859,6 +859,42 @@ const IcoModes = () => (
     <circle cx="20" cy="33" r="4" fill="#0c0a16" stroke="currentColor" strokeWidth="2.5" />
   </svg>
 );
+
+// ============================================================
+//  CHRONOBEATS LOGO - bakelit-jelveny (B valtozat)
+// ============================================================
+function ChronoLogo() {
+  return (
+    <svg className="cb-svg" viewBox="0 0 220 220" role="img" aria-label="ChronoBeats">
+      <defs>
+        <path id="cbTop" d="M26,110 A84,84 0 0,0 194,110" fill="none" />
+        <path id="cbBot" d="M28,110 A82,82 0 0,1 192,110" fill="none" />
+      </defs>
+      {/* forgo lemez */}
+      <g className="cb-disc">
+        <circle cx="110" cy="110" r="72" fill="#0d0a14" stroke="#2a2740" strokeWidth="1.5" />
+        <circle cx="110" cy="110" r="60" fill="none" stroke="#22203a" strokeWidth="1" />
+        <circle cx="110" cy="110" r="48" fill="none" stroke="#22203a" strokeWidth="1" />
+        <circle cx="110" cy="110" r="30" fill="#ff1f6e" />
+        {/* hangjegy a cimken */}
+        <path d="M101,124 L101,98 L121,94 L121,120" fill="none" stroke="#0a0618" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="98" cy="124" r="4.6" fill="#0a0618" />
+        <circle cx="118" cy="120" r="4.6" fill="#0a0618" />
+      </g>
+      {/* ivelt felirat (all) */}
+      <text className="cb-top" fontFamily="Montserrat, Arial Black, Arial" fontSize="17" fontWeight="900" letterSpacing="3">
+        <textPath href="#cbTop" startOffset="50%" textAnchor="middle">CHRONO</textPath>
+      </text>
+      <text className="cb-bot" fontFamily="Montserrat, Arial Black, Arial" fontSize="17" fontWeight="900" letterSpacing="3">
+        <textPath href="#cbBot" startOffset="50%" textAnchor="middle">BEATS</textPath>
+      </text>
+      {/* lejatszo-kar (all) */}
+      <line x1="182" y1="52" x2="132" y2="96" stroke="#00eaff" strokeWidth="5" strokeLinecap="round" />
+      <circle cx="184" cy="50" r="6" fill="#00eaff" />
+      <circle cx="130" cy="98" r="4" fill="#00eaff" />
+    </svg>
+  );
+}
 
 // ============================================================
 //  MENU COVERFLOW - 3D lapozhato menukartyak (nincs WebGL, csak CSS-transzform)
@@ -2978,9 +3014,8 @@ export default function App() {
           </div>
 
           {/* 2. Marka + karakter-szinpad (kozepre rendezve) */}
-          <div className="wordmark big bob" style={{ animationDelay: '0.2s' }}>
-            <span className="wm-line">CHRONO</span>
-            <span className="wm-line">BEATS</span>
+          <div className="cb-logo bob" style={{ animationDelay: '0.2s' }}>
+            <ChronoLogo />
           </div>
 
           <MenuCarousel
