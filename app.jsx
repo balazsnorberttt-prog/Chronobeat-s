@@ -4,7 +4,7 @@ import {
   Play, Pause, X, XCircle, CheckCircle, RefreshCw, Coins,
   MessageCircle, AlertTriangle, Trophy, Layers, ChevronRight,
   Settings, Mic, BookOpen, Timer, EyeOff, Rewind, Sparkles,
-  ShieldAlert, Zap, Vibrate, Smartphone, Volume2, Headphones, DoorOpen,
+  ShieldAlert, Zap, Vibrate, Smartphone, Volume2, Headphones, DoorOpen, Info, Download, Share,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import Peer from 'peerjs';
@@ -29,18 +29,18 @@ import { SONG_PACKS } from './data';
 //  public/models/1.glb, 2.glb, ... - inditaskor automatikusan bekerulnek.
 // ============================================================
 const CHARACTERS = [
-  { name: 'DJ',        color: '#00eaff', buddy: { skin: '#ffd9b3', shirt: '#00b8d4', pants: '#1a1440', hat: 'headphones', glasses: 'none',   extra: 'none' } },
-  { name: 'Rocker',    color: '#ff0055', buddy: { skin: '#ffd9b3', shirt: '#1c1c24', pants: '#33334a', hat: 'mohawk',     glasses: 'shades', extra: 'none', hair: '#ff0055' } },
-  { name: 'Díva',      color: '#ffd700', buddy: { skin: '#8a5a3b', shirt: '#ffd700', pants: '#7b2dff', hat: 'afro',       glasses: 'star',   extra: 'none', hair: '#2b1a12' } },
-  { name: 'Rapper',    color: '#00ff87', buddy: { skin: '#6f4a2f', shirt: '#0f8a4f', pants: '#101018', hat: 'cap',        glasses: 'none',   extra: 'chain', hair: '#101010' } },
-  { name: 'Metálos',   color: '#b385ff', buddy: { skin: '#e8c39e', shirt: '#181820', pants: '#181820', hat: 'longhair',   glasses: 'none',   extra: 'none', hair: '#241a30' } },
-  { name: 'Nagyi',     color: '#ff9ad1', buddy: { skin: '#f2c9a0', shirt: '#c46aff', pants: '#4a2a6e', hat: 'bun',        glasses: 'round',  extra: 'bow',  hair: '#d9d9e8' } },
-  { name: 'Kocka',     color: '#5da9ff', buddy: { skin: '#ffd9b3', shirt: '#2f6fdd', pants: '#26304a', hat: 'flat',       glasses: 'square', extra: 'bowtie', hair: '#6b4a2a' } },
-  { name: 'Punk',      color: '#7dff6a', buddy: { skin: '#e8c39e', shirt: '#243024', pants: '#182018', hat: 'spikes',     glasses: 'none',   extra: 'chain', hair: '#7dff6a' } },
-  { name: 'Kingsztár', color: '#fff35d', buddy: { skin: '#f0c9a0', shirt: '#f4f4ff', pants: '#c9a227', hat: 'quiff',      glasses: 'gold',   extra: 'none', hair: '#1a1a22' } },
-  { name: 'Rasta',     color: '#ffb020', buddy: { skin: '#7a5236', shirt: '#c8102e', pants: '#0a6a2f', hat: 'dreads',     glasses: 'none',   extra: 'none', hair: '#2b1a12' } },
-  { name: 'Robó',      color: '#9be9ff', buddy: { skin: '#b9c6d9', shirt: '#8fa1bd', pants: '#5b6a85', hat: 'antenna',    glasses: 'visor',  extra: 'none' } },
-  { name: 'Popsztár',  color: '#ff5dde', buddy: { skin: '#ffd9b3', shirt: '#ff5dde', pants: '#3a1440', hat: 'crown',      glasses: 'none',   extra: 'mic',  hair: '#5a3a1a' } },
+  { name: 'DJ',        color: '#00eaff', buddy: { skin: '#ffd9b3', shirt: '#00b8d4', pants: '#1a1440', hat: 'headphones', glasses: 'none',   extra: 'none',   hair: '#2b1a12', accent: '#7ef3ff', prop: 'vinyl',      dance: 'bounce',   build: 'normal', face: 'grin' } },
+  { name: 'Rocker',    color: '#ff0055', buddy: { skin: '#ffd9b3', shirt: '#1c1c24', pants: '#33334a', hat: 'mohawk',     glasses: 'shades', extra: 'none',   hair: '#ff0055', accent: '#ff4d85', prop: 'guitar',     dance: 'headbang', build: 'slim',   face: 'cool' } },
+  { name: 'Díva',      color: '#ffd700', buddy: { skin: '#8a5a3b', shirt: '#ffd700', pants: '#7b2dff', hat: 'afro',       glasses: 'star',   extra: 'none',   hair: '#2b1a12', accent: '#fff0a0', prop: 'mic',        dance: 'sway',     build: 'normal', face: 'wink' } },
+  { name: 'Rapper',    color: '#00ff87', buddy: { skin: '#6f4a2f', shirt: '#0f8a4f', pants: '#101018', hat: 'cap',        glasses: 'none',   extra: 'chain',  hair: '#101010', accent: '#6dffb8', prop: 'mic',        dance: 'bounce',   build: 'round',  face: 'cool' } },
+  { name: 'Metálos',   color: '#b385ff', buddy: { skin: '#e8c39e', shirt: '#181820', pants: '#181820', hat: 'longhair',   glasses: 'none',   extra: 'none',   hair: '#241a30', accent: '#b385ff', prop: 'guitar',     dance: 'headbang', build: 'tall',   face: 'openMouth' } },
+  { name: 'Nagyi',     color: '#ff9ad1', buddy: { skin: '#f2c9a0', shirt: '#c46aff', pants: '#4a2a6e', hat: 'bun',        glasses: 'round',  extra: 'bow',    hair: '#d9d9e8', accent: '#ffc2e6', prop: 'tambourine', dance: 'sway',     build: 'round',  face: 'smile' } },
+  { name: 'Kocka',     color: '#5da9ff', buddy: { skin: '#ffd9b3', shirt: '#2f6fdd', pants: '#26304a', hat: 'flat',       glasses: 'square', extra: 'bowtie', hair: '#6b4a2a', accent: '#9ecbff', prop: 'keytar',     dance: 'robot',    build: 'slim',   face: 'smile' } },
+  { name: 'Punk',      color: '#7dff6a', buddy: { skin: '#e8c39e', shirt: '#243024', pants: '#182018', hat: 'spikes',     glasses: 'none',   extra: 'chain',  hair: '#7dff6a', accent: '#a8ff9c', prop: 'drumsticks', dance: 'jump',     build: 'normal', face: 'grin' } },
+  { name: 'Kingsztár', color: '#fff35d', buddy: { skin: '#f0c9a0', shirt: '#f4f4ff', pants: '#c9a227', hat: 'quiff',      glasses: 'gold',   extra: 'none',   hair: '#1a1a22', accent: '#ffe98a', prop: 'mic',        dance: 'sway',     build: 'normal', face: 'wink' } },
+  { name: 'Rasta',     color: '#ffb020', buddy: { skin: '#7a5236', shirt: '#c8102e', pants: '#0a6a2f', hat: 'dreads',     glasses: 'none',   extra: 'none',   hair: '#2b1a12', accent: '#ffd36a', prop: 'maracas',    dance: 'sway',     build: 'normal', face: 'smile' } },
+  { name: 'Robó',      color: '#9be9ff', buddy: { skin: '#b9c6d9', shirt: '#8fa1bd', pants: '#5b6a85', hat: 'antenna',    glasses: 'visor',  extra: 'none',   hair: '#8fa1bd', accent: '#9be9ff', prop: 'boombox',    dance: 'robot',    build: 'normal', face: 'robot' } },
+  { name: 'Popsztár',  color: '#ff5dde', buddy: { skin: '#ffd9b3', shirt: '#ff5dde', pants: '#3a1440', hat: 'crown',      glasses: 'none',   extra: 'none',   hair: '#5a3a1a', accent: '#ffa8ef', prop: 'mic',        dance: 'spin',     build: 'slim',   face: 'grin' } },
 ];
 
 // Valodi hatarolo doboz szamitasa - csontvazas (skinned) modelleknel is pontos!
@@ -179,281 +179,506 @@ function BuddyModel({ cfg, mood }) {
   const head = useRef();
   const armL = useRef();
   const armR = useRef();
-
-  useFrame((st) => {
-    const t = st.clock.elapsedTime;
-    const dance = mood === 'win';
-    const sp = dance ? 6.4 : 2.1;
-    const bob2 = dance ? 0.09 : 0.028;
-    if (body.current) {
-      body.current.position.y = 0.04 + Math.sin(t * sp) * bob2;
-      body.current.rotation.z = Math.sin(t * sp * 0.5) * (dance ? 0.08 : 0.025);
-    }
-    if (head.current) {
-      head.current.rotation.x = dance ? Math.sin(t * sp) * 0.2 : Math.sin(t * sp) * 0.05;
-      head.current.rotation.z = Math.sin(t * sp * 0.5) * 0.07;
-    }
-    if (armL.current && armR.current) {
-      if (dance) {
-        armL.current.rotation.z = 2.4 + Math.sin(t * sp) * 0.4;
-        armR.current.rotation.z = -2.4 - Math.cos(t * sp) * 0.4;
-      } else {
-        armL.current.rotation.z = 0.3 + Math.sin(t * sp) * 0.1;
-        armR.current.rotation.z = -0.3 - Math.sin(t * sp) * 0.1;
-      }
-    }
-  });
+  const notes = useRef();
 
   const C = cfg;
   const hair = C.hair || '#3a2a1a';
-  const HY = 0.3;   // fej-kozeppont
-  const HR = 0.52;  // fej-sugar (nagy chibi-fej!)
+  const accent = C.accent || '#ffffff';
+  const dance = C.dance || 'bounce';
+  const face = C.face || 'smile';
+  const build = C.build || 'normal';
+  const prop = C.prop || 'none';
+
+  // Testalkat-aranyok: minden figura mas sziluettet kap
+  const B =
+    build === 'round' ? { w: 1.18, h: 0.94, hd: 1.06, leg: 0.86 } :
+    build === 'slim' ? { w: 0.86, h: 1.06, hd: 0.96, leg: 1.12 } :
+    build === 'tall' ? { w: 0.92, h: 1.14, hd: 0.9, leg: 1.2 } :
+    { w: 1, h: 1, hd: 1, leg: 1 };
+
+  const HR = 0.52 * B.hd;
+  const HY = 0.3 * B.h;
+  const handProp = prop === 'mic' || prop === 'vinyl' || prop === 'drumsticks' || prop === 'maracas' || prop === 'tambourine';
+  const bodyProp = prop === 'guitar' || prop === 'keytar' || prop === 'boombox';
+
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    const on = mood === 'win';
+    const sp = on ? 6.2 : 2.0;
+    const amp = on ? 1 : 0.26;
+
+    let by = 0, bz = 0, bry = 0, hx = 0, hz = 0;
+    let alz = 0.3, arz = -0.3, ax = 0;
+
+    if (dance === 'headbang') {
+      by = Math.abs(Math.sin(t * sp)) * 0.055 * amp;
+      hx = Math.sin(t * sp * 1.1) * 0.4 * amp + 0.04;
+      alz = 0.3 + 1.7 * amp; arz = -0.3 - 1.7 * amp;
+    } else if (dance === 'sway') {
+      by = Math.sin(t * sp * 2) * 0.032 * amp;
+      bz = Math.sin(t * sp) * 0.12 * amp;
+      hz = -Math.sin(t * sp) * 0.1 * amp;
+      alz = 0.35 + Math.sin(t * sp) * 0.6 * amp;
+      arz = -0.35 + Math.sin(t * sp) * 0.6 * amp;
+    } else if (dance === 'jump') {
+      const j = Math.max(0, Math.sin(t * sp));
+      by = j * 0.28 * amp;
+      hx = -j * 0.13 * amp;
+      alz = 0.3 + j * 2.1 * amp; arz = -0.3 - j * 2.1 * amp;
+    } else if (dance === 'robot') {
+      const q = Math.round(Math.sin(t * sp) * 3) / 3;
+      by = Math.abs(q) * 0.038 * amp;
+      bry = q * 0.28 * amp;
+      hz = q * 0.15 * amp;
+      alz = 0.3 + (q > 0 ? 1.4 : 0) * amp;
+      arz = -0.3 - (q < 0 ? 1.4 : 0) * amp;
+    } else if (dance === 'spin') {
+      by = Math.sin(t * sp * 2) * 0.05 * amp;
+      bry = on ? t * 1.4 : Math.sin(t * sp) * 0.18;
+      alz = 0.4 + Math.sin(t * sp) * 0.95 * amp;
+      arz = -0.4 - Math.cos(t * sp) * 0.95 * amp;
+    } else {
+      by = Math.sin(t * sp) * 0.07 * amp;
+      hx = Math.sin(t * sp) * 0.15 * amp;
+      hz = Math.sin(t * sp * 0.5) * 0.06;
+      alz = 0.3 + Math.sin(t * sp) * 1.5 * amp;
+      arz = -0.3 - Math.cos(t * sp) * 1.5 * amp;
+    }
+
+    // Hangszert tarto kezek nyugodtabbak
+    if (handProp) arz = -0.5 - Math.abs(Math.sin(t * sp)) * 0.3 * amp;
+    if (bodyProp) {
+      alz = 0.72 + Math.sin(t * sp) * 0.1 * amp;
+      arz = -0.72 - Math.sin(t * sp) * 0.1 * amp;
+      ax = -0.55;
+    }
+
+    if (body.current) {
+      body.current.position.y = 0.04 + by;
+      body.current.rotation.z = bz;
+      body.current.rotation.y = bry;
+    }
+    if (head.current) { head.current.rotation.x = hx; head.current.rotation.z = hz; }
+    if (armL.current) { armL.current.rotation.z = alz; armL.current.rotation.x = ax; }
+    if (armR.current) { armR.current.rotation.z = arz; armR.current.rotation.x = ax; }
+    if (notes.current) {
+      notes.current.rotation.y = t * 0.85;
+      notes.current.position.y = 0.5 + Math.sin(t * 1.7) * 0.1;
+    }
+  });
+
+  const noteColors = ['#00eaff', '#ff5dde', '#ffd36a'];
 
   return (
-    <group ref={body} scale={1.12}>
-      {/* Labak + szinezett cipok */}
-      {[-0.17, 0.17].map((x, i) => (
-        <group key={i}>
-          <mesh position={[x, -0.78, 0]}>
-            <capsuleGeometry args={[0.115, 0.14, 6, 12]} />
-            <meshStandardMaterial color={C.pants} roughness={0.7} />
+    <group>
+      <group ref={body} scale={1.12}>
+        {/* ---- Labak + reszletes cipok ---- */}
+        {[-0.17 * B.w, 0.17 * B.w].map((x, i) => (
+          <group key={i}>
+            <mesh position={[x, -0.78 * B.leg, 0]}>
+              <capsuleGeometry args={[0.115, 0.14, 6, 12]} />
+              <meshStandardMaterial color={C.pants} roughness={0.72} />
+            </mesh>
+            <mesh position={[x, -0.935 * B.leg, 0.05]} scale={[1, 0.5, 1.5]}>
+              <sphereGeometry args={[0.135, 14, 12]} />
+              <meshStandardMaterial color="#f6f6ff" roughness={0.38} />
+            </mesh>
+            <mesh position={[x, -0.9 * B.leg, 0.09]} scale={[0.94, 0.4, 1.1]}>
+              <sphereGeometry args={[0.12, 12, 10]} />
+              <meshStandardMaterial color={accent} roughness={0.45} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* ---- Torzs, ov, gallér ---- */}
+        <mesh position={[0, -0.42 * B.h, 0]} scale={[B.w, 1, B.w]}>
+          <capsuleGeometry args={[0.34, 0.24, 8, 18]} />
+          <meshStandardMaterial color={C.shirt} roughness={0.5} />
+        </mesh>
+        <mesh position={[0, -0.36 * B.h, 0.27 * B.w]} scale={[0.28, 1, 0.3]}>
+          <capsuleGeometry args={[0.3, 0.2, 6, 12]} />
+          <meshStandardMaterial color={accent} roughness={0.45} />
+        </mesh>
+        <mesh position={[0, -0.64 * B.h, 0]} scale={[B.w, 1, B.w]}>
+          <cylinderGeometry args={[0.348, 0.348, 0.1, 20]} />
+          <meshStandardMaterial color={C.pants} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, -0.64 * B.h, 0.3 * B.w]}>
+          <boxGeometry args={[0.12, 0.085, 0.045]} />
+          <meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.3} />
+        </mesh>
+        <mesh position={[0, -0.2 * B.h, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[B.w, B.w, 1]}>
+          <torusGeometry args={[0.21, 0.055, 8, 20]} />
+          <meshStandardMaterial color={accent} roughness={0.5} />
+        </mesh>
+
+        {/* ---- Karok: ujj + kez ---- */}
+        <group ref={armL} position={[-0.38 * B.w, -0.26 * B.h, 0]}>
+          <mesh position={[0, -0.08, 0]}>
+            <capsuleGeometry args={[0.098, 0.07, 6, 12]} />
+            <meshStandardMaterial color={accent} roughness={0.5} />
           </mesh>
-          <mesh position={[x, -0.93, 0.05]} scale={[1, 0.55, 1.45]}>
-            <sphereGeometry args={[0.13, 14, 12]} />
-            <meshStandardMaterial color="#f6f6ff" roughness={0.45} />
+          <mesh position={[0, -0.2, 0]}>
+            <capsuleGeometry args={[0.078, 0.13, 6, 12]} />
+            <meshStandardMaterial color={C.skin} roughness={0.55} />
           </mesh>
-          <mesh position={[x, -0.9, 0.13]} scale={[0.9, 0.3, 0.7]}>
-            <sphereGeometry args={[0.1, 10, 8]} />
-            <meshStandardMaterial color={C.shirt} roughness={0.5} />
+          <mesh position={[0, -0.32, 0]}>
+            <sphereGeometry args={[0.1, 12, 10]} />
+            <meshStandardMaterial color={C.skin} roughness={0.55} />
           </mesh>
         </group>
-      ))}
-      {/* Pufok torzs */}
-      <mesh position={[0, -0.42, 0]}>
-        <capsuleGeometry args={[0.34, 0.24, 8, 18]} />
-        <meshStandardMaterial color={C.shirt} roughness={0.5} />
-      </mesh>
-      <mesh position={[0, -0.44, 0.24]} scale={[0.75, 0.85, 0.5]}>
-        <sphereGeometry args={[0.24, 16, 14]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.6} transparent opacity={0.18} />
-      </mesh>
-      {/* Kurta karok */}
-      <group ref={armL} position={[-0.38, -0.26, 0]}>
-        <mesh position={[0, -0.14, 0]}>
-          <capsuleGeometry args={[0.085, 0.18, 6, 12]} />
-          <meshStandardMaterial color={C.shirt} roughness={0.5} />
-        </mesh>
-        <mesh position={[0, -0.3, 0]}>
-          <sphereGeometry args={[0.1, 12, 10]} />
-          <meshStandardMaterial color={C.skin} roughness={0.55} />
-        </mesh>
-      </group>
-      <group ref={armR} position={[0.38, -0.26, 0]}>
-        <mesh position={[0, -0.14, 0]}>
-          <capsuleGeometry args={[0.085, 0.18, 6, 12]} />
-          <meshStandardMaterial color={C.shirt} roughness={0.5} />
-        </mesh>
-        <mesh position={[0, -0.3, 0]}>
-          <sphereGeometry args={[0.1, 12, 10]} />
-          <meshStandardMaterial color={C.skin} roughness={0.55} />
-        </mesh>
-        {C.extra === 'mic' && (
-          <group position={[0, -0.36, 0.12]}>
-            <mesh><cylinderGeometry args={[0.03, 0.04, 0.18, 10]} /><meshStandardMaterial color="#22222c" roughness={0.4} /></mesh>
-            <mesh position={[0, 0.13, 0]}><sphereGeometry args={[0.065, 12, 10]} /><meshStandardMaterial color="#9aa2c4" metalness={0.6} roughness={0.3} /></mesh>
+
+        <group ref={armR} position={[0.38 * B.w, -0.26 * B.h, 0]}>
+          <mesh position={[0, -0.08, 0]}>
+            <capsuleGeometry args={[0.098, 0.07, 6, 12]} />
+            <meshStandardMaterial color={accent} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, -0.2, 0]}>
+            <capsuleGeometry args={[0.078, 0.13, 6, 12]} />
+            <meshStandardMaterial color={C.skin} roughness={0.55} />
+          </mesh>
+          <mesh position={[0, -0.32, 0]}>
+            <sphereGeometry args={[0.1, 12, 10]} />
+            <meshStandardMaterial color={C.skin} roughness={0.55} />
+          </mesh>
+
+          {prop === 'mic' && (
+            <group position={[0, -0.44, 0.08]} rotation={[0.5, 0, 0]}>
+              <mesh><cylinderGeometry args={[0.032, 0.042, 0.2, 10]} /><meshStandardMaterial color="#22222c" roughness={0.4} /></mesh>
+              <mesh position={[0, 0.145, 0]}><sphereGeometry args={[0.072, 12, 10]} /><meshStandardMaterial color="#9aa2c4" metalness={0.7} roughness={0.24} /></mesh>
+            </group>
+          )}
+          {prop === 'vinyl' && (
+            <group position={[0, -0.46, 0.05]} rotation={[0.28, 0, 0]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.24, 0.24, 0.022, 24]} /><meshStandardMaterial color="#14101c" roughness={0.32} /></mesh>
+              <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}><cylinderGeometry args={[0.09, 0.09, 0.026, 20]} /><meshStandardMaterial color={accent} roughness={0.4} /></mesh>
+            </group>
+          )}
+          {prop === 'drumsticks' && (
+            <group position={[0, -0.44, 0.04]} rotation={[0, 0, -0.35]}>
+              {[-0.05, 0.05].map((x, i) => (
+                <mesh key={i} position={[x, 0.08, 0]} rotation={[0, 0, i ? 0.16 : -0.16]}>
+                  <cylinderGeometry args={[0.022, 0.028, 0.44, 8]} />
+                  <meshStandardMaterial color="#d9b382" roughness={0.6} />
+                </mesh>
+              ))}
+            </group>
+          )}
+          {prop === 'maracas' && (
+            <group position={[0, -0.46, 0.04]}>
+              <mesh position={[0, -0.06, 0]}><cylinderGeometry args={[0.026, 0.032, 0.17, 8]} /><meshStandardMaterial color="#8a5a3b" roughness={0.6} /></mesh>
+              <mesh position={[0, 0.085, 0]}><sphereGeometry args={[0.11, 14, 12]} /><meshStandardMaterial color={accent} roughness={0.42} /></mesh>
+            </group>
+          )}
+          {prop === 'tambourine' && (
+            <group position={[0, -0.46, 0.05]} rotation={[0.32, 0, 0.3]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.18, 0.036, 10, 22]} /><meshStandardMaterial color={accent} roughness={0.45} /></mesh>
+              {[0, 1, 2, 3, 4, 5].map((i) => {
+                const a = (i / 6) * Math.PI * 2;
+                return (
+                  <mesh key={i} position={[Math.cos(a) * 0.18, 0, Math.sin(a) * 0.18]}>
+                    <sphereGeometry args={[0.033, 8, 6]} />
+                    <meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.3} />
+                  </mesh>
+                );
+              })}
+            </group>
+          )}
+        </group>
+
+        {/* ---- Testre szerelt hangszerek ---- */}
+        {prop === 'guitar' && (
+          <group position={[0.05, -0.52 * B.h, 0.3]} rotation={[0.22, -0.14, -0.72]}>
+            <mesh scale={[1, 1.35, 0.32]}><sphereGeometry args={[0.24, 16, 14]} /><meshStandardMaterial color={accent} roughness={0.28} metalness={0.18} /></mesh>
+            <mesh position={[0, 0.05, 0.085]} scale={[1, 1, 0.22]}><sphereGeometry args={[0.075, 12, 10]} /><meshStandardMaterial color="#160f16" roughness={0.85} /></mesh>
+            <mesh position={[0, 0.54, 0]}><boxGeometry args={[0.085, 0.64, 0.055]} /><meshStandardMaterial color="#5a3a1a" roughness={0.6} /></mesh>
+            <mesh position={[0, 0.92, 0]}><boxGeometry args={[0.12, 0.17, 0.06]} /><meshStandardMaterial color="#2a1a10" roughness={0.5} /></mesh>
           </group>
         )}
-      </group>
-      {C.extra === 'chain' && (
-        <mesh position={[0, -0.2, 0.26]} rotation={[1.3, 0, 0]}>
-          <torusGeometry args={[0.17, 0.032, 10, 22]} />
-          <meshStandardMaterial color="#ffd700" metalness={0.85} roughness={0.25} />
-        </mesh>
-      )}
-      {C.extra === 'bowtie' && (
-        <group position={[0, -0.15, 0.3]}>
-          {[-0.08, 0.08].map((x, i) => (
-            <mesh key={i} position={[x, 0, 0]} rotation={[0, 0, x > 0 ? -0.5 : 0.5]} scale={[1.4, 0.8, 0.5]}>
-              <sphereGeometry args={[0.06, 8, 8]} />
-              <meshStandardMaterial color="#ff0055" roughness={0.5} />
+        {prop === 'keytar' && (
+          <group position={[0, -0.5 * B.h, 0.34]} rotation={[0.2, 0, -0.12]}>
+            <mesh><boxGeometry args={[0.68, 0.13, 0.17]} /><meshStandardMaterial color="#1a1a26" roughness={0.4} /></mesh>
+            {[-0.24, -0.16, -0.08, 0, 0.08, 0.16, 0.24].map((x, i) => (
+              <mesh key={i} position={[x, 0.078, 0.02]}>
+                <boxGeometry args={[0.06, 0.022, 0.115]} />
+                <meshStandardMaterial color={i % 3 === 1 ? '#22222c' : '#f2f2f8'} roughness={0.35} />
+              </mesh>
+            ))}
+            <mesh position={[0.41, 0.02, 0]}><boxGeometry args={[0.16, 0.11, 0.14]} /><meshStandardMaterial color={accent} roughness={0.4} /></mesh>
+          </group>
+        )}
+        {prop === 'boombox' && (
+          <group position={[0, -0.5 * B.h, 0.37]}>
+            <mesh><boxGeometry args={[0.64, 0.35, 0.16]} /><meshStandardMaterial color="#2a3242" roughness={0.45} metalness={0.22} /></mesh>
+            {[-0.17, 0.17].map((x, i) => (
+              <group key={i} position={[x, -0.02, 0.085]}>
+                <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.115, 0.115, 0.03, 18]} /><meshStandardMaterial color="#12161f" roughness={0.6} /></mesh>
+                <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0.014, 0]}><cylinderGeometry args={[0.05, 0.05, 0.03, 14]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.45} /></mesh>
+              </group>
+            ))}
+            <mesh position={[0, 0.15, 0.085]}><boxGeometry args={[0.24, 0.07, 0.02]} /><meshStandardMaterial color="#0d1018" roughness={0.5} /></mesh>
+            <mesh position={[0, 0.23, 0]}><torusGeometry args={[0.2, 0.022, 8, 18, Math.PI]} /><meshStandardMaterial color="#5b6a85" metalness={0.6} roughness={0.35} /></mesh>
+          </group>
+        )}
+
+        {C.extra === 'chain' && (
+          <mesh position={[0, -0.22 * B.h, 0.27 * B.w]} rotation={[1.3, 0, 0]}>
+            <torusGeometry args={[0.17, 0.032, 10, 22]} />
+            <meshStandardMaterial color="#ffd700" metalness={0.85} roughness={0.22} />
+          </mesh>
+        )}
+        {C.extra === 'bowtie' && (
+          <group position={[0, -0.17 * B.h, 0.31 * B.w]}>
+            {[-0.08, 0.08].map((x, i) => (
+              <mesh key={i} position={[x, 0, 0]} rotation={[0, 0, x > 0 ? -0.5 : 0.5]} scale={[1.4, 0.8, 0.5]}>
+                <sphereGeometry args={[0.06, 8, 8]} />
+                <meshStandardMaterial color="#ff0055" roughness={0.45} />
+              </mesh>
+            ))}
+          </group>
+        )}
+
+        {/* ================= FEJ ================= */}
+        <group ref={head} position={[0, HY, 0]}>
+          <mesh>
+            <sphereGeometry args={[HR, 26, 22]} />
+            <meshStandardMaterial color={C.skin} roughness={0.55} />
+          </mesh>
+
+          {/* Szemek - arckifejezes szerint */}
+          {C.glasses !== 'visor' && [-0.18, 0.18].map((x, i) => {
+            const closed = face === 'wink' && i === 0;
+            return (
+              <group key={i} position={[x, 0.04, 0]}>
+                {closed ? (
+                  <mesh position={[0, 0, HR * 0.9]} rotation={[0, 0, 0.12]}>
+                    <boxGeometry args={[0.17, 0.03, 0.02]} />
+                    <meshStandardMaterial color="#141420" />
+                  </mesh>
+                ) : face === 'robot' ? (
+                  <mesh position={[0, 0, HR * 0.88]}>
+                    <boxGeometry args={[0.18, 0.105, 0.03]} />
+                    <meshStandardMaterial color="#00eaff" emissive="#00b8d4" emissiveIntensity={1.15} />
+                  </mesh>
+                ) : (
+                  <group>
+                    <mesh position={[0, 0, HR * 0.86]}><sphereGeometry args={[0.108, 14, 12]} /><meshStandardMaterial color="#ffffff" roughness={0.16} /></mesh>
+                    <mesh position={[0, 0, HR * 0.98]}><sphereGeometry args={[0.053, 10, 8]} /><meshStandardMaterial color="#141420" roughness={0.2} /></mesh>
+                    <mesh position={[0.03, 0.034, HR * 1.05]}><sphereGeometry args={[0.02, 8, 6]} /><meshStandardMaterial color="#ffffff" /></mesh>
+                    <mesh position={[-0.025, -0.028, HR * 1.04]}><sphereGeometry args={[0.011, 6, 6]} /><meshStandardMaterial color="#ffffff" /></mesh>
+                  </group>
+                )}
+              </group>
+            );
+          })}
+
+          {/* Szemoldok */}
+          {(face === 'cool' || face === 'openMouth' || face === 'grin') && [-0.18, 0.18].map((x, i) => (
+            <mesh key={'br' + i} position={[x, 0.205, HR * 0.85]} rotation={[0, 0, i === 0 ? 0.26 : -0.26]}>
+              <boxGeometry args={[0.16, 0.034, 0.02]} />
+              <meshStandardMaterial color={hair} roughness={0.6} />
             </mesh>
           ))}
+
+          {/* Pirospozsgas orcak */}
+          {(face === 'smile' || face === 'grin' || face === 'wink') && [-0.31, 0.31].map((x, i) => (
+            <mesh key={'ch' + i} position={[x, -0.1, HR * 0.72]} scale={[1, 0.7, 0.4]}>
+              <sphereGeometry args={[0.09, 10, 8]} />
+              <meshStandardMaterial color="#ff8aa0" roughness={0.72} transparent opacity={0.7} />
+            </mesh>
+          ))}
+
+          {/* Szaj */}
+          {face === 'openMouth' ? (
+            <mesh position={[0, -0.18, HR * 0.78]} scale={[1, 1.3, 0.5]}>
+              <sphereGeometry args={[0.1, 14, 12]} />
+              <meshStandardMaterial color="#5a1f22" roughness={0.75} />
+            </mesh>
+          ) : face === 'cool' ? (
+            <mesh position={[0, -0.18, HR * 0.84]} rotation={[0, 0, 0.09]}>
+              <boxGeometry args={[0.19, 0.032, 0.02]} />
+              <meshStandardMaterial color="#7a3b2e" roughness={0.6} />
+            </mesh>
+          ) : face === 'robot' ? (
+            <group position={[0, -0.18, HR * 0.84]}>
+              {[-0.07, 0, 0.07].map((x, i) => (
+                <mesh key={i} position={[x, 0, 0]}>
+                  <boxGeometry args={[0.045, 0.06, 0.02]} />
+                  <meshStandardMaterial color="#00eaff" emissive="#0090aa" emissiveIntensity={0.75} />
+                </mesh>
+              ))}
+            </group>
+          ) : (
+            <group position={[0, -0.14, HR * 0.8]}>
+              <mesh rotation={[0.4, 0, Math.PI]}>
+                <torusGeometry args={[face === 'grin' ? 0.145 : 0.115, 0.028, 8, 16, Math.PI]} />
+                <meshStandardMaterial color="#7a3b2e" roughness={0.6} />
+              </mesh>
+              {face === 'grin' && (
+                <mesh position={[0, -0.05, 0.03]} scale={[1, 0.34, 0.28]}>
+                  <boxGeometry args={[0.2, 0.1, 0.06]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.28} />
+                </mesh>
+              )}
+            </group>
+          )}
+
+          {/* Szemuvegek */}
+          {C.glasses === 'round' && [-0.18, 0.18].map((x, i) => (
+            <mesh key={i} position={[x, 0.05, HR * 0.94]}>
+              <torusGeometry args={[0.115, 0.017, 8, 18]} />
+              <meshStandardMaterial color="#d9a200" metalness={0.6} roughness={0.3} />
+            </mesh>
+          ))}
+          {C.glasses === 'square' && [-0.18, 0.18].map((x, i) => (
+            <mesh key={i} position={[x, 0.05, HR * 0.94]}>
+              <boxGeometry args={[0.2, 0.15, 0.03]} />
+              <meshStandardMaterial color="#101018" roughness={0.4} />
+            </mesh>
+          ))}
+          {C.glasses === 'shades' && (
+            <mesh position={[0, 0.06, HR * 0.94]}><boxGeometry args={[0.5, 0.14, 0.05]} /><meshStandardMaterial color="#0a0a12" roughness={0.18} metalness={0.45} /></mesh>
+          )}
+          {C.glasses === 'gold' && (
+            <mesh position={[0, 0.06, HR * 0.94]}><boxGeometry args={[0.5, 0.14, 0.05]} /><meshStandardMaterial color="#f5b91e" metalness={0.85} roughness={0.22} /></mesh>
+          )}
+          {C.glasses === 'star' && [-0.18, 0.18].map((x, i) => (
+            <mesh key={i} position={[x, 0.07, HR * 0.96]} rotation={[0, 0, 0.4]}>
+              <boxGeometry args={[0.19, 0.19, 0.03]} />
+              <meshStandardMaterial color={i === 0 ? '#ff5dde' : '#00eaff'} roughness={0.28} metalness={0.3} />
+            </mesh>
+          ))}
+          {C.glasses === 'visor' && (
+            <mesh position={[0, 0.05, HR * 0.8]} rotation={[0.05, 0, 0]}>
+              <boxGeometry args={[0.7, 0.19, 0.12]} />
+              <meshStandardMaterial color="#00eaff" emissive="#00b8d4" emissiveIntensity={1} roughness={0.18} />
+            </mesh>
+          )}
+
+          {/* Frizurak / fejfedok */}
+          {C.hat === 'headphones' && (
+            <group>
+              <mesh position={[0, 0.16, 0]}><torusGeometry args={[HR * 1.0, 0.052, 10, 24, Math.PI]} /><meshStandardMaterial color="#14141c" roughness={0.4} /></mesh>
+              {[-1, 1].map((d, i) => (
+                <group key={i} position={[d * (HR + 0.02), 0.02, 0]}>
+                  <mesh><sphereGeometry args={[0.155, 14, 12]} /><meshStandardMaterial color="#1a1a24" roughness={0.5} /></mesh>
+                  <mesh position={[d * 0.05, 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.1, 0.1, 0.04, 16]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.6} /></mesh>
+                </group>
+              ))}
+            </group>
+          )}
+          {C.hat === 'mohawk' && [-0.24, -0.08, 0.08, 0.24].map((z, i) => (
+            <mesh key={i} position={[0, HR - 0.02 + (0.12 - Math.abs(z) * 0.5), z]} rotation={[z * 1.1, 0, 0]}>
+              <coneGeometry args={[0.085, 0.36, 8]} />
+              <meshStandardMaterial color={hair} roughness={0.5} />
+            </mesh>
+          ))}
+          {C.hat === 'spikes' && [[-0.26, 0.4, 0.16], [0, 0.5, 0], [0.26, 0.4, 0.16], [-0.16, 0.46, -0.2], [0.16, 0.46, -0.2]].map((p, i) => (
+            <mesh key={i} position={p} rotation={[p[2] * 1.4, 0, -p[0] * 1.3]}>
+              <coneGeometry args={[0.07, 0.3, 8]} />
+              <meshStandardMaterial color={hair} roughness={0.5} />
+            </mesh>
+          ))}
+          {C.hat === 'afro' && (
+            <group>
+              <mesh position={[0, 0.3, -0.03]}><sphereGeometry args={[0.5, 18, 16]} /><meshStandardMaterial color={hair} roughness={0.9} /></mesh>
+              <mesh position={[0, 0.42, 0.28]}><sphereGeometry args={[0.2, 12, 10]} /><meshStandardMaterial color={hair} roughness={0.9} /></mesh>
+            </group>
+          )}
+          {C.hat === 'cap' && (
+            <group position={[0, 0.3, 0]} rotation={[0.1, Math.PI, 0]}>
+              <mesh><sphereGeometry args={[0.5, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2.1]} /><meshStandardMaterial color={accent} roughness={0.55} /></mesh>
+              <mesh position={[0, 0.03, 0.5]} rotation={[-0.15, 0, 0]}><boxGeometry args={[0.42, 0.04, 0.32]} /><meshStandardMaterial color={accent} roughness={0.55} /></mesh>
+              <mesh position={[0, 0.34, 0]}><sphereGeometry args={[0.045, 8, 8]} /><meshStandardMaterial color="#1a1a24" /></mesh>
+            </group>
+          )}
+          {C.hat === 'flat' && (
+            <mesh position={[0, 0.36, 0]} scale={[1, 0.42, 1]}><sphereGeometry args={[0.48, 16, 12]} /><meshStandardMaterial color={hair} roughness={0.82} /></mesh>
+          )}
+          {C.hat === 'longhair' && (
+            <group>
+              <mesh position={[0, 0.2, -0.05]} scale={[1.04, 0.85, 1.04]}><sphereGeometry args={[HR, 18, 14, 0, Math.PI * 2, 0, Math.PI / 1.8]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
+              {[-1, 1].map((d, i) => (
+                <mesh key={i} position={[d * 0.4, -0.2, -0.14]} rotation={[0, 0, -d * 0.18]}>
+                  <capsuleGeometry args={[0.105, 0.6, 6, 10]} />
+                  <meshStandardMaterial color={hair} roughness={0.85} />
+                </mesh>
+              ))}
+            </group>
+          )}
+          {C.hat === 'bun' && (
+            <group>
+              <mesh position={[0, 0.22, -0.02]} scale={[1.03, 0.72, 1.03]}><sphereGeometry args={[HR, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.88} /></mesh>
+              <mesh position={[0, 0.6, -0.06]}><sphereGeometry args={[0.18, 14, 12]} /><meshStandardMaterial color={hair} roughness={0.88} /></mesh>
+              <mesh position={[0, 0.48, -0.06]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.1, 0.022, 8, 16]} /><meshStandardMaterial color={accent} roughness={0.5} /></mesh>
+            </group>
+          )}
+          {C.hat === 'quiff' && (
+            <group>
+              <mesh position={[0, 0.24, -0.06]} scale={[1.02, 0.6, 1.02]}><sphereGeometry args={[HR, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.5} /></mesh>
+              <mesh position={[0, 0.46, 0.2]} rotation={[0.65, 0, 0]} scale={[1, 0.7, 1.35]}><sphereGeometry args={[0.28, 14, 12]} /><meshStandardMaterial color={hair} roughness={0.5} /></mesh>
+            </group>
+          )}
+          {C.hat === 'dreads' && (
+            <group>
+              <mesh position={[0, 0.24, -0.02]} scale={[1.03, 0.62, 1.03]}><sphereGeometry args={[HR, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.88} /></mesh>
+              {[[-0.36, 0.02, -0.24], [0.36, 0.02, -0.24], [-0.42, -0.04, 0.1], [0.42, -0.04, 0.1], [0, 0.1, -0.44]].map((p, i) => (
+                <mesh key={i} position={[p[0], p[1] - 0.16, p[2]]} rotation={[p[2] * 0.5, 0, -p[0] * 0.45]}>
+                  <capsuleGeometry args={[0.058, 0.44, 6, 8]} />
+                  <meshStandardMaterial color={i % 3 === 0 ? '#c8102e' : i % 3 === 1 ? '#f5b91e' : '#0a6a2f'} roughness={0.72} />
+                </mesh>
+              ))}
+            </group>
+          )}
+          {C.hat === 'antenna' && (
+            <group position={[0, HR, 0]}>
+              <mesh><cylinderGeometry args={[0.022, 0.022, 0.26, 8]} /><meshStandardMaterial color="#5b6a85" roughness={0.4} metalness={0.5} /></mesh>
+              <mesh position={[0, 0.19, 0]}><sphereGeometry args={[0.072, 10, 8]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.2} /></mesh>
+            </group>
+          )}
+          {C.hat === 'crown' && (
+            <group position={[0, HR - 0.04, 0]}>
+              <mesh><cylinderGeometry args={[0.28, 0.31, 0.13, 14]} /><meshStandardMaterial color="#f5b91e" metalness={0.85} roughness={0.22} /></mesh>
+              {[0, 1, 2, 3, 4].map((i) => {
+                const a = (i / 5) * Math.PI * 2;
+                return (
+                  <group key={i} position={[Math.cos(a) * 0.27, 0.15, Math.sin(a) * 0.27]}>
+                    <mesh><coneGeometry args={[0.058, 0.16, 6]} /><meshStandardMaterial color="#f5b91e" metalness={0.85} roughness={0.22} /></mesh>
+                    <mesh position={[0, 0.11, 0]}><sphereGeometry args={[0.032, 8, 8]} /><meshStandardMaterial color="#ff2f92" roughness={0.25} /></mesh>
+                  </group>
+                );
+              })}
+            </group>
+          )}
+          {C.extra === 'bow' && (
+            <group position={[0.32, 0.4, 0.2]} rotation={[0, 0, -0.4]}>
+              {[-0.05, 0.05].map((x, i) => (
+                <mesh key={i} position={[x, 0, 0]} scale={[1.3, 0.7, 0.5]}>
+                  <sphereGeometry args={[0.075, 8, 8]} />
+                  <meshStandardMaterial color="#ff0055" roughness={0.45} />
+                </mesh>
+              ))}
+            </group>
+          )}
+        </group>
+      </group>
+
+      {/* ---- Lebego hangjegyek, amikor szol a zene ---- */}
+      {mood === 'win' && (
+        <group ref={notes} position={[0, 0.5, 0]}>
+          {[0, 1, 2].map((i) => {
+            const a = (i / 3) * Math.PI * 2;
+            const col = noteColors[i];
+            return (
+              <group key={i} position={[Math.cos(a) * 1.05, (i % 2) * 0.3, Math.sin(a) * 0.55]} rotation={[0, -a, -0.22]}>
+                <mesh><sphereGeometry args={[0.075, 10, 8]} /><meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.8} roughness={0.3} /></mesh>
+                <mesh position={[0.06, 0.12, 0]}><boxGeometry args={[0.026, 0.24, 0.026]} /><meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.65} /></mesh>
+                <mesh position={[0.105, 0.215, 0]} rotation={[0, 0, -0.42]}><boxGeometry args={[0.1, 0.05, 0.024]} /><meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.65} /></mesh>
+              </group>
+            );
+          })}
         </group>
       )}
-
-      {/* NAGY chibi-fej */}
-      <group ref={head} position={[0, HY, 0]}>
-        <mesh>
-          <sphereGeometry args={[HR, 26, 22]} />
-          <meshStandardMaterial color={C.skin} roughness={0.55} />
-        </mesh>
-        {/* Nagy, csillogo szemek */}
-        {C.glasses !== 'visor' && [-0.18, 0.18].map((x, i) => (
-          <group key={i} position={[x, 0.04, 0]}>
-            <mesh position={[0, 0, HR * 0.86]}>
-              <sphereGeometry args={[0.105, 14, 12]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.2} />
-            </mesh>
-            <mesh position={[0, 0, HR * 0.98]}>
-              <sphereGeometry args={[0.05, 10, 8]} />
-              <meshStandardMaterial color="#141420" roughness={0.25} />
-            </mesh>
-            <mesh position={[0.028, 0.03, HR * 1.05]}>
-              <sphereGeometry args={[0.018, 8, 6]} />
-              <meshStandardMaterial color="#ffffff" />
-            </mesh>
-          </group>
-        ))}
-        {/* Pirospozsgas orcak */}
-        {[-0.31, 0.31].map((x, i) => (
-          <mesh key={i} position={[x, -0.1, HR * 0.72]} scale={[1, 0.7, 0.4]}>
-            <sphereGeometry args={[0.09, 10, 8]} />
-            <meshStandardMaterial color="#ff8aa0" roughness={0.7} transparent opacity={0.75} />
-          </mesh>
-        ))}
-        {/* Mosoly */}
-        <mesh position={[0, -0.17, HR * 0.82]} rotation={[0.45, 0, 0]}>
-          <torusGeometry args={[0.12, 0.026, 8, 14, Math.PI]} />
-          <meshStandardMaterial color="#7a3b2e" roughness={0.6} />
-        </mesh>
-        {/* Szemuvegek */}
-        {C.glasses === 'round' && [-0.18, 0.18].map((x, i) => (
-          <mesh key={i} position={[x, 0.05, HR * 0.94]}>
-            <torusGeometry args={[0.11, 0.016, 8, 18]} />
-            <meshStandardMaterial color="#d9a200" metalness={0.6} roughness={0.3} />
-          </mesh>
-        ))}
-        {C.glasses === 'square' && [-0.18, 0.18].map((x, i) => (
-          <mesh key={i} position={[x, 0.05, HR * 0.94]}>
-            <boxGeometry args={[0.2, 0.15, 0.03]} />
-            <meshStandardMaterial color="#101018" roughness={0.4} />
-          </mesh>
-        ))}
-        {C.glasses === 'shades' && (
-          <mesh position={[0, 0.06, HR * 0.94]}><boxGeometry args={[0.5, 0.14, 0.05]} /><meshStandardMaterial color="#0a0a12" roughness={0.2} metalness={0.4} /></mesh>
-        )}
-        {C.glasses === 'gold' && (
-          <mesh position={[0, 0.06, HR * 0.94]}><boxGeometry args={[0.5, 0.14, 0.05]} /><meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} /></mesh>
-        )}
-        {C.glasses === 'star' && [-0.18, 0.18].map((x, i) => (
-          <mesh key={i} position={[x, 0.07, HR * 0.96]} rotation={[0, 0, 0.4]}>
-            <boxGeometry args={[0.18, 0.18, 0.03]} />
-            <meshStandardMaterial color={i === 0 ? '#ff5dde' : '#00eaff'} roughness={0.3} />
-          </mesh>
-        ))}
-        {C.glasses === 'visor' && (
-          <mesh position={[0, 0.05, HR * 0.8]} rotation={[0.05, 0, 0]}>
-            <boxGeometry args={[0.68, 0.18, 0.12]} />
-            <meshStandardMaterial color="#00eaff" emissive="#00b8d4" emissiveIntensity={0.9} roughness={0.2} />
-          </mesh>
-        )}
-        {/* Frizurak / fejfedok - a nagy fejhez meretezve */}
-        {C.hat === 'headphones' && (
-          <group>
-            <mesh position={[0, 0.16, 0]}><torusGeometry args={[HR * 1.0, 0.05, 10, 24, Math.PI]} /><meshStandardMaterial color="#14141c" roughness={0.4} /></mesh>
-            {[-1, 1].map((d, i) => (
-              <mesh key={i} position={[d * (HR + 0.02), 0.02, 0]}>
-                <sphereGeometry args={[0.15, 14, 12]} />
-                <meshStandardMaterial color="#00eaff" emissive="#0090aa" emissiveIntensity={0.55} />
-              </mesh>
-            ))}
-          </group>
-        )}
-        {C.hat === 'mohawk' && [-0.24, -0.08, 0.08, 0.24].map((z, i) => (
-          <mesh key={i} position={[0, HR - 0.02 + (0.12 - Math.abs(z) * 0.5), z]} rotation={[z * 1.1, 0, 0]}>
-            <coneGeometry args={[0.08, 0.34, 8]} />
-            <meshStandardMaterial color={hair} roughness={0.5} />
-          </mesh>
-        ))}
-        {C.hat === 'spikes' && [[-0.26, 0.4, 0.16], [0, 0.5, 0], [0.26, 0.4, 0.16], [-0.16, 0.46, -0.2], [0.16, 0.46, -0.2]].map((p, i) => (
-          <mesh key={i} position={p} rotation={[p[2] * 1.4, 0, -p[0] * 1.3]}>
-            <coneGeometry args={[0.07, 0.28, 8]} />
-            <meshStandardMaterial color={hair} roughness={0.5} />
-          </mesh>
-        ))}
-        {C.hat === 'afro' && (
-          <mesh position={[0, 0.3, -0.03]}>
-            <sphereGeometry args={[0.5, 18, 16]} />
-            <meshStandardMaterial color={hair} roughness={0.85} />
-          </mesh>
-        )}
-        {C.hat === 'cap' && (
-          <group position={[0, 0.3, 0]} rotation={[0.1, Math.PI, 0]}>
-            <mesh><sphereGeometry args={[0.5, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2.1]} /><meshStandardMaterial color="#c8102e" roughness={0.6} /></mesh>
-            <mesh position={[0, 0.03, 0.5]} rotation={[-0.15, 0, 0]}><boxGeometry args={[0.4, 0.035, 0.3]} /><meshStandardMaterial color="#c8102e" roughness={0.6} /></mesh>
-          </group>
-        )}
-        {C.hat === 'flat' && (
-          <mesh position={[0, 0.36, 0]} scale={[1, 0.42, 1]}>
-            <sphereGeometry args={[0.48, 16, 12]} />
-            <meshStandardMaterial color={hair} roughness={0.8} />
-          </mesh>
-        )}
-        {C.hat === 'longhair' && (
-          <group>
-            <mesh position={[0, 0.2, -0.05]} scale={[1.04, 0.85, 1.04]}><sphereGeometry args={[HR, 18, 14, 0, Math.PI * 2, 0, Math.PI / 1.8]} /><meshStandardMaterial color={hair} roughness={0.8} /></mesh>
-            {[-1, 1].map((d, i) => (
-              <mesh key={i} position={[d * 0.4, -0.18, -0.14]} rotation={[0, 0, -d * 0.18]}>
-                <capsuleGeometry args={[0.1, 0.55, 6, 10]} />
-                <meshStandardMaterial color={hair} roughness={0.8} />
-              </mesh>
-            ))}
-          </group>
-        )}
-        {C.hat === 'bun' && (
-          <group>
-            <mesh position={[0, 0.22, -0.02]} scale={[1.03, 0.72, 1.03]}><sphereGeometry args={[HR, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
-            <mesh position={[0, 0.6, -0.06]}><sphereGeometry args={[0.17, 14, 12]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
-          </group>
-        )}
-        {C.hat === 'quiff' && (
-          <mesh position={[0, 0.46, 0.2]} rotation={[0.65, 0, 0]} scale={[1, 0.7, 1.35]}>
-            <sphereGeometry args={[0.28, 14, 12]} />
-            <meshStandardMaterial color={hair} roughness={0.5} />
-          </mesh>
-        )}
-        {C.hat === 'dreads' && (
-          <group>
-            <mesh position={[0, 0.24, -0.02]} scale={[1.03, 0.62, 1.03]}><sphereGeometry args={[HR, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={hair} roughness={0.85} /></mesh>
-            {[[-0.36, 0.02, -0.24], [0.36, 0.02, -0.24], [-0.42, -0.04, 0.1], [0.42, -0.04, 0.1], [0, 0.1, -0.44]].map((p, i) => (
-              <mesh key={i} position={[p[0], p[1] - 0.14, p[2]]} rotation={[p[2] * 0.5, 0, -p[0] * 0.45]}>
-                <capsuleGeometry args={[0.055, 0.4, 6, 8]} />
-                <meshStandardMaterial color={i % 3 === 0 ? '#c8102e' : i % 3 === 1 ? '#f5b91e' : '#0a6a2f'} roughness={0.7} />
-              </mesh>
-            ))}
-          </group>
-        )}
-        {C.hat === 'antenna' && (
-          <group position={[0, HR, 0]}>
-            <mesh><cylinderGeometry args={[0.022, 0.022, 0.26, 8]} /><meshStandardMaterial color="#5b6a85" roughness={0.4} /></mesh>
-            <mesh position={[0, 0.18, 0]}><sphereGeometry args={[0.07, 10, 8]} /><meshStandardMaterial color="#ff0055" emissive="#ff0055" emissiveIntensity={1} /></mesh>
-          </group>
-        )}
-        {C.hat === 'crown' && (
-          <group position={[0, HR - 0.06, 0]}>
-            <mesh><cylinderGeometry args={[0.27, 0.3, 0.13, 12]} /><meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} /></mesh>
-            {[0, 1, 2, 3, 4].map((i) => {
-              const a = (i / 5) * Math.PI * 2;
-              return (
-                <mesh key={i} position={[Math.cos(a) * 0.26, 0.14, Math.sin(a) * 0.26]}>
-                  <coneGeometry args={[0.055, 0.15, 6]} />
-                  <meshStandardMaterial color="#f5b91e" metalness={0.8} roughness={0.25} />
-                </mesh>
-              );
-            })}
-          </group>
-        )}
-        {C.extra === 'bow' && (
-          <group position={[0.32, 0.4, 0.2]} rotation={[0, 0, -0.4]}>
-            {[-0.05, 0.05].map((x, i) => (
-              <mesh key={i} position={[x, 0, 0]} scale={[1.3, 0.7, 0.5]}>
-                <sphereGeometry args={[0.07, 8, 8]} />
-                <meshStandardMaterial color="#ff0055" roughness={0.5} />
-              </mesh>
-            ))}
-          </group>
-        )}
-      </group>
     </group>
   );
 }
@@ -513,10 +738,13 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
         )}
       >
       <Canvas dpr={LITE_ACTIVE ? 1 : [1, 1.5]} camera={{ position: [0, 0.15, 4.6], fov: 40 }} gl={{ alpha: true, antialias: true }}>
-        <ambientLight intensity={0.85} />
-        <directionalLight position={[4, 6, 4]} intensity={2.4} />
-        <directionalLight position={[-5, 3, -4]} intensity={1.2} color="#7fdcff" />
-        <pointLight position={[0, -2, 3]} intensity={0.7} color="#ff4d8a" />
+        <ambientLight intensity={0.62} />
+        <directionalLight position={[4, 6, 4]} intensity={2.3} castShadow={false} />
+        <directionalLight position={[-5, 3, -4]} intensity={0.95} color="#7fdcff" />
+        {/* szinpadi ellenfeny a figura sajat szineben */}
+        <pointLight position={[0, 1.7, -2.6]} intensity={3.2} distance={9} color={c.color} />
+        <pointLight position={[0, -1.9, 2.6]} intensity={0.85} distance={8} color="#ff4d8a" />
+        <spotLight position={[0, 5.2, 2.2]} angle={0.55} penumbra={0.8} intensity={1.6} color="#ffffff" />
         <Suspense fallback={null}>
           <SpinGroup spinRef={spinRef}>
             {c.buddy
@@ -530,7 +758,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v28';
+const APP_VERSION = 'v32';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -1168,6 +1396,12 @@ export default function App() {
   const [cardsLeft, setCardsLeft] = useState(0);
   const [currentCard, setCurrentCard] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
+  // ---------- APPLE MUSIC (MusicKit JS) - opcionalis teljes lejatszas ----------
+  const [appleOn, setAppleOn] = useState(() => { try { return localStorage.getItem('cb_apple_on') === '1'; } catch (e) { return false; } });
+  const [appleToken, setAppleToken] = useState(() => { try { return localStorage.getItem('cb_apple_token') || ''; } catch (e) { return ''; } });
+  const [appleState, setAppleState] = useState('off');   // off | loading | ready | authed | error
+  const [appleTrack, setAppleTrack] = useState(null);    // az aktualis dal Apple-azonositoja
+  const appleRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [flipped, setFlipped] = useState(false);
@@ -1185,6 +1419,10 @@ export default function App() {
   const [newName, setNewName] = useState('');
   const [charIndex, setCharIndex] = useState(0);
   const [menuIndex, setMenuIndex] = useState(0);
+  const [infoMode, setInfoMode] = useState(null);   // jatekmod reszletes leiras
+  const [installEvt, setInstallEvt] = useState(null);   // Android: elmentett telepito-esemeny
+  const [showInstall, setShowInstall] = useState(false);
+  const [iosInstall, setIosInstall] = useState(false);  // iPhone: kezi utmutato kell
   const [letterHunt, setLetterHunt] = useState('');   // BETUVADASZAT: eloado keresztnevenek kezdo szurobetuje
   const [selectedPack, setSelectedPack] = useState('mix');
   const [showPackSelection, setShowPackSelection] = useState(false);
@@ -1391,7 +1629,7 @@ export default function App() {
       footY += 50;
     }
     const dt = new Date();
-    const modeNames = [activeModes.blind && 'BLIND', activeModes.speed && 'SPEED RUN', activeModes.gold && 'ARANY KÁRTYA', activeModes.reverse && 'REVERSE', activeModes.veto && 'VÉTÓ', activeModes.pranks && 'SZÍVATÁS'].filter(Boolean);
+    const modeNames = [activeModes.blind && 'BLIND', activeModes.speed && 'SPEED RUN', activeModes.gold && 'ARANY KÁRTYA', activeModes.reverse && 'REVERSE', activeModes.veto && 'ÓVÁS', activeModes.pranks && 'ZAVARÁS'].filter(Boolean);
     g.fillStyle = '#8a90b8';
     g.font = '700 26px Montserrat, sans-serif';
     g.textAlign = 'center';
@@ -1686,6 +1924,153 @@ export default function App() {
     };
   }, [liteActive]);
 
+  // ---------- APPLE MUSIC: MusicKit betoltese ----------
+  // A fejlesztoi token (JWT) a sajat Apple Developer fiokodbol jon - a beallitasokban adod meg.
+  useEffect(() => {
+    if (!appleOn || !appleToken.trim()) { setAppleState('off'); return undefined; }
+    let cancelled = false;
+    const boot = async () => {
+      try {
+        setAppleState('loading');
+        if (!window.MusicKit) {
+          await new Promise((res, rej) => {
+            const ex = document.getElementById('musickit-js');
+            if (ex) { ex.addEventListener('load', res); ex.addEventListener('error', rej); return; }
+            const sc = document.createElement('script');
+            sc.id = 'musickit-js';
+            sc.src = 'https://js-cdn.music.apple.com/musickit/v3/musickit.js';
+            sc.async = true;
+            sc.onload = res;
+            sc.onerror = rej;
+            document.head.appendChild(sc);
+          });
+          if (!window.MusicKit) {
+            await new Promise((res) => {
+              document.addEventListener('musickitloaded', res, { once: true });
+              setTimeout(res, 5000);
+            });
+          }
+        }
+        if (cancelled) return;
+        if (!window.MusicKit) throw new Error('MusicKit nem toltodott be');
+        const mk = await window.MusicKit.configure({
+          developerToken: appleToken.trim(),
+          app: { name: 'ChronoBeats', build: APP_VERSION },
+        });
+        if (cancelled) return;
+        appleRef.current = mk || window.MusicKit.getInstance();
+        setAppleState(appleRef.current && appleRef.current.isAuthorized ? 'authed' : 'ready');
+      } catch (e) {
+        if (!cancelled) setAppleState('error');
+      }
+    };
+    boot();
+    return () => { cancelled = true; };
+  }, [appleOn, appleToken]);
+
+  const appleConnect = async () => {
+    const mk = appleRef.current;
+    if (!mk) { showToast('Előbb add meg a fejlesztői tokent!'); return; }
+    try {
+      await mk.authorize();
+      setAppleState('authed');
+      showToast('Apple Music csatlakoztatva — mostantól teljes dalok szólnak!');
+    } catch (e) {
+      showToast('A csatlakozás megszakadt.');
+    }
+  };
+  const appleDisconnect = async () => {
+    try { if (appleRef.current) await appleRef.current.unauthorize(); } catch (e) {}
+    setAppleTrack(null);
+    setAppleState('ready');
+    showToast('Apple Music lecsatlakoztatva — marad a rövid részlet.');
+  };
+
+  // Az aktualis dal megkeresese az Apple katalogusban
+  const appleFind = async (card) => {
+    const mk = appleRef.current;
+    if (!mk || !card) return null;
+    try {
+      const sf = mk.storefrontId || 'hu';
+      const r = await mk.api.music(`/v1/catalog/${sf}/search`, {
+        term: `${card.a} ${card.t}`, types: 'songs', limit: 5,
+      });
+      const songs = r && r.data && r.data.results && r.data.results.songs;
+      const list = songs && songs.data ? songs.data : [];
+      if (!list.length) return null;
+      const key = normText(String(card.a).split(/\s+/)[0]);
+      const hit = list.find((x) => normText((x.attributes || {}).artistName || '').includes(key));
+      return (hit || list[0]).id;
+    } catch (e) { return null; }
+  };
+
+  // Uj kartyanal megkeressuk az Apple-valtozatot
+  useEffect(() => {
+    setAppleTrack(null);
+    if (appleState !== 'authed' || !currentCard) return undefined;
+    let cancel = false;
+    appleFind(currentCard).then((id) => { if (!cancel) setAppleTrack(id); });
+    return () => { cancel = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCard, appleState]);
+
+  // ---------- TELEPITES A KEZDOKEPERNYORE ----------
+  // Androidon a bongeszo valodi telepito-ablakot tud nyitni (beforeinstallprompt).
+  // iPhone-on ilyen nincs, ott vizualis utmutatot mutatunk a Megosztas gombhoz.
+  useEffect(() => {
+    // Mar telepitve van? Akkor semmit nem mutatunk.
+    const standalone =
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
+    if (standalone) return undefined;
+
+    // Korabban elutasitotta? 14 napig nem nyaggatjuk.
+    try {
+      const t = parseInt(localStorage.getItem('cb_install_off') || '0', 10);
+      if (t && Date.now() - t < 14 * 24 * 60 * 60 * 1000) return undefined;
+    } catch (e) {}
+
+    const ua = window.navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+
+    const onPrompt = (e) => {
+      e.preventDefault();
+      setInstallEvt(e);
+      setTimeout(() => setShowInstall(true), 2500);
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+
+    let t2 = null;
+    if (isIOS) {
+      setIosInstall(true);
+      t2 = setTimeout(() => setShowInstall(true), 3500);
+    }
+    const onInstalled = () => { setShowInstall(false); setInstallEvt(null); };
+    window.addEventListener('appinstalled', onInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+      window.removeEventListener('appinstalled', onInstalled);
+      if (t2) clearTimeout(t2);
+    };
+  }, []);
+
+  const dismissInstall = () => {
+    setShowInstall(false);
+    try { localStorage.setItem('cb_install_off', String(Date.now())); } catch (e) {}
+  };
+  const doInstall = async () => {
+    if (!installEvt) return;
+    try {
+      installEvt.prompt();
+      const res = await installEvt.userChoice;
+      if (res && res.outcome === 'accepted') showToast('Készen van — keresd az ikont a kezdőképernyőn!');
+      else try { localStorage.setItem('cb_install_off', String(Date.now())); } catch (e) {}
+    } catch (e) {}
+    setInstallEvt(null);
+    setShowInstall(false);
+  };
+
   // ---------- PWA: service worker regisztracio + frissites-figyeles ----------
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -1868,6 +2253,7 @@ export default function App() {
 
   const pauseMusic = () => {
     if (audioRef.current) audioRef.current.pause();
+    try { if (appleRef.current && appleRef.current.isPlaying) appleRef.current.pause(); } catch (e) {}
     stopReverse();
     setIsPlaying(false);
   };
@@ -2013,7 +2399,30 @@ export default function App() {
     }
   };
 
+  // Apple Music csak akkor veszi at, ha van talalat es nem Reverse mod fut
+  const appleActive = appleState === 'authed' && !!appleTrack && !activeModes.reverse;
+
+  const toggleApple = async () => {
+    const mk = appleRef.current;
+    if (!mk) return;
+    try {
+      if (isPlaying) {
+        await mk.pause();
+        setIsPlaying(false);
+      } else {
+        await mk.setQueue({ song: appleTrack, startPlaying: true });
+        setIsPlaying(true);
+      }
+    } catch (e) {
+      showToast('Apple Music nem indult — a rövid részlet jön.');
+      if (audioRef.current && audioUrl) {
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
+    }
+  };
+
   const toggleMusic = () => {
+    if (appleActive) { toggleApple(); return; }
     if (!audioRef.current || isLoading || !audioUrl) return;
     if (isPlaying) {
       pauseMusic();
@@ -2029,7 +2438,7 @@ export default function App() {
   const handleSwap = () => {
     if (flipped || feedback) return;
     const activePlayer = players[turnIndex];
-    const isAudioBroken = !audioUrl && !isLoading;
+    const isAudioBroken = !audioUrl && !isLoading && !appleActive;
     const cost = isAudioBroken ? 0 : SWAP_COST;
     if (!isAudioBroken && activePlayer.tokens < cost) {
       showToast(`Nincs elég zsetonod! A csere ára: ${cost} 🪙`);
@@ -2053,7 +2462,6 @@ export default function App() {
     let earned = ys;
     if (isCloseEnough(betData.artist, currentCard.a)) earned += 1;
     if (isCloseEnough(betData.title, currentCard.t)) earned += 1;
-    if (goldCard) earned *= 2; // Arany Kartya: dupla tippnyeremeny
     if (dailyRef.current && ys === 2) dailyRef.current.exact = true;
     {
       const P = loadProfile();
@@ -2071,7 +2479,7 @@ export default function App() {
       sfx.coin();
       fireConfetti(Math.min(earned, 3));
       const prankPlus = activeModes.pranks && ys === 2 ? 1 : 0;
-      if (prankPlus) showToast('+1 szívatás-token a pontos évért!');
+      if (prankPlus) showToast('Pontos évszám — +1 zavarás-token!');
       setPlayers(players.map((p, i) => (i === turnIndex ? { ...p, tokens: p.tokens + earned, pranks: (p.pranks || 0) + prankPlus } : p)));
       setBetResult({ total: earned, exactYear: ys === 2 });
     } else {
@@ -2081,7 +2489,7 @@ export default function App() {
     setTimeout(() => setBetResult(null), 2600);
   };
 
-  const nextTurn = () => {
+  const nextTurn = (repeat = false) => {
     setFlipped(false);
     setFeedback(null);
     setWrongIndex(null);
@@ -2089,22 +2497,22 @@ export default function App() {
     pauseMusic();
     const c = drawNext();
     if (!c) { finishByDeck(); return; }
-    setTurnIndex((i) => {
+    if (!repeat) setTurnIndex((i) => {
       let ni = (i + 1) % players.length;
       let guard = 0;
       while (players[ni] && skipNextRef.current[players[ni].id] && guard < players.length) {
         delete skipNextRef.current[players[ni].id];
         const nm = players[ni].name;
-        setTimeout(() => showToast(`⏭️ ${nm} kimarad — vétó-büntetés!`), 60);
+        setTimeout(() => showToast(`⏭️ ${nm} kimarad ebből a körből (jogos óvás).`), 60);
         ni = (ni + 1) % players.length;
         guard += 1;
       }
       return ni;
     });
     turnCountRef.current += 1;
-    const gold = activeModes.gold && turnCountRef.current % 3 === 0;
+    const gold = activeModes.gold && Math.random() < 0.2;
     setGoldCard(gold);
-    if (gold) { sfx.gold(); haptics.gold(); showToast('ARANY KÁRTYA! Dupla tippnyeremény + 2 bónuszzseton a helyes lerakásért!'); }
+    if (gold) { sfx.gold(); haptics.gold(); showToast('ARANY KÁRTYA! Ha eltalálod a helyét, MÉGEGYSZER te jössz!'); }
     setCurrentCard(c);
     // Online szobaban nincs "add tovabb a telefont" - azonnal a
     // kovetkezo jatekos telefonja aktivalodik
@@ -2153,11 +2561,10 @@ export default function App() {
       fireConfetti(2);
       boom({ particleCount: 60, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors: ['#ffd700', '#00eaff', '#ffffff'] });
       boom({ particleCount: 60, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors: ['#ffd700', '#ff0055', '#ffffff'] });
-      const goldBonus = goldCard ? 2 : 0;
-      if (goldBonus) showToast('✨ Arany Kártya bónusz: +2 🪙');
+      const goldAgain = goldCard;   // arany kartya eltalalva -> ujra o kovetkezik
       const newTL = [...tl];
       newTL.splice(index, 0, currentCard);
-      const updated = players.map((p, i) => (i === turnIndex ? { ...p, timeline: newTL, tokens: p.tokens + goldBonus } : p));
+      const updated = players.map((p, i) => (i === turnIndex ? { ...p, timeline: newTL } : p));
       if (dailyRef.current) {
         const D = dailyRef.current;
         D.row.push(D.exact ? 'Y' : 'G');
@@ -2172,7 +2579,8 @@ export default function App() {
           setEndReason('win');
           setStatus('win');
         } else {
-          nextTurn();
+          if (goldAgain) showToast('✨ ARANY KÁRTYA ELTALÁLVA — újra te következel!');
+          nextTurn(goldAgain);
         }
       }, 1900);
     } else {
@@ -2248,16 +2656,15 @@ export default function App() {
         if (P.veto >= 5) award(P, 'veto5');
         saveProfile(P);
       }
-      showToast(`🚫 VÉTÓ TALÁLT! ${placer.name} kimarad egy körből, ${vetoer.name} +1 🪙!`);
+      showToast(`⚖️ JOGOS ÓVÁS! ${placer.name} kimarad a következő körből, ${vetoer.name}: +1 🪙`);
       setPlayers((prev) => prev.map((p, i) => (i === vetoerIdx ? { ...p, tokens: (p.tokens || 0) + 1 } : p)));
     } else {
-      showToast(`🛡️ A lerakás JÓ volt! ${vetoer.name}: -1 🪙 és irány a SZÉGYENFAL! ${placer.name} +1 🪙!`);
+      showToast(`🛡️ A lerakás JÓ volt — az óvás alaptalan. ${vetoer.name}: -1 🪙, ${placer.name}: +1 🪙`);
       setPlayers((prev) => prev.map((p, i) => {
         if (i === vetoerIdx) return { ...p, tokens: Math.max(0, (p.tokens || 0) - 1) };
         if (i === turnIndex) return { ...p, tokens: (p.tokens || 0) + 1 };
         return p;
       }));
-      triggerShame(vetoerIdx);
     }
   }
 
@@ -2387,7 +2794,6 @@ export default function App() {
       let earned = ys;
       if (isCloseEnough(d.artist, A.currentCard.a)) earned += 1;
       if (isCloseEnough(d.title, A.currentCard.t)) earned += 1;
-      if (A.goldCard) earned *= 2;
       if (earned > 0) {
         sfx.coin();
         A.fireConfetti(Math.min(earned, 3));
@@ -2575,23 +2981,100 @@ export default function App() {
     return () => clearTimeout(t);
   }, [shame]);
 
-  const ShameView = shame && (
-    <div className="shame-overlay">
-      <motion.div className="shame-box glass" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-        <span className="sh-title">SZÉGYENFAL</span>
-        <span className="sh-sub">Besült a vétód! Tartsd nyomva a gombot 5 másodpercig,<br />különben további 1 zsetont veszítesz!</span>
-        <button
-          type="button"
-          className="shame-btn"
-          onPointerDown={shameStart}
-          onPointerUp={shameEnd}
-          onPointerLeave={shameEnd}
+  const ShameView = null;   // (a szegyenfal-mechanika megszunt)
+
+  // Jatekmod reszletes leirasa (felugro ablak)
+  const ModeInfoView = (
+    <AnimatePresence>
+      {infoMode && (
+        <div className="modal-overlay info-overlay" onClick={() => setInfoMode(null)}>
+          <motion.div
+            onClick={(e) => e.stopPropagation()}
+            className="modal-box glass info-modal"
+            initial={{ scale: 0.88, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.88, opacity: 0, y: 20 }}
+          >
+            <button type="button" className="close-modal" onClick={() => setInfoMode(null)}><X size={22} /></button>
+            <div className="im-head">
+              <span className="im-ico">{infoMode.icon}</span>
+              <div className="im-titles">
+                <span className="im-name">{infoMode.name}</span>
+                {infoMode.online && <span className="im-tag">CSAK ONLINE SZOBÁBAN</span>}
+              </div>
+            </div>
+            <div className="im-body">
+              {String(infoMode.long || '').split('\n\n').map((para, i) => <p key={i}>{para}</p>)}
+            </div>
+            <button type="button" className="im-ok" onClick={() => setInfoMode(null)}>ÉRTEM</button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
+  // Telepitesi ajanlat - also lap (Android: valodi gomb, iPhone: utmutato)
+  const InstallView = (
+    <AnimatePresence>
+      {showInstall && status === 'menu' && (
+        <motion.div
+          className="inst-wrap"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={dismissInstall}
         >
-          SZÉGYELLEM MAGAM
-          <span className="shame-prog"><span style={{ width: `${Math.round(shameProg * 100)}%` }} /></span>
-        </button>
-      </motion.div>
-    </div>
+          <motion.div
+            className="inst-sheet"
+            onClick={(e) => e.stopPropagation()}
+            initial={{ y: 90, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 90, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          >
+            <span className="inst-grab" />
+            <button type="button" className="inst-x" onClick={dismissInstall} aria-label="Bezárás"><X size={18} /></button>
+
+            <div className="inst-top">
+              <span className="inst-badge"><ChronoLogo /></span>
+              <div className="inst-heads">
+                <span className="inst-title">Tedd ki a kezdőképernyőre</span>
+                <span className="inst-sub">Úgy indul, mint egy rendes alkalmazás — böngésző nélkül.</span>
+              </div>
+            </div>
+
+            <div className="inst-perks">
+              <span className="inst-perk"><b>Teljes képernyő</b>címsor nélkül</span>
+              <span className="inst-perk"><b>Egy koppintás</b>saját ikonról</span>
+              <span className="inst-perk"><b>Net nélkül is</b>elindul</span>
+            </div>
+
+            {iosInstall ? (
+              <div className="inst-steps">
+                <div className="inst-step">
+                  <span className="is-num">1</span>
+                  <span className="is-txt">Koppints alul a <b>Megosztás</b> gombra</span>
+                  <span className="is-ico"><Share size={19} /></span>
+                </div>
+                <div className="inst-step">
+                  <span className="is-num">2</span>
+                  <span className="is-txt">Görgess le, és válaszd: <b>Hozzáadás a kezdőképernyőhöz</b></span>
+                  <span className="is-ico"><Smartphone size={19} /></span>
+                </div>
+                <button type="button" className="inst-ghost" onClick={dismissInstall}>Rendben, megcsinálom</button>
+              </div>
+            ) : (
+              <div className="inst-actions">
+                <button type="button" className="inst-go" onClick={doInstall}>
+                  <Download size={18} /> TELEPÍTÉS
+                </button>
+                <button type="button" className="inst-ghost" onClick={dismissInstall}>Most nem</button>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 
   const sendAction = (a, extra = {}) => {
@@ -2680,12 +3163,36 @@ export default function App() {
 
   // ---------- Beallitasok (fogaskerek) ----------
   const MODE_LIST = [
-    { key: 'blind',   icon: <EyeOff size={18} />,  name: 'Blind Mode',  desc: 'Az idővonal évszámai rejtve — fejből kell tudnod a sorrendet!' },
-    { key: 'speed',   icon: <Timer size={18} />,   name: 'Speed Run',   desc: '2 perces visszaszámlálás — akié a leghosszabb idővonal, nyer!' },
-    { key: 'gold',    icon: <Sparkles size={18} />, name: 'Arany Kártya', desc: 'Minden 3. kártya arany: dupla tippnyeremény és +2 bónuszzseton!' },
-    { key: 'reverse', icon: <Rewind size={18} />,  name: 'Reverse Mode', desc: 'A dal visszafelé szól — csak az igazi mesterek ismerik fel!' },
-    { key: 'veto',    icon: <ShieldAlert size={18} />, name: 'Vétó', desc: 'Online: 5 mp-ig megvétózható a lerakás. Sikeres vétó: a hibázó kimarad. Besült vétó: Szégyenfal!', online: true },
-    { key: 'pranks',  icon: <Zap size={18} />, name: 'Szívatások', desc: 'Online: pontos évtippért szívatás-token jár — Rövidzárlat és Frász vethető be a soros játékos ellen!', online: true },
+    {
+      key: 'blind', icon: <EyeOff size={18} />, name: 'Blind Mode',
+      desc: 'Az idővonalon nem látszanak az évszámok.',
+      long: 'A már lerakott kártyáidon nem jelenik meg az évszám — csak az előadó és a dal címe látszik.\n\nNeked kell fejben tartanod, mit hova tettél. Ugyanaz a játék, sokkal nagyobb koncentrációval. Gyakorlott játékosoknak ajánljuk.',
+    },
+    {
+      key: 'speed', icon: <Timer size={18} />, name: 'Speed Run',
+      desc: 'Két perc alatt a leghosszabb idővonal nyer.',
+      long: 'A meccs indulásakor elindul egy kétperces visszaszámláló, és nem a 10 kártya összegyűjtése a cél.\n\nAmikor lejár az idő, az nyer, akinek a leghosszabb helyes idővonala van. Gyors döntések, pörgős parti — akkor jó választás, ha kevés az időtök.',
+    },
+    {
+      key: 'gold', icon: <Sparkles size={18} />, name: 'Arany Kártya',
+      desc: 'Ha eltalálod az arany lapot, újra te jössz.',
+      long: 'Játék közben véletlenszerűen felbukkan egy arany kártya — nagyjából minden ötödik körben.\n\nHa ezt a lapot a helyes helyre teszed az idővonaladon, a kör nem száll tovább: azonnal jöhet a következő dalod is. Egyetlen jó tipp így két lapot is érhet.\n\nHa mellétalálsz, minden a szokásos módon folytatódik — az arany kártya csak nyerni tud, veszíteni nem.',
+    },
+    {
+      key: 'reverse', icon: <Rewind size={18} />, name: 'Reverse Mode',
+      desc: 'A zenei részlet visszafelé szól.',
+      long: 'A dal fordítva játszódik le. Elsőre teljes káosz, de a dallamvezetés és a ritmus meglepően sokat elárul.\n\nKomoly kihívás — akkor érdemes bekapcsolni, ha már unjátok a szokásos menetet.',
+    },
+    {
+      key: 'veto', icon: <ShieldAlert size={18} />, name: 'Óvás', online: true,
+      desc: 'A többiek megóvhatják a lerakásodat.',
+      long: 'Csak online szobában, több játékossal működik.\n\nAmikor valaki lerak egy lapot, a többieknek 5 másodpercük van megóvni a döntést, ha szerintük rossz helyre került.\n\nHa az óvás jogos — a lerakás tényleg hibás volt: a lerakó kimarad a következő körből, az óvó pedig kap 1 zsetont.\n\nHa az óvás alaptalan — a lerakás jó volt: az óvó veszít 1 zsetont, a lerakó pedig kap egyet.\n\nAz óvás tehát kockázatos. Csak akkor érdemes élni vele, ha tényleg biztos vagy a dolgodban.',
+    },
+    {
+      key: 'pranks', icon: <Zap size={18} />, name: 'Zavarás', online: true,
+      desc: 'Zavaró akciók a soron lévő játékos ellen.',
+      long: 'Csak online szobában működik.\n\nHa pontosan eltalálod egy dal évszámát, kapsz érte egy zavarás-tokent.\n\nA tokent akkor használhatod, amikor valaki más van soron. Kétféle akció közül választhatsz: a Rövidzárlat pár másodpercre összekavarja a másik képernyőjét, a Riasztás pedig erős rezgést és hangjelzést küld a telefonjára.\n\nEgy token egy akció. Senkinek nem árt és pontot sem von le — csak megnehezíti a koncentrálást. Barátságos ugratás, nem büntetés.',
+    },
   ];
   const SettingsView = (
     <AnimatePresence>
@@ -2702,14 +3209,19 @@ export default function App() {
             <h3 className="modal-title">JÁTÉKMÓDOK</h3>
             <div className="mode-list">
               {MODE_LIST.map((m) => (
-                <button key={m.key} type="button" className={`mode-row ${modes[m.key] ? 'on' : ''}`} onClick={() => toggleMode(m.key)}>
-                  <span className="mr-icon">{m.icon}</span>
-                  <span className="mr-body">
-                    <span className="mr-name">{m.name}</span>
-                    <span className="mr-desc">{m.desc}</span>
-                  </span>
-                  <span className={`mr-toggle ${modes[m.key] ? 'on' : ''}`} />
-                </button>
+                <div key={m.key} className={`mode-row ${modes[m.key] ? 'on' : ''}`}>
+                  <button type="button" className="mr-main" onClick={() => toggleMode(m.key)}>
+                    <span className="mr-icon">{m.icon}</span>
+                    <span className="mr-body">
+                      <span className="mr-name">{m.name}{m.online && <span className="mr-tag">ONLINE</span>}</span>
+                      <span className="mr-desc">{m.desc}</span>
+                    </span>
+                    <span className={`mr-toggle ${modes[m.key] ? 'on' : ''}`} />
+                  </button>
+                  <button type="button" className="mr-info" onClick={() => setInfoMode(m)} aria-label={`${m.name} — részletes leírás`}>
+                    <Info size={16} />
+                  </button>
+                </div>
               ))}
             </div>
             <div className="settings-note">A módok a meccs INDÍTÁSAKOR rögzülnek — játék közben már nem változnak.</div>
@@ -2738,6 +3250,63 @@ export default function App() {
               </div>
               {letterHunt.trim() && (
                 <button type="button" className="hunt-clear" onClick={() => setLetterHunt('')} aria-label="Törlés"><X size={15} /></button>
+              )}
+            </div>
+
+            <h3 className="modal-title small">APPLE MUSIC — TELJES DALOK</h3>
+            <div className="am-panel">
+              <div className="am-head">
+                <span className="am-ico"><Volume2 size={18} /></span>
+                <div className="am-heads">
+                  <span className="am-title">Teljes dalok lejátszása</span>
+                  <span className="am-sub">Apple Music előfizetéssel a teljes szám szól a rövid részlet helyett — a játékon belül, spoiler nélkül.</span>
+                </div>
+                <button
+                  type="button"
+                  className={`mr-toggle ${appleOn ? 'on' : ''}`}
+                  onClick={() => {
+                    const v = !appleOn;
+                    setAppleOn(v);
+                    try { localStorage.setItem('cb_apple_on', v ? '1' : '0'); } catch (e) {}
+                  }}
+                  aria-label="Apple Music be/ki"
+                />
+              </div>
+
+              {appleOn && (
+                <div className="am-body">
+                  <label className="am-label" htmlFor="am-token">Fejlesztői token (JWT)</label>
+                  <textarea
+                    id="am-token"
+                    className="am-token"
+                    rows={2}
+                    placeholder="eyJhbGciOiJFUzI1NiIsImtpZCI6…"
+                    value={appleToken}
+                    onChange={(e) => {
+                      const v = e.target.value.trim();
+                      setAppleToken(v);
+                      try { localStorage.setItem('cb_apple_token', v); } catch (er) {}
+                    }}
+                  />
+                  <div className={`am-status s-${appleState}`}>
+                    {appleState === 'off' && 'Add meg a tokent a folytatáshoz.'}
+                    {appleState === 'loading' && 'MusicKit betöltése…'}
+                    {appleState === 'ready' && 'Kész — koppints a csatlakozásra.'}
+                    {appleState === 'authed' && (appleTrack ? 'Csatlakozva — ehhez a dalhoz van teljes változat.' : 'Csatlakozva. (Ehhez a dalhoz nincs találat — a részlet szól.)')}
+                    {appleState === 'error' && 'Hibás vagy lejárt token — ellenőrizd.'}
+                  </div>
+                  {appleState === 'authed' ? (
+                    <button type="button" className="am-btn out" onClick={appleDisconnect}>LECSATLAKOZÁS</button>
+                  ) : (
+                    <button type="button" className="am-btn" onClick={appleConnect} disabled={appleState !== 'ready'}>
+                      CSATLAKOZÁS AZ APPLE MUSIC-HOZ
+                    </button>
+                  )}
+                  <div className="am-note">
+                    A tokent a saját Apple Developer fiókodban készíted (MusicKit azonosító + privát kulcs). Csak ezen az eszközön tárolódik.
+                    Reverse módban és találat híján automatikusan a rövid részlet szól.
+                  </div>
+                </div>
               )}
             </div>
 
@@ -3023,21 +3592,15 @@ export default function App() {
             setActive={setMenuIndex}
             onSelect={(key) => {
               if (key === 'start') setStatus('setup');
-              else if (key === 'daily') {
-                if (dtoday) { setDailyView('result'); setStatus('daily-result'); }
-                else startDaily();
-              } else if (key === 'bot') setShowBot(true);
+              else if (key === 'bot') setShowBot(true);
               else if (key === 'online') setShowRoom(true);
-              else if (key === 'trophy') setStatus('stats');
               else if (key === 'pack') setShowPackSelection(true);
               else if (key === 'modes') setShowSettings(true);
             }}
             items={[
               { key: 'start', cls: 'c-start', icon: <IcoVinyl />, title: 'JÁTÉK INDÍTÁSA', meta: 'Helyi parti · add hozzá a csapatot', cta: 'INDÍTÁS' },
-              { key: 'daily', cls: 'c-daily', icon: <IcoDaily />, title: 'NAPI KIHÍVÁS', meta: dtoday ? `Ma: ${dtoday.score}/10` : dstore.streak ? `Sorozat: ${dstore.streak} nap` : 'Minden nap új 10 dal' },
               { key: 'bot', cls: 'c-bot', icon: <IcoBot />, title: 'CHRONO-BOT', meta: botDiff ? `${botDiff} fokozat` : 'Gyakorolj gép ellen' },
               { key: 'online', cls: 'c-online', icon: <IcoPhone />, title: 'ONLINE SZOBA', meta: netRole === 'host' ? `Kód: ${roomCode}` : 'Kód vagy QR-kód' },
-              { key: 'trophy', cls: 'c-trophy', icon: <IcoTrophy />, title: 'TRÓFEÁK', meta: `${achN} / 12 megszerezve` },
               { key: 'pack', cls: 'c-pack', icon: <IcoPack />, title: 'PAKLI', meta: `${SONG_PACKS[selectedPack].label} · ${SONG_PACKS[selectedPack].data.length} dal` },
               { key: 'modes', cls: 'c-modes', icon: <IcoModes />, title: 'EXTRA MÓDOK', meta: modeN ? `${modeN} aktív` : 'Blind, Speed, Vétó…' },
             ]}
@@ -3046,6 +3609,8 @@ export default function App() {
         </div>
 
         {SettingsView}
+        {ModeInfoView}
+        {InstallView}
         {BotModalView}
         {RoomModalView}
         {PackModalView}
@@ -3228,19 +3793,19 @@ export default function App() {
               {st.pending ? (
                 <motion.div className="veto-panel glass" initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
                   <span className="vp-count">{st.pending.left}</span>
-                  <span className="vp-text">{active.name} lerakta a lapot!<br />Szerinted mellément?</span>
-                  <button type="button" className="veto-btn" onClick={() => sendAction('veto')}><ShieldAlert size={16} /> VÉTÓ!</button>
-                  <span className="vp-warn">Ha tévedsz: -1 zseton + Szégyenfal!</span>
+                  <span className="vp-text">{active.name} lerakta a lapot.<br />Szerinted rossz helyre került?</span>
+                  <button type="button" className="veto-btn" onClick={() => sendAction('veto')}><ShieldAlert size={16} /> ÓVÁST EMELEK</button>
+                  <span className="vp-warn">Ha az óvás alaptalan: -1 zseton.</span>
                 </motion.div>
               ) : (
                 <Pedestal charIndex={active.char} size={150} mood={st.playing ? 'win' : 'idle'} />
               )}
               {me && st.activeModes && st.activeModes.pranks && (me.pranks || 0) > 0 && st.status === 'game' && (
                 <div className="prank-bar glass">
-                  <span className="pb-title"><Zap size={14} /> SZÍVATÁS ({me.pranks})</span>
+                  <span className="pb-title"><Zap size={14} /> ZAVARÁS ({me.pranks})</span>
                   <div className="pb-btns">
                     <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'scramble' })}><Zap size={13} /> Rövidzárlat</button>
-                    <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'heartbeat' })}><Vibrate size={13} /> Frász</button>
+                    <button type="button" className="prank-btn" onClick={() => sendAction('prank', { kind: 'heartbeat' })}><Vibrate size={13} /> Riasztás</button>
                   </div>
                 </div>
               )}
@@ -3361,6 +3926,8 @@ export default function App() {
         <Backdrop />
         {ToastView}
         {SettingsView}
+        {ModeInfoView}
+        {InstallView}
         {BotModalView}
         {RoomModalView}
         <button type="button" className="gear-btn glass gear-float" onClick={() => setShowSettings(true)} title="Játékmódok">
@@ -3413,7 +3980,7 @@ export default function App() {
               <span className="mode-label"><Settings size={13} /> JÁTÉKMÓDOK</span>
               <span className="mode-count">
                 {(modes.blind || modes.speed || modes.gold || modes.reverse)
-                  ? <>Aktív: {[modes.blind && 'Blind', modes.speed && 'Speed', modes.gold && 'Arany Kártya', modes.reverse && 'Reverse', modes.veto && 'Vétó', modes.pranks && 'Szívatás'].filter(Boolean).join(' · ')}</>
+                  ? <>Aktív: {[modes.blind && 'Blind', modes.speed && 'Speed', modes.gold && 'Arany Kártya', modes.reverse && 'Reverse', modes.veto && 'Óvás', modes.pranks && 'Zavarás'].filter(Boolean).join(' · ')}</>
                   : 'Nincs extra mód — koppints a beállításhoz'}
               </span>
             </button>
@@ -3620,6 +4187,8 @@ export default function App() {
       )}
       {TutorialView}
       {SettingsView}
+        {ModeInfoView}
+        {InstallView}
 
       {/* ---------- FELSO HUD ---------- */}
       <div className="top-hud">
@@ -3639,6 +4208,16 @@ export default function App() {
           >
             <Coins size={15} /> {activePlayer.tokens}
           </motion.span>
+          <button
+            className={`btn-3d swap inline ${isAudioBroken ? 'error' : ''}`}
+            onClick={handleSwap}
+            disabled={slotsDisabled}
+            title={isAudioBroken ? 'Ingyenes csere — a dal nem elérhető' : `Új dal húzása ${SWAP_COST} zsetonért`}
+          >
+            {isAudioBroken ? <AlertTriangle size={15} /> : <RefreshCw size={15} />}
+            <span className="sw-txt">{isAudioBroken ? 'INGYEN' : 'CSERE'}</span>
+            {!isAudioBroken && <span className="sw-cost">{SWAP_COST}🪙</span>}
+          </button>
         </div>
         <div className="hud-right">
           {timeLeft !== null && (
@@ -3646,33 +4225,18 @@ export default function App() {
               <Timer size={13} /> {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
             </div>
           )}
-          {dailyRef.current ? (
-            <div className="deck-chip glass daily-chip" title="Napi kihívás">
-              {dailyRef.current.idx + 1}/10 · {'♥'.repeat(Math.max(0, dailyRef.current.lives))}{'♡'.repeat(Math.max(0, 3 - dailyRef.current.lives))}
-            </div>
-          ) : (
-            <div className="deck-chip glass" title="Hátralévő kártyák"><Layers size={13} /> {cardsLeft}</div>
-          )}
           {(activeModes.blind || activeModes.speed || activeModes.gold || activeModes.reverse) && (
             <div className="deck-chip glass" title="Aktív játékmódok">
               {activeModes.blind && <EyeOff size={13} />}{activeModes.speed && <Timer size={13} />}{activeModes.gold && <Sparkles size={13} />}{activeModes.reverse && <Rewind size={13} />}{activeModes.veto && <ShieldAlert size={13} />}{activeModes.pranks && <Zap size={13} />}
             </div>
           )}
-          <button
-            className={`btn-3d swap ${isAudioBroken ? 'error' : ''}`}
-            onClick={handleSwap}
-            disabled={slotsDisabled}
-          >
-            {isAudioBroken ? <AlertTriangle size={16} /> : <RefreshCw size={16} />}
-            {isAudioBroken ? ' INGYEN CSERE' : ` CSERE ${SWAP_COST}🪙`}
-          </button>
         </div>
       </div>
 
       {/* ---------- SZINPAD ---------- */}
       <div className="main-arena">
         <div className="game-char">
-          <CharacterStage charIndex={activePlayer.char} size={96} mood={isPlaying ? 'win' : 'idle'} />
+          <CharacterStage charIndex={activePlayer.char} size={142} mood={isPlaying ? 'win' : 'idle'} />
           <div className="gc-disc" style={{ '--pc': activeChar.color }} />
         </div>
         <div className="music-stage">
