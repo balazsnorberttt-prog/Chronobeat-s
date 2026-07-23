@@ -758,7 +758,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v33';
+const APP_VERSION = 'v34';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -1635,6 +1635,17 @@ export default function App() {
 
   const [showBetModal, setShowBetModal] = useState(false);
   const [micStep, setMicStep] = useState(0);        // 0=evszam, 1=eloado, 2=cim, 3=kesz
+  // ---------- HANGCSATORNA (WebRTC a meglevo PeerJS-en) ----------
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [voiceMuted, setVoiceMuted] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [voicePeers, setVoicePeers] = useState([]);       // akikkel el a hangkapcsolat
+  const [voiceDuck, setVoiceDuck] = useState(() => { try { return localStorage.getItem('cb_voice_duck') !== '0'; } catch (e) { return true; } });
+  const voiceOnRef = useRef(false);
+  const localStreamRef = useRef(null);
+  const callsRef = useRef({});      // peerId -> MediaConnection
+  const audioElsRef = useRef({});   // peerId -> <audio>
+  const myPeerIdRef2 = useRef('');
   const [smartSeed, setSmartSeed] = useState(() => {
     const d = new Date();
     return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
@@ -3053,11 +3064,22 @@ export default function App() {
     const code = makeCode();
     const peer = new Peer(`cbeats-${code}`);
     peerRef.current = peer;
-    peer.on('open', () => {
+    peer.on('open', (pid) => {
+      myPeerIdRef2.current = pid || `cbeats-${code}`;
       setRoomCode(code);
       setNetRole('host');
       setNetBusy(false);
       showToast(`📡 Szoba kész! Kód: ${code}`);
+    });
+    peer.on('call', (call) => {
+      if (!voiceOnRef.current || !localStreamRef.current) { try { call.close(); } catch (e) {} return; }
+      try {
+        call.answer(localStreamRef.current);
+        callsRef.current[call.peer] = call;
+        call.on('stream', (rs) => attachRemote(call.peer, rs));
+        call.on('close', () => dropRemote(call.peer));
+        call.on('error', () => dropRemote(call.peer));
+      } catch (e) {}
     });
     peer.on('connection', (conn) => {
       conn.on('data', (msg) => {
@@ -3104,9 +3126,20 @@ export default function App() {
     }
     const peer = new Peer();
     peerRef.current = peer;
+    peer.on('call', (call) => {
+      if (!voiceOnRef.current || !localStreamRef.current) { try { call.close(); } catch (e) {} return; }
+      try {
+        call.answer(localStreamRef.current);
+        callsRef.current[call.peer] = call;
+        call.on('stream', (rs) => attachRemote(call.peer, rs));
+        call.on('close', () => dropRemote(call.peer));
+        call.on('error', () => dropRemote(call.peer));
+      } catch (e) {}
+    });
     peer.on('open', (pid) => {
       setMyPeerId(pid);
       myPeerIdRef.current = pid;
+      myPeerIdRef2.current = pid;
       const conn = peer.connect(`cbeats-${code}`, { reliable: true });
       hostConnRef.current = conn;
       const failT = setTimeout(() => { setNetBusy(false); showToast('Nincs ilyen szoba, vagy nem elérhető. 😕'); }, 8000);
@@ -3322,10 +3355,142 @@ export default function App() {
 
   const leaveRoom = () => {
     try { peerRef.current && peerRef.current.destroy(); } catch (e) {}
+    voiceOnRef.current = false;
+    Object.keys(audioElsRef.current).forEach((pid) => {
+      const el = audioElsRef.current[pid];
+      if (el) { try { el.srcObject = null; el.remove(); } catch (e) {} }
+    });
+    audioElsRef.current = {};
+    Object.keys(callsRef.current).forEach((pid) => { try { callsRef.current[pid].close(); } catch (e) {} });
+    callsRef.current = {};
+    if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach((t) => t.stop()); } catch (e) {} }
+    localStreamRef.current = null;
+    setVoiceOn(false); setVoicePeers([]); setVoiceMuted(false);
     peerRef.current = null; connsRef.current = {}; hostConnRef.current = null;
     setNetRole(null); setRoomCode(''); setSnap(null);
     setStatus('setup');
   };
+
+  // ============================================================
+  //  HANGCSATORNA - a jatekosok beszelhetnek egymassal
+  //  A meglevo PeerJS kapcsolatot hasznalja (WebRTC), nincs uj szerver.
+  // ============================================================
+  const attachRemote = (peerId, stream) => {
+    let el = audioElsRef.current[peerId];
+    if (!el) {
+      el = document.createElement('audio');
+      el.autoplay = true;
+      el.playsInline = true;
+      el.setAttribute('playsinline', 'true');
+      audioElsRef.current[peerId] = el;
+      document.body.appendChild(el);
+    }
+    el.srcObject = stream;
+    const p = el.play();
+    if (p && p.catch) p.catch(() => {});
+    setVoicePeers((prev) => (prev.includes(peerId) ? prev : [...prev, peerId]));
+  };
+
+  const dropRemote = (peerId) => {
+    const el = audioElsRef.current[peerId];
+    if (el) { try { el.srcObject = null; el.remove(); } catch (e) {} delete audioElsRef.current[peerId]; }
+    const c = callsRef.current[peerId];
+    if (c) { try { c.close(); } catch (e) {} delete callsRef.current[peerId]; }
+    setVoicePeers((prev) => prev.filter((x) => x !== peerId));
+  };
+
+  // Kivel kell hangkapcsolatot tartani? (mindenki a szobaban, rajtam kivul)
+  const voiceRoster = () => {
+    const me = myPeerIdRef2.current;
+    const ids = [];
+    const src = netRole === 'host' ? players : ((snap && snap.players) || players);
+    (src || []).forEach((p) => { if (p.peerId && p.peerId !== me) ids.push(p.peerId); });
+    if (netRole !== 'host' && roomCode) {
+      const hostId = `cbeats-${roomCode}`;
+      if (hostId !== me && !ids.includes(hostId)) ids.push(hostId);
+    }
+    return ids;
+  };
+
+  const callPeer = (peerId) => {
+    const peer = peerRef.current;
+    const stream = localStreamRef.current;
+    if (!peer || !stream || !peerId || callsRef.current[peerId]) return;
+    try {
+      const call = peer.call(peerId, stream);
+      if (!call) return;
+      callsRef.current[peerId] = call;
+      call.on('stream', (rs) => attachRemote(peerId, rs));
+      call.on('close', () => dropRemote(peerId));
+      call.on('error', () => dropRemote(peerId));
+    } catch (e) {}
+  };
+
+  const voiceStart = async () => {
+    if (voiceOn || voiceBusy) return;
+    if (!peerRef.current) { showToast('Előbb csatlakozz egy szobához!'); return; }
+    setVoiceBusy(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false,
+      });
+      localStreamRef.current = stream;
+      voiceOnRef.current = true;
+      setVoiceOn(true);
+      setVoiceMuted(false);
+      // Csak a "nagyobb" azonositokat hivjuk, a tobbi minket hiv -> nincs dupla kapcsolat
+      const me = myPeerIdRef2.current || '';
+      voiceRoster().forEach((pid) => { if (me < pid) callPeer(pid); });
+      showToast('🎧 Hangcsatorna bekapcsolva — hallanak a többiek!');
+    } catch (e) {
+      showToast('🎙️ Nem sikerült a mikrofon — engedélyezd a böngészőben!');
+    }
+    setVoiceBusy(false);
+  };
+
+  const voiceStop = () => {
+    voiceOnRef.current = false;
+    Object.keys(callsRef.current).forEach((pid) => dropRemote(pid));
+    callsRef.current = {};
+    const st = localStreamRef.current;
+    if (st) { try { st.getTracks().forEach((t) => t.stop()); } catch (e) {} }
+    localStreamRef.current = null;
+    setVoiceOn(false);
+    setVoicePeers([]);
+    showToast('🔇 Hangcsatorna kikapcsolva.');
+  };
+
+  const setMicEnabled = (on) => {
+    const st = localStreamRef.current;
+    if (!st) return;
+    try { st.getAudioTracks().forEach((t) => { t.enabled = on; }); } catch (e) {}
+  };
+  const toggleVoiceMute = () => {
+    const m = !voiceMuted;
+    setVoiceMuted(m);
+    setMicEnabled(!m);
+    haptics.tick && haptics.tick();
+  };
+
+  // Uj jatekos erkezik -> hivjuk (ha mar be van kapcsolva a hang)
+  useEffect(() => {
+    if (!voiceOn) return;
+    const me = myPeerIdRef2.current || '';
+    const roster = voiceRoster();
+    roster.forEach((pid) => { if (me < pid && !callsRef.current[pid]) callPeer(pid); });
+    // aki kilepett, annak bontjuk
+    Object.keys(callsRef.current).forEach((pid) => { if (!roster.includes(pid)) dropRemote(pid); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn, players, snap, roomCode, netRole]);
+
+  // Dal alatt automatikus nemitas (kulonben a hangszorobol visszahallatszik a zene)
+  useEffect(() => {
+    if (!voiceOn || !voiceDuck) return;
+    if (isPlaying) setMicEnabled(false);
+    else setMicEnabled(!voiceMuted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, voiceOn, voiceDuck, voiceMuted]);
 
   // ---------- Hangvezerles (Push-to-Talk, Web Speech API) ----------
   const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -3665,6 +3830,83 @@ export default function App() {
     </AnimatePresence>
   );
 
+  // Hangcsatorna-vezerlo (a szoba-ablakban es a jatek kozben)
+  const VoiceControl = ({ compact }) => {
+    if (!netRole) return null;
+    if (compact) {
+      return (
+        <div className="vc-chip">
+          <button
+            type="button"
+            className={`vc-btn ${voiceOn ? 'on' : ''}`}
+            onClick={voiceOn ? voiceStop : voiceStart}
+            disabled={voiceBusy}
+            aria-label={voiceOn ? 'Hangcsatorna kikapcsolása' : 'Hangcsatorna bekapcsolása'}
+          >
+            <Headphones size={14} />
+          </button>
+          {voiceOn && (
+            <button
+              type="button"
+              className={`vc-btn mute ${voiceMuted ? 'muted' : ''}`}
+              onClick={toggleVoiceMute}
+              aria-label={voiceMuted ? 'Mikrofon vissza' : 'Némítás'}
+            >
+              <Mic size={14} />
+              {voiceMuted && <span className="vc-slash" />}
+            </button>
+          )}
+          {voiceOn && voicePeers.length > 0 && <span className="vc-count">{voicePeers.length}</span>}
+        </div>
+      );
+    }
+    return (
+      <div className="vc-panel">
+        <div className="vc-head">
+          <span className="vc-ico"><Headphones size={18} /></span>
+          <div className="vc-heads">
+            <span className="vc-title">Beszéljetek játék közben</span>
+            <span className="vc-sub">
+              {voiceOn
+                ? (voicePeers.length ? `Élő kapcsolat ${voicePeers.length} játékossal.` : 'Bekapcsolva — várjuk a többieket…')
+                : 'Hangcsatorna a szobában lévőkkel, külön app nélkül.'}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={`mr-toggle ${voiceOn ? 'on' : ''}`}
+            onClick={voiceOn ? voiceStop : voiceStart}
+            disabled={voiceBusy}
+            aria-label="Hangcsatorna be/ki"
+          />
+        </div>
+        {voiceOn && (
+          <div className="vc-body">
+            <button type="button" className={`vc-mute-wide ${voiceMuted ? 'muted' : ''}`} onClick={toggleVoiceMute}>
+              <Mic size={16} /> {voiceMuted ? 'MIKROFON NÉMÍTVA — KOPPINTS A VISSZAKAPCSOLÁSHOZ' : 'MIKROFON ÉL — KOPPINTS A NÉMÍTÁSHOZ'}
+            </button>
+            <button
+              type="button"
+              className={`mode-row slim ${voiceDuck ? 'on' : ''}`}
+              onClick={() => {
+                const v = !voiceDuck;
+                setVoiceDuck(v);
+                try { localStorage.setItem('cb_voice_duck', v ? '1' : '0'); } catch (e) {}
+              }}
+            >
+              <span className="mr-icon"><Volume2 size={16} /></span>
+              <span className="mr-body">
+                <span className="mr-name">Némítás a dal alatt</span>
+                <span className="mr-desc">Amíg szól a zene, a mikrofonod néma — így nem visszhangzik.</span>
+              </span>
+              <span className={`mr-toggle ${voiceDuck ? 'on' : ''}`} />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ---------- Kozos elemek ----------
   const ToastView = (
     <>
@@ -3755,6 +3997,7 @@ export default function App() {
                       LINK MEGOSZTÁSA / MÁSOLÁSA
                     </button>
                     <p className="modal-sub">…vagy írjátok be kézzel a 4 betűs kódot!</p>
+                    <VoiceControl />
                     <div className="audio-mode-row">
                       <button
                         type="button"
@@ -4087,6 +4330,7 @@ export default function App() {
             <span className="hud-tokens"><Coins size={15} /> {me ? me.tokens : 0}{me && (me.pranks || 0) > 0 && <em className="prank-mini"><Zap size={11} /> {me.pranks}</em>}</span>
           </div>
           <div className="hud-right">
+            <VoiceControl compact />
             <div className="deck-chip glass"><DoorOpen size={13} /> {roomCode}</div>
             {st && st.timeLeft !== null && st.timeLeft !== undefined && (
               <div className={`timer-chip glass ${st.timeLeft <= 20 ? 'low' : ''}`}>
