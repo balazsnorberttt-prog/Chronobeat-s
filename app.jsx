@@ -758,7 +758,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v34';
+const APP_VERSION = 'v35';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -1209,6 +1209,10 @@ const buildSmartPacks = (allSongs, profile, seed) => {
   }
   return [...personal, ...pattern.slice(0, 4)];
 };
+
+const isIOSDevice = typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent || '') ||
+   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 const shuffleDeck = (array) => {
   const newArray = [...array];
@@ -1668,7 +1672,7 @@ export default function App() {
 
   // ---------- Jatekmodok es extra funkciok ----------
   const [modes, setModes] = useState(() => {
-    try { return { blind: false, speed: false, gold: false, reverse: false, veto: false, pranks: false, ...(JSON.parse(localStorage.getItem('cb_modes') || '{}')) }; }
+    try { return { blind: false, speed: false, gold: false, reverse: false, veto: false, pranks: false, steal: false, ...(JSON.parse(localStorage.getItem('cb_modes') || '{}')) }; }
     catch (e) { return { blind: false, speed: false, gold: false, reverse: false, veto: false, pranks: false }; }
   });
   const [showSettings, setShowSettings] = useState(false);
@@ -3429,6 +3433,10 @@ export default function App() {
   const voiceStart = async () => {
     if (voiceOn || voiceBusy) return;
     if (!peerRef.current) { showToast('Előbb csatlakozz egy szobához!'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast('A böngésző nem enged mikrofont. Ha alkalmazásból (pl. Messenger) nyitottad meg, nyisd meg Safariban/Chrome-ban!');
+      return;
+    }
     setVoiceBusy(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -3629,6 +3637,11 @@ export default function App() {
       key: 'gold', icon: <Sparkles size={18} />, name: 'Arany Kártya',
       desc: 'Ha eltalálod az arany lapot, újra te jössz.',
       long: 'Játék közben véletlenszerűen felbukkan egy arany kártya — nagyjából minden ötödik körben.\n\nHa ezt a lapot a helyes helyre teszed az idővonaladon, a kör nem száll tovább: azonnal jöhet a következő dalod is. Egyetlen jó tipp így két lapot is érhet.\n\nHa mellétalálsz, minden a szokásos módon folytatódik — az arany kártya csak nyerni tud, veszíteni nem.',
+    },
+    {
+      key: 'steal', icon: <Zap size={18} />, name: 'Rablás', online: true,
+      desc: 'Bárki beelőzhet a soron lévő játékos helyett.',
+      long: 'Alapból online szobában csak az tud lerakni és tippelni, akinek épp a köre van — a többiek képernyőjén a gombok zárva vannak.\n\nHa ezt bekapcsolod, a zár feloldódik: bárki lecsaphat a kártyára, ha gyorsabb. Kaotikus, hangos és nagyon vicces — de csak akkor javasoljuk, ha mindenki tudja, hogy erre megy a játék.\n\nKikapcsolva marad a rendes, körökre osztott játék.',
     },
     {
       key: 'reverse', icon: <Rewind size={18} />, name: 'Reverse Mode',
@@ -3998,6 +4011,25 @@ export default function App() {
                     </button>
                     <p className="modal-sub">…vagy írjátok be kézzel a 4 betűs kódot!</p>
                     <VoiceControl />
+
+                    <div className="room-roster">
+                      <span className="rr-title">CSATLAKOZOTT ({players.length})</span>
+                      <div className="rr-list">
+                        {players.map((p) => (
+                          <span key={p.id} className="rr-chip">
+                            {p.name}{!p.peerId && <em> (te)</em>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-3d start wide room-start"
+                      disabled={players.length < 2}
+                      onClick={() => { setShowRoom(false); startGame(); }}
+                    >
+                      <Play size={17} /> {players.length < 2 ? 'VÁRUNK MÉG JÁTÉKOSRA…' : `JÁTÉK INDÍTÁSA (${players.length} JÁTÉKOS)`}
+                    </button>
                     <div className="audio-mode-row">
                       <button
                         type="button"
@@ -4683,7 +4715,10 @@ export default function App() {
   const activeChar = CHARACTERS[activePlayer.char % CHARACTERS.length];
   const tl = activePlayer.timeline;
   const isAudioBroken = !audioUrl && !isLoading;
-  const slotsDisabled = flipped || !!feedback;
+  // Online szobaban a gazda gepen NE lehessen lerakni, ha epp egy tavoli jatekos kore van
+  const remoteTurn = netRole === 'host' && players[turnIndex] && !!players[turnIndex].peerId;
+  const lockedByTurn = remoteTurn && !activeModes.steal;
+  const slotsDisabled = flipped || !!feedback || lockedByTurn;
   const progress = Math.min(100, Math.round((tl.length / WIN_CARDS) * 100));
 
   const GhostCard = (
@@ -4912,7 +4947,7 @@ export default function App() {
               <p className="modal-sub">
                 Év ±{YEAR_TOLERANCE}: 1🪙 · pontos év: 2🪙 · előadó / cím: 1-1🪙
               </p>
-              {SR && (
+              {SR ? (
                 <div className="mic-zone">
                   <div className="mic-steps">
                     {MIC_STEPS.map((st2, i) => (
@@ -4954,6 +4989,14 @@ export default function App() {
                       </>
                     )}
                   </div>
+                </div>
+              ) : (
+                <div className="mic-unsupported">
+                  <Mic size={18} />
+                  <span>
+                    Ez a böngésző nem támogatja a beszédfelismerést, ezért a bemondás itt nem elérhető.
+                    {isIOSDevice ? ' iPhone-on és iPaden egyik böngésző sem tudja (az Apple nem építette be) — írd be a tippet kézzel.' : ' Androidon a Chrome, gépen a Chrome vagy Edge támogatja.'}
+                  </span>
                 </div>
               )}
               <div className="modal-inputs">
