@@ -758,7 +758,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v32';
+const APP_VERSION = 'v33';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -987,6 +987,227 @@ const huntFilter = (list, raw) => {
   const byAny = list.filter((s) => normText(s.a).includes(ch));
   if (byAny.length >= 24) return { data: byAny, ch, mode: 'any' };
   return { data: byAny, ch, mode: 'few' };
+};
+
+// ---------- Magyar szamnev -> evszam ----------
+// A beszedfelismeres szavakkal ad vissza ("ezerkilencszaznyolcvanketto"),
+// ezert a puszta szamjegy-kereses nem eleg.
+const HU_NUMS = [
+  ['kilencszaz', 900], ['nyolcszaz', 800], ['hetszaz', 700], ['hatszaz', 600],
+  ['otszaz', 500], ['negyszaz', 400], ['haromszaz', 300], ['kettoszaz', 200], ['ketszaz', 200],
+  ['egyszaz', 100], ['szaz', 100],
+  ['kilencven', 90], ['nyolcvan', 80], ['hetven', 70], ['hatvan', 60], ['otven', 50],
+  ['negyven', 40], ['harminc', 30], ['huszon', 20], ['husz', 20], ['tizen', 10], ['tiz', 10],
+  ['kilenc', 9], ['nyolc', 8], ['het', 7], ['hat', 6], ['ot', 5], ['negy', 4], ['harom', 3],
+  ['ketto', 2], ['ket', 2], ['egy', 1],
+];
+const huChunk = (str) => {
+  let total = 0;
+  let i = 0;
+  let guard = 0;
+  while (i < str.length && guard < 60) {
+    guard += 1;
+    let hit = null;
+    for (let k = 0; k < HU_NUMS.length; k++) {
+      if (str.startsWith(HU_NUMS[k][0], i)) { hit = HU_NUMS[k]; break; }
+    }
+    if (hit) { total += hit[1]; i += hit[0].length; }
+    else i += 1;
+  }
+  return total;
+};
+const parseSpokenYear = (raw) => {
+  const txt = String(raw || '');
+  // 1) Sima szamjegyek ("1982", "2015")
+  const d = txt.match(/\b(1[89]\d{2}|20\d{2})\b/);
+  if (d) return parseInt(d[0], 10);
+  // 2) Ket kulon szam ("tizenkilenc nyolcvanketto" / "19 82")
+  const two = txt.match(/\b(19|20)\s+(\d{2})\b/);
+  if (two) return parseInt(two[1] + two[2], 10);
+  // 3) Magyar szamnevek
+  const s2 = normText(txt).replace(/[^a-z]/g, '');
+  if (!s2) return null;
+  let year = null;
+  const ez = s2.indexOf('ezer');
+  if (ez !== -1) {
+    const before = s2.slice(0, ez);
+    const after = s2.slice(ez + 4);
+    const mult = before ? huChunk(before) : 1;
+    year = (mult || 1) * 1000 + huChunk(after);
+  } else {
+    const v = huChunk(s2);
+    if (!v) return null;
+    if (v < 100) year = 1900 + v;          // "nyolcvanketto" -> 1982
+    else if (v < 1000) year = 1000 + v;    // "kilencszaznyolcvanketto" -> 1982
+    else year = v;
+  }
+  if (!year || year < 1900 || year > new Date().getFullYear() + 1) return null;
+  return year;
+};
+
+// ============================================================
+//  SZEMELYRE SZABOTT KATEGORIA-GENERATOR ("alap AI")
+//  Statisztikai/heurisztikus elemzes a sajat adatbazisbol.
+//  FONTOS: minden generalt csomagnak evtizedeken AT kell nyulnia,
+//  kulonben az idovonal-jatek jatszhatatlanna valik.
+// ============================================================
+const hasWord = (norm, words) => {
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (new RegExp('(^|[^a-z0-9])' + w + '([^a-z0-9]|$)').test(norm)) return true;
+  }
+  return false;
+};
+
+const SMART_RULES = [
+  {
+    id: 'colors', label: 'SZÍNES CÍMEK', desc: 'Minden dal címében ott egy szín.',
+    style: 'linear-gradient(135deg, #FF3D6E 0%, #FFD36A 50%, #00E5FF 100%)',
+    test: (t) => hasWord(t, ['red', 'blue', 'blues', 'bluer', 'black', 'blackbird', 'white', 'green', 'gold', 'golden', 'pink', 'purple', 'yellow', 'silver', 'grey', 'gray', 'scarlet', 'crimson', 'amber', 'ivory', 'ebony', 'indigo', 'violet', 'turquoise', 'emerald', 'rainbow', 'neon', 'colour', 'colours', 'color', 'colors', 'blonde', 'brown', 'piros', 'voros', 'kek', 'fekete', 'feher', 'zold', 'arany', 'sarga', 'rozsaszin', 'barna', 'szurke', 'szivarvany', 'szines']),
+  },
+  {
+    id: 'night', label: 'ÉJSZAKAI MŰSZAK', desc: 'Éjjel, hold, sötétség — csupa éjszakai sláger.',
+    style: 'linear-gradient(135deg, #1B1B4D 0%, #6A2BFF 55%, #00C8FF 100%)',
+    test: (t) => hasWord(t, ['night', 'nights', 'tonight', 'midnight', 'moon', 'moonlight', 'dark', 'darkness', 'star', 'stars', 'dream', 'dreams', 'sleep', 'ej', 'ejjel', 'ejszaka', 'hold', 'sotet', 'csillag', 'alom']),
+  },
+  {
+    id: 'love', label: 'CSUPA SZERELEM', desc: 'Szív, csók, szerelem — a örök téma.',
+    style: 'linear-gradient(135deg, #FF0055 0%, #FF5DDE 100%)',
+    test: (t) => hasWord(t, ['love', 'loving', 'lover', 'heart', 'hearts', 'kiss', 'kisses', 'baby', 'darling', 'honey', 'romance', 'szerelem', 'szeretlek', 'sziv', 'csok', 'szeret', 'szerelmes']),
+  },
+  {
+    id: 'dance', label: 'TÁNCPARKETT', desc: 'Tánc, buli, mozgás — ezekre nem lehet ülve maradni.',
+    style: 'linear-gradient(135deg, #FF6EC7 0%, #FFD700 50%, #00E5FF 100%)',
+    test: (t) => hasWord(t, ['dance', 'dancing', 'dancer', 'boogie', 'party', 'groove', 'shake', 'move', 'moving', 'jump', 'rock', 'rocking', 'twist', 'disco', 'tanc', 'tancol', 'buli', 'ropj']),
+  },
+  {
+    id: 'places', label: 'VILÁGKÖRÜLI ÚT', desc: 'Városok és országok a dalcímekben.',
+    style: 'linear-gradient(135deg, #00E08A 0%, #00C8FF 55%, #7B2DFF 100%)',
+    test: (t) => hasWord(t, ['america', 'american', 'africa', 'african', 'europe', 'paris', 'london', 'york', 'california', 'vienna', 'havana', 'budapest', 'tokyo', 'berlin', 'hollywood', 'memphis', 'chicago', 'georgia', 'alabama', 'jamaica', 'cuba', 'brazil', 'mexico', 'mexican', 'spain', 'spanish', 'italy', 'italian', 'india', 'china', 'japan', 'texas', 'nevada', 'miami', 'detroit', 'liverpool', 'amsterdam', 'ibiza', 'malibu', 'venice', 'roma', 'rome', 'athens', 'moscow', 'egypt', 'nashville', 'orleans', 'vegas', 'boston', 'seattle', 'montana', 'carolina', 'tennessee', 'kentucky', 'virginia', 'arizona', 'colorado', 'ohio', 'kansas', 'dakota', 'oregon', 'hawaii', 'alaska', 'canada', 'england', 'english', 'scotland', 'ireland', 'irish', 'france', 'french', 'germany', 'german', 'holland', 'sweden', 'norway', 'denmark', 'poland', 'russia', 'russian', 'greece', 'turkey', 'israel', 'korea', 'vietnam', 'thailand', 'bali', 'argentina', 'chile', 'peru', 'colombia', 'panama', 'bahamas', 'barbados', 'haiti', 'kingston', 'soho', 'brooklyn', 'bronx', 'harlem', 'manhattan', 'tulsa', 'wichita', 'denver', 'phoenix', 'dallas', 'houston', 'atlanta', 'orlando', 'tampa', 'naples', 'milano', 'madrid', 'barcelona', 'lisbon', 'dublin', 'glasgow', 'manchester', 'brighton', 'oxford', 'copenhagen', 'oslo', 'stockholm', 'prague', 'warsaw', 'istanbul', 'cairo', 'casablanca', 'nairobi', 'sydney', 'melbourne', 'shanghai', 'beijing', 'singapore', 'manila', 'jakarta', 'delhi', 'mumbai', 'island', 'islands', 'city', 'town', 'street', 'avenue', 'beach', 'magyar', 'budapesti', 'balaton', 'pesti', 'varos', 'utca']),
+  },
+  {
+    id: 'weather', label: 'IDŐJÁRÁS-JELENTÉS', desc: 'Eső, napsütés, vihar, évszakok.',
+    style: 'linear-gradient(135deg, #4FC3F7 0%, #FFD36A 100%)',
+    test: (t) => hasWord(t, ['rain', 'raining', 'rainy', 'sun', 'sunshine', 'sunny', 'storm', 'thunder', 'snow', 'wind', 'winds', 'sky', 'summer', 'winter', 'spring', 'autumn', 'fire', 'cloud', 'clouds', 'eso', 'nap', 'napsutes', 'vihar', 'ho', 'szel', 'nyar', 'tel', 'tavasz', 'osz', 'egbolt']),
+  },
+  {
+    id: 'numbers', label: 'SZÁMOK A CÍMBEN', desc: 'Van bennük egy szám — betűvel vagy számjeggyel.',
+    style: 'linear-gradient(135deg, #7B2DFF 0%, #00EAFF 100%)',
+    test: (t) => /\d/.test(t) || hasWord(t, ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'hundred', 'thousand', 'million', 'egy', 'ketto', 'harom', 'negy', 'ot', 'hat', 'het', 'nyolc', 'kilenc', 'tiz', 'szaz', 'ezer', 'millio']),
+  },
+  {
+    id: 'road', label: 'ÚTON', desc: 'Autók, vonatok, repülők — mind úton vannak.',
+    style: 'linear-gradient(135deg, #FF8A3D 0%, #FF2F6E 100%)',
+    test: (t) => hasWord(t, ['road', 'roads', 'highway', 'drive', 'driving', 'car', 'train', 'plane', 'fly', 'flying', 'run', 'running', 'walk', 'walking', 'travel', 'journey', 'ride', 'riding', 'go', 'going', 'away', 'home', 'ut', 'uton', 'auto', 'vonat', 'repulo', 'haza', 'megyek']),
+  },
+  {
+    id: 'alliter', label: 'BETŰRÍM', desc: 'Az előadó és a cím ugyanazzal a betűvel kezdődik.',
+    style: 'linear-gradient(135deg, #FFD700 0%, #FF6EC7 100%)',
+    test: null,   // kulon logika
+  },
+  {
+    id: 'longtitle', label: 'HOSSZÚ CÍMEK', desc: 'Öt szónál is hosszabb dalcímek.',
+    style: 'linear-gradient(135deg, #2E9BFF 0%, #B02BFF 100%)',
+    test: null,
+  },
+];
+
+// Egy jelolt csomag minosegi ellenorzese: eleg dal + evtized-szoras
+const smartQuality = (list) => {
+  if (list.length < 55) return null;
+  const dec = {};
+  list.forEach((x) => { const d = Math.floor(x.y / 10) * 10; dec[d] = (dec[d] || 0) + 1; });
+  const keys = Object.keys(dec).map(Number).sort((a, b) => a - b);
+  if (keys.length < 4) return null;                       // legalabb 4 evtized
+  const span = keys[keys.length - 1] - keys[0];
+  if (span < 30) return null;                             // legalabb 30 ev atfogas
+  const top = Math.max(...keys.map((k) => dec[k]));
+  if (top / list.length > 0.55) return null;              // ne zsufolodjon egy evtizedbe
+  return { span, decades: keys.length };
+};
+
+const buildSmartPacks = (allSongs, profile, seed) => {
+  const out = [];
+  const src = allSongs || [];
+  if (src.length < 200) return out;
+
+  // --- 1) Mintazat-alapu csomagok ---
+  SMART_RULES.forEach((rule) => {
+    let list;
+    if (rule.id === 'alliter') {
+      list = src.filter((x) => {
+        const a = normText(x.a).replace(/^(the|a|az) /, '').charAt(0);
+        const t = normText(x.t).replace(/^(the|a|az) /, '').charAt(0);
+        return a && t && a === t;
+      });
+    } else if (rule.id === 'longtitle') {
+      list = src.filter((x) => String(x.t).trim().split(/\s+/).length >= 5);
+    } else {
+      list = src.filter((x) => rule.test(normText(x.t)));
+    }
+    const q = smartQuality(list);
+    if (q) out.push({ key: 'smart:' + rule.id, label: rule.label, desc: rule.desc, style: rule.style, data: list, meta: `${q.decades} évtizedből` });
+  });
+
+  // --- 2) Szemelyre szabott: a leggyengebb evtized gyakorlasa ---
+  const P = profile || {};
+  const dec = P.decades || {};
+  const tried = Object.keys(dec).map(Number).filter((d) => dec[d] && dec[d].a >= 6);
+  if (tried.length >= 2) {
+    let worst = null;
+    let worstRate = 2;
+    tried.forEach((d) => {
+      const r = dec[d].h / Math.max(1, dec[d].a);
+      if (r < worstRate) { worstRate = r; worst = d; }
+    });
+    if (worst !== null && worstRate < 0.75) {
+      // A gyenge evtized + a ket szomszedja (hogy legyen mihez viszonyitani)
+      const list = src.filter((x) => x.y >= worst - 10 && x.y < worst + 20);
+      if (list.length >= 55) {
+        out.push({
+          key: 'smart:weak',
+          label: `GYAKORLÓ: ${worst}-ES ÉVEK`,
+          desc: `Itt hibázol a legtöbbet (${Math.round(worstRate * 100)}% találat). A szomszéd évtizedekkel együtt.`,
+          style: 'linear-gradient(135deg, #FF2F6E 0%, #FFD36A 100%)',
+          data: list,
+          meta: 'a te statisztikád alapján',
+          personal: true,
+        });
+      }
+    }
+    // --- 3) A legerosebb evtized: "hazai palya" ---
+    let best = null;
+    let bestRate = -1;
+    tried.forEach((d) => {
+      const r = dec[d].h / Math.max(1, dec[d].a);
+      if (r > bestRate) { bestRate = r; best = d; }
+    });
+    if (best !== null && bestRate >= 0.7 && best !== worst) {
+      const list = src.filter((x) => x.y >= best - 15 && x.y < best + 25);
+      if (list.length >= 55) {
+        out.push({
+          key: 'smart:strong',
+          label: `HAZAI PÁLYA: ${best}-AS ÉVEK`,
+          desc: `Ebben vagy a legjobb (${Math.round(bestRate * 100)}% találat). Villogj vele!`,
+          style: 'linear-gradient(135deg, #00E08A 0%, #00C8FF 100%)',
+          data: list,
+          meta: 'a te statisztikád alapján',
+          personal: true,
+        });
+      }
+    }
+  }
+
+  // --- 4) Napi forgatas: a mintazat-csomagokbol naponta mas 4 kerul elore ---
+  const personal = out.filter((p) => p.personal);
+  const pattern = out.filter((p) => !p.personal);
+  let h = seed || 0;
+  const rnd = () => { h = (h * 1103515245 + 12345) & 0x7fffffff; return h / 0x7fffffff; };
+  for (let i = pattern.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    const tmp = pattern[i]; pattern[i] = pattern[j]; pattern[j] = tmp;
+  }
+  return [...personal, ...pattern.slice(0, 4)];
 };
 
 const shuffleDeck = (array) => {
@@ -1413,6 +1634,12 @@ export default function App() {
   const [endReason, setEndReason] = useState('win');
 
   const [showBetModal, setShowBetModal] = useState(false);
+  const [micStep, setMicStep] = useState(0);        // 0=evszam, 1=eloado, 2=cim, 3=kesz
+  const [smartSeed, setSmartSeed] = useState(() => {
+    const d = new Date();
+    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  });
+  const micStepRef = useRef(0);
   const [betData, setBetData] = useState({ year: '', artist: '', title: '' });
   const [betResult, setBetResult] = useState(null);
 
@@ -2294,12 +2521,24 @@ export default function App() {
 
   const removePlayer = (id) => setPlayers(players.filter((p) => p.id !== id));
 
+  // Generalt ("okos") csomagok - naponta frissul, a profil alapjan szemelyre szabva
+  const smartPacks = useMemo(
+    () => buildSmartPacks(SONG_PACKS.mix.data, loadProfile(), smartSeed),
+    [smartSeed]
+  );
+  const getPack = (key) => {
+    if (key && String(key).startsWith('smart:')) {
+      return smartPacks.find((p) => p.key === key) || SONG_PACKS.mix;
+    }
+    return SONG_PACKS[key] || SONG_PACKS.mix;
+  };
+
   const beginMatch = (roster) => {
     dailyRef.current = null;
     botRef.current = roster.some((p) => p.isBot) ? botRef.current : null;
     statRef.current = { correct: 0, wrong: 0 };
     endDoneRef.current = false;
-    const pack = SONG_PACKS[selectedPack];
+    const pack = getPack(selectedPack);
     if (!pack || !pack.data || pack.data.length === 0) {
       showToast('Hiba: a választott csomag üres. Válassz másikat!');
       return;
@@ -3091,36 +3330,84 @@ export default function App() {
   // ---------- Hangvezerles (Push-to-Talk, Web Speech API) ----------
   const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
+  const advanceMic = (n) => {
+    micStepRef.current = n;
+    setMicStep(n);
+  };
+  const resetMic = () => { micStepRef.current = 0; setMicStep(0); };
+
+  const MIC_STEPS = [
+    { key: 'year',   label: 'MONDD BE AZ ÉVSZÁMOT', hint: 'pl. „ezerkilencszáznyolcvankettő" vagy „nyolcvankettő"' },
+    { key: 'artist', label: 'MONDD BE AZ ELŐADÓT',  hint: 'pl. „Michael Jackson"' },
+    { key: 'title',  label: 'MONDD BE A DAL CÍMÉT', hint: 'amire emlékszel a címből' },
+  ];
+
   const micStart = () => {
     if (!SR || micOn) return;
+    const step = micStepRef.current;
+    if (step > 2) return;
     try {
       const r = new SR();
       r.lang = 'hu-HU';
       r.interimResults = false;
-      r.maxAlternatives = 1;
+      r.maxAlternatives = 3;
       r.onresult = (ev) => {
-        const said = (ev.results[0] && ev.results[0][0] ? ev.results[0][0].transcript : '').trim();
+        const res = ev.results[0];
+        const said = (res && res[0] ? res[0].transcript : '').trim();
         if (!said) return;
-        const ym = said.match(/(19|20)\d{2}/);
+
+        // Minden valtozatot megnezunk evszamra (a felismeres tobb tippet ad)
+        let year = null;
+        if (res) {
+          for (let i = 0; i < res.length && year === null; i++) {
+            year = parseSpokenYear(res[i].transcript);
+          }
+        }
+
+        const cur = micStepRef.current;
         setBetData((d) => {
           const next = { ...d };
-          let rest = said;
-          if (ym) { next.year = ym[0]; rest = rest.replace(ym[0], '').trim(); }
-          if (rest.length > 1) {
-            if (!next.artist) next.artist = rest;
-            else next.title = rest;
+          if (year !== null) {
+            // Evszamot mindig az ev-mezobe tesszuk, barmelyik lepesnel hangzott el
+            next.year = String(year);
+          } else if (cur === 0) {
+            // Evszam-lepesben nem ertettuk szamnak
+            next.year = d.year;
+          } else if (cur === 1) {
+            next.artist = said;
+          } else if (cur === 2) {
+            next.title = said;
           }
           return next;
         });
-        showToast(`🎙️ Értettem: "${said}"`);
+
+        if (year !== null) {
+          sfx.coin();
+          showToast(`🎙️ Évszám: ${year}`);
+          if (cur === 0) advanceMic(1);
+          else advanceMic(cur + 1);
+        } else if (cur === 0) {
+          showToast(`🎙️ „${said}" — ezt nem értettem évszámnak. Próbáld újra, vagy írd be!`);
+        } else {
+          sfx.coin();
+          showToast(`🎙️ ${cur === 1 ? 'Előadó' : 'Cím'}: ${said}`);
+          advanceMic(cur + 1);
+        }
       };
       r.onend = () => setMicOn(false);
-      r.onerror = () => { setMicOn(false); showToast('🎙️ Nem sikerült – próbáld újra!'); };
+      r.onerror = (e) => {
+        setMicOn(false);
+        if (e && e.error === 'not-allowed') showToast('🎙️ Engedélyezd a mikrofont a böngésző beállításaiban!');
+        else if (e && e.error === 'no-speech') showToast('🎙️ Nem hallottam semmit — tartsd nyomva és beszélj!');
+        else showToast('🎙️ Nem sikerült — próbáld újra!');
+      };
       recogRef.current = r;
       r.start();
       setMicOn(true);
+      haptics.tick && haptics.tick();
     } catch (e) { setMicOn(false); }
   };
+
   const micStop = () => { try { if (recogRef.current) recogRef.current.stop(); } catch (e) {} };
 
   // ---------- Tanulokor ----------
@@ -3241,7 +3528,7 @@ export default function App() {
               <div className="hunt-info">
                 {letterHunt.trim()
                   ? (() => {
-                      const res = huntFilter(SONG_PACKS[selectedPack].data, letterHunt);
+                      const res = huntFilter(getPack(selectedPack).data, letterHunt);
                       const need = WIN_CARDS + 6;
                       if (res.data.length < need) return <span className="hunt-warn">Csak {res.data.length} ilyen dal — válassz gyakoribb betűt!</span>;
                       return <span>Csak „{res.ch.toUpperCase()}” {res.mode === 'any' ? '(előadó nevében bárhol)' : 'keresztnevű előadók'} — {res.data.length} dal.</span>;
@@ -3539,6 +3826,34 @@ export default function App() {
               >
                 <button type="button" className="close-modal" onClick={() => setShowPackSelection(false)}><X size={26} /></button>
                 <h2 className="text-chrome">VÁLASSZ STÍLUST</h2>
+
+                {smartPacks.length > 0 && (
+                  <>
+                    <div className="pack-sect">
+                      <span className="ps-title"><Sparkles size={13} /> NEKED AJÁNLOTT</span>
+                      <span className="ps-sub">A saját adatbázisból generálva — naponta frissül.</span>
+                    </div>
+                    <div className="pack-grid">
+                      {smartPacks.map((sp) => (
+                        <button
+                          key={sp.key}
+                          className={`pack-card smart ${selectedPack === sp.key ? 'selected' : ''}`}
+                          style={{ background: sp.style }}
+                          onClick={() => { setSelectedPack(sp.key); setShowPackSelection(false); }}
+                        >
+                          {sp.personal && <span className="pc-badge">NEKED</span>}
+                          <h3>{sp.label}</h3>
+                          <p>{sp.desc}</p>
+                          <span className="pack-count">{sp.data.length} dal · {sp.meta}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div className="pack-sect">
+                  <span className="ps-title"><Layers size={13} /> ÁLLANDÓ PAKLIK</span>
+                </div>
                 <div className="pack-grid">
                   {Object.keys(SONG_PACKS).map((packKey) => (
                     <button
@@ -3601,7 +3916,7 @@ export default function App() {
               { key: 'start', cls: 'c-start', icon: <IcoVinyl />, title: 'JÁTÉK INDÍTÁSA', meta: 'Helyi parti · add hozzá a csapatot', cta: 'INDÍTÁS' },
               { key: 'bot', cls: 'c-bot', icon: <IcoBot />, title: 'CHRONO-BOT', meta: botDiff ? `${botDiff} fokozat` : 'Gyakorolj gép ellen' },
               { key: 'online', cls: 'c-online', icon: <IcoPhone />, title: 'ONLINE SZOBA', meta: netRole === 'host' ? `Kód: ${roomCode}` : 'Kód vagy QR-kód' },
-              { key: 'pack', cls: 'c-pack', icon: <IcoPack />, title: 'PAKLI', meta: `${SONG_PACKS[selectedPack].label} · ${SONG_PACKS[selectedPack].data.length} dal` },
+              { key: 'pack', cls: 'c-pack', icon: <IcoPack />, title: 'PAKLI', meta: `${getPack(selectedPack).label} · ${getPack(selectedPack).data.length} dal` },
               { key: 'modes', cls: 'c-modes', icon: <IcoModes />, title: 'EXTRA MÓDOK', meta: modeN ? `${modeN} aktív` : 'Blind, Speed, Vétó…' },
             ]}
           />
@@ -4269,7 +4584,7 @@ export default function App() {
             className="bet-fab"
             whileHover={{ scale: 1.06 }}
             whileTap={{ scale: 0.94 }}
-            onClick={() => setShowBetModal(true)}
+            onClick={() => { resetMic(); setShowBetModal(true); }}
           >
             <MessageCircle size={17} /> TIPPELJ ZSETONÉRT!
           </motion.button>
@@ -4354,16 +4669,48 @@ export default function App() {
                 Év ±{YEAR_TOLERANCE}: 1🪙 · pontos év: 2🪙 · előadó / cím: 1-1🪙
               </p>
               {SR && (
-                <button
-                  type="button"
-                  className={`mic-btn ${micOn ? 'live' : ''}`}
-                  onPointerDown={micStart}
-                  onPointerUp={micStop}
-                  onPointerLeave={micStop}
-                >
-                  <Mic size={18} />
-                  {micOn ? ' HALLGATLAK…' : ' TARTSD NYOMVA ÉS MONDD BE!'}
-                </button>
+                <div className="mic-zone">
+                  <div className="mic-steps">
+                    {MIC_STEPS.map((st2, i) => (
+                      <span
+                        key={st2.key}
+                        className={`ms-dot ${i === micStep ? 'on' : ''} ${betData[st2.key] ? 'done' : ''}`}
+                      >
+                        {betData[st2.key] ? <CheckCircle size={13} /> : i + 1}
+                      </span>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`mic-round ${micOn ? 'live' : ''} ${micStep > 2 ? 'done' : ''}`}
+                    onPointerDown={micStep > 2 ? undefined : micStart}
+                    onPointerUp={micStop}
+                    onPointerLeave={micStop}
+                    onContextMenu={(e) => e.preventDefault()}
+                    aria-label={micStep > 2 ? 'Kész' : MIC_STEPS[micStep].label}
+                  >
+                    <span className="mr-ring" />
+                    <span className="mr-ring r2" />
+                    {micStep > 2 ? <CheckCircle size={34} /> : <Mic size={34} />}
+                  </button>
+
+                  <div className="mic-prompt">
+                    {micOn ? (
+                      <span className="mp-live">HALLGATLAK… engedd el, ha kész</span>
+                    ) : micStep > 2 ? (
+                      <>
+                        <span className="mp-label">MEGVAN MINDEN!</span>
+                        <button type="button" className="mp-again" onClick={resetMic}>Újrakezdem a bemondást</button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="mp-label">{MIC_STEPS[micStep].label}</span>
+                        <span className="mp-hint">Tartsd nyomva a gombot · {MIC_STEPS[micStep].hint}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
               <div className="modal-inputs">
                 <input
