@@ -758,7 +758,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v35';
+const APP_VERSION = 'v36';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -1639,6 +1639,7 @@ export default function App() {
 
   const [showBetModal, setShowBetModal] = useState(false);
   const [micStep, setMicStep] = useState(0);        // 0=evszam, 1=eloado, 2=cim, 3=kesz
+  const [micWarm, setMicWarm] = useState(false);    // a felismero meg 'melegszik' (nem hall meg)
   // ---------- HANGCSATORNA (WebRTC a meglevo PeerJS-en) ----------
   const [voiceOn, setVoiceOn] = useState(false);
   const [voiceMuted, setVoiceMuted] = useState(false);
@@ -2616,12 +2617,12 @@ export default function App() {
   };
 
   const rematch = () => {
-    beginMatch(players.map((p) => ({ id: p.id, name: p.name, char: p.char })));
+    beginMatch(players.map((p) => ({ id: p.id, peerId: p.peerId || null, name: p.name, char: p.char })));
   };
 
   const backToSetup = () => {
     pauseMusic();
-    setPlayers(players.map((p) => ({ id: p.id, name: p.name, char: p.char })));
+    setPlayers(players.map((p) => ({ id: p.id, peerId: p.peerId || null, name: p.name, char: p.char })));
     setStatus('setup');
   };
 
@@ -3567,9 +3568,18 @@ export default function App() {
           advanceMic(cur + 1);
         }
       };
-      r.onend = () => setMicOn(false);
+      r.onstart = () => { setMicOn(true); setMicWarm(true); };
+      r.onaudiostart = () => {
+        // Innentol tenyleg hall minket - EKKOR szoljunk a felhasznalonak
+        setMicWarm(false);
+        try { sfx.tick ? sfx.tick() : sfx.coin(); } catch (e2) {}
+        try { haptics.tick && haptics.tick(); } catch (e2) {}
+      };
+      r.onend = () => { setMicOn(false); setMicWarm(false); };
       r.onerror = (e) => {
         setMicOn(false);
+        setMicReady(false);
+        setMicWarm(false);
         if (e && e.error === 'not-allowed') showToast('🎙️ Engedélyezd a mikrofont a böngésző beállításaiban!');
         else if (e && e.error === 'no-speech') showToast('🎙️ Nem hallottam semmit — tartsd nyomva és beszélj!');
         else showToast('🎙️ Nem sikerült — próbáld újra!');
@@ -3577,8 +3587,8 @@ export default function App() {
       recogRef.current = r;
       r.start();
       setMicOn(true);
-      haptics.tick && haptics.tick();
-    } catch (e) { setMicOn(false); }
+      setMicWarm(true);
+    } catch (e) { setMicOn(false); setMicWarm(false); }
   };
 
   const micStop = () => { try { if (recogRef.current) recogRef.current.stop(); } catch (e) {} };
@@ -4454,6 +4464,7 @@ export default function App() {
 
         {/* Sajat idovonal (mindig latszik, sajat korben lerakhato) */}
         <div className="timeline-zone">
+          
           <div className="tl-chip glass">
             <span className="tl-dot" style={{ background: myChar.color, color: myChar.color }} />
             <span className="tl-name">{me ? me.name : ''}</span>
@@ -4716,9 +4727,11 @@ export default function App() {
   const tl = activePlayer.timeline;
   const isAudioBroken = !audioUrl && !isLoading;
   // Online szobaban a gazda gepen NE lehessen lerakni, ha epp egy tavoli jatekos kore van
-  const remoteTurn = netRole === 'host' && players[turnIndex] && !!players[turnIndex].peerId;
-  const lockedByTurn = remoteTurn && !activeModes.steal;
+  const onlineGame = netRole === 'host' && players.some((p) => p.peerId);
+  const activeIsRemote = !!(players[turnIndex] && players[turnIndex].peerId);
+  const lockedByTurn = onlineGame && activeIsRemote && !(activeModes && activeModes.steal);
   const slotsDisabled = flipped || !!feedback || lockedByTurn;
+  const waitingFor = lockedByTurn ? (players[turnIndex] && players[turnIndex].name) : null;
   const progress = Math.min(100, Math.round((tl.length / WIN_CARDS) * 100));
 
   const GhostCard = (
@@ -4858,7 +4871,7 @@ export default function App() {
           </div>
         </div>
 
-        {!flipped && (
+        {!flipped && !lockedByTurn && (
           <motion.button
             className="bet-fab"
             whileHover={{ scale: 1.06 }}
@@ -4867,6 +4880,13 @@ export default function App() {
           >
             <MessageCircle size={17} /> TIPPELJ ZSETONÉRT!
           </motion.button>
+        )}
+
+        {waitingFor && (
+          <div className="turn-lock glass">
+            <Headphones size={15} />
+            <span><b>{waitingFor}</b> következik — az ő telefonján dönt.</span>
+          </div>
         )}
 
         <AnimatePresence>
@@ -4907,6 +4927,12 @@ export default function App() {
           <div className="tl-progress"><div style={{ width: `${progress}%` }} /></div>
           <span className="tl-count">{tl.length}/{WIN_CARDS}</span>
         </div>
+        {lockedByTurn && (
+          <div className="turn-lock glass">
+            <Smartphone size={14} />
+            <span>Most <b>{waitingFor}</b> következik a saját telefonján — várj a sorodra.</span>
+          </div>
+        )}
         <div className="tl-perspective">
           <div className={`timeline-track ${prankFx && prankFx.kind === 'scramble' ? 'scrambled' : ''}`} ref={scrollRef}>
             {feedback !== 'wrong' && (
@@ -4962,11 +4988,12 @@ export default function App() {
 
                   <button
                     type="button"
-                    className={`mic-round ${micOn ? 'live' : ''} ${micStep > 2 ? 'done' : ''}`}
-                    onPointerDown={micStep > 2 ? undefined : micStart}
-                    onPointerUp={micStop}
-                    onPointerLeave={micStop}
-                    onContextMenu={(e) => e.preventDefault()}
+                    className={`mic-round ${micWarm ? 'warm' : ''} ${micOn && !micWarm ? 'live' : ''} ${micStep > 2 ? 'done' : ''}`}
+                    onClick={() => {
+                      if (micStep > 2) return;
+                      if (micOn) micStop();
+                      else micStart();
+                    }}
                     aria-label={micStep > 2 ? 'Kész' : MIC_STEPS[micStep].label}
                   >
                     <span className="mr-ring" />
@@ -4975,8 +5002,10 @@ export default function App() {
                   </button>
 
                   <div className="mic-prompt">
-                    {micOn ? (
-                      <span className="mp-live">HALLGATLAK… engedd el, ha kész</span>
+                    {micWarm ? (
+                      <span className="mp-warm">MIKROFON INDUL… várd meg a jelzést!</span>
+                    ) : micOn ? (
+                      <span className="mp-live">MOST BESZÉLJ! — hallgatlak</span>
                     ) : micStep > 2 ? (
                       <>
                         <span className="mp-label">MEGVAN MINDEN!</span>
@@ -4985,7 +5014,7 @@ export default function App() {
                     ) : (
                       <>
                         <span className="mp-label">{MIC_STEPS[micStep].label}</span>
-                        <span className="mp-hint">Tartsd nyomva a gombot · {MIC_STEPS[micStep].hint}</span>
+                        <span className="mp-hint">Koppints a gombra, várd meg a „MOST BESZÉLJ" jelzést · {MIC_STEPS[micStep].hint}</span>
                       </>
                     )}
                   </div>

@@ -2876,3 +2876,44 @@ body.nofx-sheen .cb-disc { animation: none; }
 .rr-chip em { color: #9be8ff; font-style: normal; font-size: 0.6rem; }
 .room-start { margin-top: 6px; }
 .room-start:disabled { opacity: 0.5; }
+
+/* --- v36: mikrofon "melegedés" jelzés + kör-zárolás sáv --- */
+.mic-round.warm {
+  background: linear-gradient(150deg, #6b7699, #47506e);
+  box-shadow: 0 10px 26px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.2);
+}
+.mic-round.warm svg { opacity: 0.55; animation: micWarmPulse 1s ease-in-out infinite; }
+@keyframes micWarmPulse { 0%,100% { opacity: .4; } 50% { opacity: .9; } }
+.mp-warm { font-weight: 900; font-size: 0.76rem; letter-spacing: 1px; color: #aab2d6; }
+
+.turn-lock {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 11px 18px; border-radius: var(--r-pill);
+  border: 1px solid rgba(0,234,255,.35);
+  font-size: 0.72rem; color: #cdd4f0;
+  max-width: 90vw;
+}
+.turn-lock b { color: #9be8ff; }
+.turn-lock svg { color: #9be8ff; flex: 0 0 auto; }
+
+/* --- v36: mikrofon készülődés + körzár-jelzés --- */
+.mic-round.warm {
+  background: linear-gradient(150deg, #f5b91e, #ff8a3d);
+  box-shadow: 0 10px 26px rgba(0,0,0,.45), 0 0 30px rgba(245,185,30,.5), inset 0 2px 0 rgba(255,255,255,.3);
+}
+.mic-round.warm .mr-ring { animation: micPulse 1.1s ease-out infinite; border-color: rgba(245,185,30,.6); }
+.mp-warm { font-weight: 900; font-size: 0.78rem; letter-spacing: 1px; color: #ffd36a; }
+
+.turn-lock {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-radius: 12px;
+  border: 1px solid rgba(255, 179, 0, 0.35);
+  background: rgba(255, 179, 0, 0.1);
+  font-size: 0.68rem; color: #ffe0a3; line-height: 1.4;
+  margin-bottom: 8px;
+}
+.turn-lock svg { flex: 0 0 auto; color: #ffb300; }
+.turn-lock b { color: #fff; }
