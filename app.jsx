@@ -950,7 +950,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v39';
+const APP_VERSION = 'v42';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -1927,6 +1927,12 @@ export default function App() {
   const [tutStep, setTutStep] = useState(-1);      // -1 = nincs tanulokor
   const [timeLeft, setTimeLeft] = useState(null);   // Speed Run visszaszamlalo (mp)
   const [goldCard, setGoldCard] = useState(false);  // Arany Kartya kor?
+  const [levelOn, setLevelOn] = useState(() => { try { return localStorage.getItem('cb_level') !== '0'; } catch (e) { return true; } });
+  const audioCtxRef = useRef(null);
+  const audioSrcRef = useRef(null);
+  const compRef = useRef(null);
+  const gainRef = useRef(null);
+  const [localFail, setLocalFail] = useState(false);   // a SAJAT keszuleken nem toltott be a dal
   const [micOn, setMicOn] = useState(false);
   const turnCountRef = useRef(0);
   const recogRef = useRef(null);
@@ -2727,6 +2733,39 @@ export default function App() {
     }
   };
 
+  // Egyenletes hangero: a dalreszletek nagyon kulonbozo hangosak, ezt simitja el.
+  // Vedett felepites: ha barmi hibazik, a lejatszas valtozatlanul megy tovabb.
+  const ensureLeveler = () => {
+    if (!levelOn) return;
+    if (audioSrcRef.current) return;                 // mar felepult
+    const el = audioRef.current;
+    if (!el) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const ctx = audioCtxRef.current || new AC();
+      audioCtxRef.current = ctx;
+      const src = ctx.createMediaElementSource(el);
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -26;   // innentol fog vissza
+      comp.knee.value = 26;
+      comp.ratio.value = 5;
+      comp.attack.value = 0.006;
+      comp.release.value = 0.25;
+      const gain = ctx.createGain();
+      gain.gain.value = 1.45;       // a visszafogas utan visszaemeljuk
+      src.connect(comp);
+      comp.connect(gain);
+      gain.connect(ctx.destination);
+      audioSrcRef.current = src;
+      compRef.current = comp;
+      gainRef.current = gain;
+    } catch (e) {
+      // Ha nem sikerul (pl. CORS vagy mar csatolt elem), marad a sima lejatszas
+      audioSrcRef.current = null;
+    }
+  };
+
   const pauseMusic = () => {
     if (audioRef.current) audioRef.current.pause();
     try { if (appleRef.current && appleRef.current.isPlaying) appleRef.current.pause(); } catch (e) {}
@@ -2912,6 +2951,11 @@ export default function App() {
   const toggleMusic = () => {
     if (appleActive) { toggleApple(); return; }
     if (!audioRef.current || isLoading || !audioUrl) return;
+    ensureLeveler();
+    try {
+      const ctx = audioCtxRef.current;
+      if (ctx && ctx.state === 'suspended') ctx.resume();
+    } catch (e) {}
     if (isPlaying) {
       pauseMusic();
     } else if (activeModes.reverse) {
@@ -2923,10 +2967,11 @@ export default function App() {
     }
   };
 
-  const handleSwap = () => {
+  const handleSwap = (remoteBroken) => {
     if (flipped || feedback) return;
     const activePlayer = players[turnIndex];
-    const isAudioBroken = !audioUrl && !isLoading && !appleActive;
+    // A vendeg sajat keszuleken dol el, betoltott-e a dal - ezt o jelenti
+    const isAudioBroken = remoteBroken === true || (!audioUrl && !isLoading && !appleActive);
     const cost = isAudioBroken ? 0 : SWAP_COST;
     if (!isAudioBroken && activePlayer.tokens < cost) {
       showToast(`Nincs elég zsetonod! A csere ára: ${cost}`);
@@ -3255,7 +3300,7 @@ export default function App() {
       A.handlePlace(msg.index);
     } else if (msg.a === 'swap') {
       if (idx !== A.turnIndex || A.status !== 'game') return;
-      A.handleSwap();
+      A.handleSwap(msg.broken === true);
     } else if (msg.a === 'veto') {
       A.hostVeto(idx);
     } else if (msg.a === 'shameDone') {
@@ -3431,15 +3476,32 @@ export default function App() {
     const st = snap;
     const active = st && st.players && st.players[st.turnIndex];
     const mine = !!(st && active && active.peerId === myPeerId && st.status === 'game');
+    const el = audioRef.current;
     if (mine && st.audioUrl && st.audioMode !== 'speaker') {
-      if (audioRef.current.src !== st.audioUrl) {
-        audioRef.current.src = st.audioUrl;
+      if (el.src !== st.audioUrl) {
+        setLocalFail(false);              // uj dal -> tiszta lap
+        el.src = st.audioUrl;
         setIsPlaying(false);
+        // Ha a SAJAT keszuleken nem jon le, azt itt kapjuk el
+        const onErr = () => setLocalFail(true);
+        const onOk = () => setLocalFail(false);
+        el.addEventListener('error', onErr, { once: true });
+        el.addEventListener('canplay', onOk, { once: true });
+        // biztonsagi ido: ha 9 mp alatt sem tolt be, hibanak vesszuk
+        const t = setTimeout(() => {
+          if (el.readyState < 2) setLocalFail(true);
+        }, 9000);
+        return () => {
+          clearTimeout(t);
+          el.removeEventListener('error', onErr);
+          el.removeEventListener('canplay', onOk);
+        };
       }
     } else {
-      audioRef.current.pause();
+      el.pause();
       setIsPlaying(false);
     }
+    return undefined;
   }, [snap, status, myPeerId]);
 
   const clientToggleMusic = () => {
@@ -4011,9 +4073,9 @@ export default function App() {
                     {appleState === 'error' && 'Hibás vagy lejárt token — ellenőrizd.'}
                   </div>
                   {appleState === 'authed' ? (
-                    <button type="button" className="am-btn out" onClick={appleDisconnect}>LECSATLAKOZÁS</button>
+                    <button type="button" className="apple-btn out" onClick={appleDisconnect}>LECSATLAKOZÁS</button>
                   ) : (
-                    <button type="button" className="am-btn" onClick={appleConnect} disabled={appleState !== 'ready'}>
+                    <button type="button" className="apple-btn" onClick={appleConnect} disabled={appleState !== 'ready'}>
                       CSATLAKOZÁS AZ APPLE MUSIC-HOZ
                     </button>
                   )}
@@ -4026,6 +4088,23 @@ export default function App() {
             </div>
 
             <h3 className="modal-title small">HANG ÉS REZGÉS</h3>
+            <button
+              type="button"
+              className={`mode-row slim ${levelOn ? 'on' : ''}`}
+              onClick={() => {
+                const v = !levelOn;
+                setLevelOn(v);
+                try { localStorage.setItem('cb_level', v ? '1' : '0'); } catch (e) {}
+                showToast(v ? 'Egyenletes hangerő bekapcsolva — a következő daltól él.' : 'Egyenletes hangerő ki — újratöltés után áll vissza teljesen.');
+              }}
+            >
+              <span className="mr-icon"><Volume2 size={16} /></span>
+              <span className="mr-body">
+                <span className="mr-name">Egyenletes hangerő</span>
+                <span className="mr-desc">A halk és a hangos dalokat egy szintre hozza, hogy ne kelljen állandóan a hangerőt tekergetni.</span>
+              </span>
+              <span className={`mr-toggle ${levelOn ? 'on' : ''}`} />
+            </button>
             <div className="sfx-row">
               <button
                 type="button"
@@ -4715,7 +4794,7 @@ export default function App() {
                   <motion.button className="bet-fab" whileTap={{ scale: 0.94 }} onClick={() => setClientBet({ year: '', artist: '', title: '' })}>
                     <MessageCircle size={17} /> TIPPELJ ZSETONÉRT!
                   </motion.button>
-                  <button type="button" className={`btn-3d swap ${st.audioUrl ? '' : 'error'}`} onClick={() => sendAction('swap')}>
+                  <button type="button" className={`btn-3d swap ${(st.audioUrl && !localFail) ? '' : 'error'}`} onClick={() => sendAction('swap', { broken: localFail || !st.audioUrl })}>
                     <RefreshCw size={16} /> CSERE {SWAP_COST}🪙
                   </button>
                 </div>

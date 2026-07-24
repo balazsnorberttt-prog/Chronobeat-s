@@ -2611,14 +2611,14 @@ body.nofx-sheen .cb-disc { animation: none; }
 .am-status.s-authed { color: #7dffb0; font-weight: 700; }
 .am-status.s-error { color: #ffb7cd; font-weight: 700; }
 .am-status.s-loading { color: #9be8ff; }
-.am-btn {
+.apple-btn {
   width: 100%; height: 46px; border: none; border-radius: var(--r-pill);
   background: linear-gradient(90deg, #ff2d55, #ff5d8a);
   color: #fff; font-family: Montserrat, sans-serif; font-weight: 900;
   font-size: 0.74rem; letter-spacing: 1.2px;
 }
-.am-btn:disabled { opacity: 0.45; }
-.am-btn.out { background: rgba(255,255,255,0.09); border: 1px solid var(--line); color: #cdd4f0; }
+.apple-btn:disabled { opacity: 0.45; }
+.apple-btn.out { background: rgba(255,255,255,0.09); border: 1px solid var(--line); color: #cdd4f0; }
 .am-note { font-size: 0.6rem; color: #8f97bb; line-height: 1.5; margin-top: 9px; }
 
 /* ============================================================
@@ -3006,3 +3006,68 @@ body.nofx-sheen .cb-disc { animation: none; }
   color: #fff; font-weight: 800; font-size: .9rem;
 }
 .rm-name-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,234,255,.16); }
+
+/* ============================================================
+   v40 — ELRENDEZÉS-JAVÍTÁSOK (kilógó szövegek, oktató-ablak)
+   ============================================================ */
+/* Hangmód-gombok: két sor is elfér, semmi nem lóg ki */
+.audio-mode-row .am-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  width: 100%; height: auto; min-height: 56px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-family: Montserrat, sans-serif; font-weight: 900;
+  font-size: 0.74rem; letter-spacing: 0.6px;
+  text-align: left;
+  white-space: normal; overflow-wrap: anywhere;
+}
+.audio-mode-row .am-btn.on {
+  background: linear-gradient(120deg, rgba(255,45,85,.22), rgba(255,93,138,.18));
+  border-color: rgba(255, 93, 138, .55);
+  box-shadow: 0 0 18px rgba(255, 45, 85, .22);
+}
+.audio-mode-row .am-btn small {
+  display: block; width: 100%;
+  font-weight: 600; font-size: 0.62rem; line-height: 1.35;
+  letter-spacing: 0; color: #aab2d6;
+  white-space: normal; overflow-wrap: anywhere;
+}
+.audio-mode-row .am-btn.on small { color: #ffd7e2; }
+
+/* START gomb: két sorba tört felirat se lógjon ki */
+.btn-3d.start.wide, .room-start {
+  height: auto; min-height: 56px;
+  padding: 13px 18px;
+  line-height: 1.25;
+  white-space: normal; overflow-wrap: anywhere;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  text-align: center;
+}
+
+/* Oktató-ablak: soha ne lógjon le a képernyőről */
+.tut-bubble {
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+.tut-bubble.tp-stage    { top: max(14%, calc(12px + env(safe-area-inset-top))); }
+.tut-bubble.tp-bet      { top: max(18%, calc(12px + env(safe-area-inset-top))); }
+.tut-bubble.tp-swap     { top: max(13%, calc(12px + env(safe-area-inset-top))); }
+.tut-bubble.tp-timeline { bottom: max(16%, calc(12px + env(safe-area-inset-bottom))); }
+.tut-actions {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; align-items: center;
+  margin-top: 12px;
+}
+.tut-actions .btn-3d { flex: 1 1 auto; min-width: 120px; white-space: nowrap; }
+
+/* Nagyon alacsony képernyőn középre, görgethetően */
+@media (max-height: 700px) {
+  .tut-bubble.tp-stage, .tut-bubble.tp-bet, .tut-bubble.tp-swap {
+    top: calc(10px + env(safe-area-inset-top));
+  }
+  .tut-bubble.tp-timeline { bottom: calc(10px + env(safe-area-inset-bottom)); }
+}
