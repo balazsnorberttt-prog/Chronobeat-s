@@ -59,6 +59,7 @@ body {
 
 .app-container {
   height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   height: 100dvh;
   width: 100%;
   position: relative;
@@ -2917,3 +2918,91 @@ body.nofx-sheen .cb-disc { animation: none; }
 }
 .turn-lock svg { flex: 0 0 auto; color: #ffb300; }
 .turn-lock b { color: #fff; }
+
+/* ============================================================
+   v37 — KÉPERNYŐHÖZ IGAZÍTÁS, KAMERASZIGET, SZÖVEG-TÚLCSORDULÁS
+   ============================================================ */
+/* Biztonságos zónák (iPhone kamerasziget / bevágás / alsó sáv) */
+.app-shell, .screen {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* SZÖVEG-TÚLCSORDULÁS: sehol ne lógjon ki a dobozból */
+.rr-chip, .tl-name, .hud-name, .cf-title, .cf-meta,
+.mr-name, .mr-desc, .vc-title, .vc-sub,
+.modal-box p, .modal-sub, .pack-card h3, .pack-card p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+.hud-name, .tl-name {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
+/* Rugalmas dobozok gyerekei ne feszítsék szét a szülőt */
+.player-info > *, .hud-text > *, .mr-body > *, .vc-heads > *,
+.rr-list > *, .tl-chip > * { min-width: 0; }
+.player-info, .hud-text, .tl-chip, .mr-body, .vc-heads { min-width: 0; }
+
+/* Csatlakozó képernyő: a kódmező és a gombok ne csússzanak szét */
+.join-wrap, .room-wrap { width: 100%; max-width: 100%; }
+.code-input {
+  width: 100%; max-width: 280px;
+  box-sizing: border-box;
+  font-size: clamp(1.4rem, 8vw, 2rem);
+  letter-spacing: clamp(3px, 2vw, 8px);
+}
+.room-code-big {
+  font-size: clamp(1.8rem, 11vw, 3rem);
+  letter-spacing: clamp(4px, 3vw, 12px);
+  overflow-wrap: anywhere;
+}
+
+/* --- v37: letisztult online szoba --- */
+.rm-code {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 100%; padding: 16px 14px; margin: 4px 0 12px;
+  border-radius: 18px;
+  background: linear-gradient(150deg, rgba(0,234,255,.14), rgba(123,45,255,.14));
+  border: 1px solid rgba(0,234,255,.3);
+}
+.rm-code-lbl { font-size: .56rem; font-weight: 900; letter-spacing: 2px; color: #9be8ff; }
+.rm-code-val {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 13vw, 3.2rem);
+  letter-spacing: clamp(4px, 3vw, 12px);
+  color: #fff; line-height: 1.05;
+  text-shadow: 0 0 26px rgba(0,234,255,.55);
+  overflow-wrap: anywhere;
+}
+.rm-code-hint { font-size: .6rem; color: #8f97bb; }
+
+.rm-qr { display: flex; flex-direction: column; align-items: center; gap: 7px; margin-bottom: 12px; }
+.rm-qr-img {
+  width: clamp(112px, 34vw, 150px); height: auto;
+  border-radius: 14px; padding: 8px; background: #fff;
+  box-shadow: 0 8px 20px rgba(0,0,0,.4);
+}
+.rm-qr-hint { font-size: .6rem; color: #8f97bb; text-align: center; padding: 0 14px; line-height: 1.4; }
+
+.rm-share {
+  width: 100%; height: 44px; margin-bottom: 12px;
+  border-radius: var(--r-pill);
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.18);
+  color: #cdd4f0;
+  font-family: Montserrat, sans-serif; font-weight: 800;
+  font-size: .68rem; letter-spacing: 1.2px;
+}
+
+.rm-name { width: 100%; text-align: left; margin-bottom: 4px; }
+.rm-name-lbl { display: block; font-size: .56rem; font-weight: 900; letter-spacing: 1.6px; color: #8f97bb; margin-bottom: 5px; }
+.rm-name-input {
+  width: 100%; box-sizing: border-box; height: 46px;
+  border-radius: 13px; padding: 0 14px;
+  background: rgba(8,6,20,.72);
+  border: 1px solid rgba(255,255,255,.16);
+  color: #fff; font-weight: 800; font-size: .9rem;
+}
+.rm-name-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,234,255,.16); }

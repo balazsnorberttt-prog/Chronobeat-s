@@ -758,7 +758,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v36';
+const APP_VERSION = 'v37';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -2257,6 +2257,35 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCard, appleState]);
 
+  // ---------- KEPERNYOHOZ IGAZITAS (kamerasziget / bevagas) ----------
+  useEffect(() => {
+    try {
+      let vp = document.querySelector('meta[name="viewport"]');
+      if (!vp) {
+        vp = document.createElement('meta');
+        vp.setAttribute('name', 'viewport');
+        document.head.appendChild(vp);
+      }
+      vp.setAttribute(
+        'content',
+        'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+      );
+    } catch (e) {}
+    // Valos kepernyomagassag (a mobil bongeszo savjai miatt a 100vh csal)
+    const setVH = () => {
+      try {
+        document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+      } catch (e) {}
+    };
+    setVH();
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+    return () => {
+      window.removeEventListener('resize', setVH);
+      window.removeEventListener('orientationchange', setVH);
+    };
+  }, []);
+
   // ---------- TELEPITES A KEZDOKEPERNYORE ----------
   // Androidon a bongeszo valodi telepito-ablakot tud nyitni (beforeinstallprompt).
   // iPhone-on ilyen nincs, ott vizualis utmutatot mutatunk a Megosztas gombhoz.
@@ -3074,6 +3103,13 @@ export default function App() {
       setRoomCode(code);
       setNetRole('host');
       setNetBusy(false);
+      // A szobat letrehozo IS jatekos - kulonben csak kiszolgalo lenne
+      setPlayers((prev) => {
+        if (prev.some((p) => !p.peerId)) return prev;   // mar van helyi jatekos
+        let nm = 'Házigazda';
+        try { nm = localStorage.getItem('cb_myname') || nm; } catch (e) {}
+        return [{ id: Date.now(), name: nm, char: 0, tokens: 0, pranks: 0, timeline: [] }, ...prev];
+      });
       showToast(`📡 Szoba kész! Kód: ${code}`);
     });
     peer.on('call', (call) => {
@@ -4009,17 +4045,44 @@ export default function App() {
                 <h3 className="modal-title">ONLINE SZOBA</h3>
                 {netRole === 'host' ? (
                   <>
-                    <div className="room-code-big">{roomCode}</div>
+                    <div className="rm-code">
+                      <span className="rm-code-lbl">SZOBAKÓD</span>
+                      <span className="rm-code-val">{roomCode}</span>
+                      <span className="rm-code-hint">Ezt írják be a többiek</span>
+                    </div>
+
                     {qrUrl && (
-                      <div className="qr-wrap">
-                        <img src={qrUrl} alt="Szoba QR-kód" className="qr-img" />
-                        <span className="qr-hint">Olvasd be telefonnal — a kód már ki lesz töltve!</span>
+                      <div className="rm-qr">
+                        <img src={qrUrl} alt="Szoba QR-kód" className="rm-qr-img" />
+                        <span className="rm-qr-hint">…vagy olvassák be ezt — a kód magától kitöltődik.</span>
                       </div>
                     )}
-                    <button type="button" className="btn-3d ghost small" onClick={shareRoomLink}>
-                      LINK MEGOSZTÁSA / MÁSOLÁSA
+
+                    <button type="button" className="rm-share" onClick={shareRoomLink}>
+                      LINK MEGOSZTÁSA
                     </button>
-                    <p className="modal-sub">…vagy írjátok be kézzel a 4 betűs kódot!</p>
+
+                    <div className="rm-name">
+                      <label className="rm-name-lbl" htmlFor="rm-host-name">A TE NEVED</label>
+                      <input
+                        id="rm-host-name"
+                        className="rm-name-input"
+                        type="text"
+                        maxLength={14}
+                        value={(players.find((p) => !p.peerId) || {}).name || ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          try { localStorage.setItem('cb_myname', v); } catch (er) {}
+                          setPlayers((prev) => {
+                            const i = prev.findIndex((p) => !p.peerId);
+                            if (i === -1) return prev;
+                            const c = [...prev];
+                            c[i] = { ...c[i], name: v };
+                            return c;
+                          });
+                        }}
+                      />
+                    </div>
                     <VoiceControl />
 
                     <div className="room-roster">
@@ -4541,24 +4604,6 @@ export default function App() {
             <h2 className="setup-title">PARTI-BEÁLLÍTÁS</h2>
             <p className="setup-sub">Adjátok hozzá a játékosokat, aztán indulhat a buli!</p>
 
-            <button
-              className="mode-display daily-launcher"
-              onClick={() => {
-                const st = loadDailyStore();
-                if (st.history && st.history[todayKey()]) { setDailyView('result'); setStatus('daily-result'); }
-                else startDaily();
-              }}
-            >
-              <span className="mode-label"><Sparkles size={13} /> NAPI KIHÍVÁS</span>
-              <span className="mode-count">
-                {(() => {
-                  const st = loadDailyStore();
-                  const t = st.history && st.history[todayKey()];
-                  if (t) return `Ma: ${t.score}/10 · Sorozat: ${st.streak || 1} nap — koppints az eredményért`;
-                  return st.streak ? `A mai 10 dal mindenkinek ugyanaz! Sorozatod: ${st.streak} nap` : 'A mai 10 dal mindenkinek ugyanaz — 3 élet, hajrá!';
-                })()}
-              </span>
-            </button>
 
             
 
