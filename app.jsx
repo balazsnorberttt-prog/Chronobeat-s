@@ -41,6 +41,15 @@ const CHARACTERS = [
   { name: 'Rasta',     color: '#ffb020', buddy: { skin: '#7a5236', shirt: '#c8102e', pants: '#0a6a2f', hat: 'dreads',     glasses: 'none',   extra: 'none',   hair: '#2b1a12', accent: '#ffd36a', prop: 'maracas',    dance: 'sway',     build: 'normal', face: 'smile' } },
   { name: 'Robó',      color: '#9be9ff', buddy: { skin: '#b9c6d9', shirt: '#8fa1bd', pants: '#5b6a85', hat: 'antenna',    glasses: 'visor',  extra: 'none',   hair: '#8fa1bd', accent: '#9be9ff', prop: 'boombox',    dance: 'robot',    build: 'normal', face: 'robot' } },
   { name: 'Popsztár',  color: '#ff5dde', buddy: { skin: '#ffd9b3', shirt: '#ff5dde', pants: '#3a1440', hat: 'crown',      glasses: 'none',   extra: 'none',   hair: '#5a3a1a', accent: '#ffa8ef', prop: 'mic',        dance: 'spin',     build: 'slim',   face: 'grin' } },
+  { name: 'Cowboy',    color: '#e0a35a', buddy: { skin: '#e8b98a', shirt: '#3f6fa8', pants: '#2b4a72', hat: 'cowboy',  glasses: 'none',   extra: 'none',   hair: '#8a5a3b', accent: '#e0a35a', accent2: '#8a5a3b', outfit: 'vest',     mouth: 'pick',  prop: 'none',       dance: 'sway',     build: 'tall',   face: 'cool' } },
+  { name: 'Bandita',   color: '#c0392b', buddy: { skin: '#c99a6e', shirt: '#3a3a44', pants: '#22222c', hat: 'cowboy',   glasses: 'shades', extra: 'none',   hair: '#2b1a12', accent: '#c0392b', accent2: '#4a3020', outfit: 'vest',     mouth: 'cigar', prop: 'none',       dance: 'bounce',   build: 'normal', face: 'cool' } },
+  { name: 'Sörhas',    color: '#f5b91e', buddy: { skin: '#f0c9a0', shirt: '#2f7a3a', pants: '#3a3a55', hat: 'beanie',   glasses: 'none',   extra: 'none',   hair: '#6b4a2a', accent: '#f5b91e', prop: 'beer',   mouth: 'none',  dance: 'sway',     build: 'round',  face: 'grin' } },
+  { name: 'Ősember',   color: '#8a5a3b', buddy: { skin: '#c98f5e', shirt: '#7a5236', pants: '#5a3a22', hat: 'longhair', glasses: 'none',   extra: 'none',   hair: '#2b1a12', accent: '#a06a3a', prop: 'club',   mouth: 'none',  dance: 'jump',     build: 'round',  face: 'openMouth' } },
+  { name: 'Borász',    color: '#8e0f3a', buddy: { skin: '#f0c9a0', shirt: '#4a2050', pants: '#2a1030', hat: 'beret',    glasses: 'round',  extra: 'bowtie', hair: '#4a3a2a', accent: '#8e0f3a', prop: 'wine',   mouth: 'none',  dance: 'sway',     build: 'slim',   face: 'wink' } },
+  { name: 'Gazda',     color: '#7dbb3a', buddy: { skin: '#e8b98a', shirt: '#e8dcc0', pants: '#2f5a8a', hat: 'flat',     glasses: 'none',   extra: 'none',   hair: '#c9a227', accent: '#7dbb3a', outfit: 'overalls', mouth: 'pick',  prop: 'none',       dance: 'bounce',   build: 'normal', face: 'smile' } },
+  { name: 'Viking',    color: '#9aa4b8', buddy: { skin: '#e8c39e', shirt: '#7a5236', pants: '#4a3020', hat: 'viking',   glasses: 'none',   extra: 'none',   hair: '#c9902a', accent: '#9aa4b8', prop: 'bone',   mouth: 'none',  dance: 'headbang', build: 'tall',   face: 'openMouth' } },
+  { name: 'Latin lover', color: '#e01a4f', buddy: { skin: '#c98f5e', shirt: '#141420', pants: '#141420', hat: 'quiff',  glasses: 'none',   extra: 'none',   hair: '#141410', accent: '#e01a4f', prop: 'none',   mouth: 'rose',  dance: 'spin',     build: 'slim',   face: 'wink' } },
+  { name: 'Nagybácsi', color: '#5a7a9a', buddy: { skin: '#f0c9a0', shirt: '#8a94a8', pants: '#3a4458', hat: 'flat',     glasses: 'square', extra: 'none',   hair: '#9a9aa8', accent: '#5a7a9a', prop: 'beer',   mouth: 'pipe',  dance: 'sway',     build: 'round',  face: 'smile' } },
 ];
 
 // Valodi hatarolo doboz szamitasa - csontvazas (skinned) modelleknel is pontos!
@@ -188,6 +197,8 @@ function BuddyModel({ cfg, mood }) {
   const face = C.face || 'smile';
   const build = C.build || 'normal';
   const prop = C.prop || 'none';
+  const mouth = C.mouth || 'none';     // szajban tartott kellek (szivar, pipa, fogpiszkalo)
+  const outfit = C.outfit || 'none';   // kantaros nadrag, mellény stb.
 
   // Testalkat-aranyok: minden figura mas sziluettet kap
   const B =
@@ -198,7 +209,7 @@ function BuddyModel({ cfg, mood }) {
 
   const HR = 0.52 * B.hd;
   const HY = 0.3 * B.h;
-  const handProp = prop === 'mic' || prop === 'vinyl' || prop === 'drumsticks' || prop === 'maracas' || prop === 'tambourine';
+  const handProp = ['mic', 'vinyl', 'drumsticks', 'maracas', 'tambourine', 'beer', 'wine', 'club', 'bone'].includes(prop);
   const bodyProp = prop === 'guitar' || prop === 'keytar' || prop === 'boombox';
 
   useFrame((st) => {
@@ -370,6 +381,43 @@ function BuddyModel({ cfg, mood }) {
               <mesh position={[0, 0.085, 0]}><sphereGeometry args={[0.11, 14, 12]} /><meshStandardMaterial color={accent} roughness={0.42} /></mesh>
             </group>
           )}
+          {prop === 'beer' && (
+            <group position={[0, -0.46, 0.06]} rotation={[0.16, 0, 0]}>
+              {/* korso + hab */}
+              <mesh><cylinderGeometry args={[0.13, 0.115, 0.28, 16]} /><meshStandardMaterial color="#f5b91e" roughness={0.16} metalness={0.1} transparent opacity={0.92} /></mesh>
+              <mesh position={[0, 0.155, 0]}><cylinderGeometry args={[0.135, 0.128, 0.08, 16]} /><meshStandardMaterial color="#fffaf0" roughness={0.85} /></mesh>
+              <mesh position={[0, 0.2, 0]} scale={[1, 0.55, 1]}><sphereGeometry args={[0.12, 12, 10]} /><meshStandardMaterial color="#fffaf0" roughness={0.9} /></mesh>
+              <mesh position={[0.17, 0, 0]} rotation={[0, 0, Math.PI / 2]}><torusGeometry args={[0.075, 0.022, 8, 16, Math.PI]} /><meshStandardMaterial color="#e8e8f2" roughness={0.3} metalness={0.35} /></mesh>
+            </group>
+          )}
+          {prop === 'wine' && (
+            <group position={[0, -0.44, 0.06]} rotation={[0.12, 0, 0]}>
+              <mesh position={[0, -0.12, 0]}><cylinderGeometry args={[0.085, 0.085, 0.016, 16]} /><meshStandardMaterial color="#dfe6f5" roughness={0.14} metalness={0.25} transparent opacity={0.75} /></mesh>
+              <mesh position={[0, -0.03, 0]}><cylinderGeometry args={[0.016, 0.016, 0.18, 10]} /><meshStandardMaterial color="#dfe6f5" roughness={0.14} transparent opacity={0.75} /></mesh>
+              <mesh position={[0, 0.12, 0]}><cylinderGeometry args={[0.11, 0.055, 0.17, 16]} /><meshStandardMaterial color="#dfe6f5" roughness={0.1} metalness={0.2} transparent opacity={0.55} /></mesh>
+              <mesh position={[0, 0.09, 0]}><cylinderGeometry args={[0.093, 0.05, 0.09, 16]} /><meshStandardMaterial color="#8e0f3a" roughness={0.28} /></mesh>
+            </group>
+          )}
+          {prop === 'club' && (
+            <group position={[0, -0.5, 0.04]} rotation={[0.3, 0, -0.2]}>
+              <mesh position={[0, 0.1, 0]}><cylinderGeometry args={[0.045, 0.065, 0.42, 10]} /><meshStandardMaterial color="#7a5236" roughness={0.85} /></mesh>
+              <mesh position={[0, 0.4, 0]}><sphereGeometry args={[0.16, 14, 12]} /><meshStandardMaterial color="#6b4529" roughness={0.9} /></mesh>
+              {[[0.12, 0.44, 0.06], [-0.1, 0.36, 0.1], [0.05, 0.5, -0.1], [-0.12, 0.46, -0.05]].map((p, i) => (
+                <mesh key={i} position={p}><coneGeometry args={[0.036, 0.09, 6]} /><meshStandardMaterial color="#4a3020" roughness={0.9} /></mesh>
+              ))}
+            </group>
+          )}
+          {prop === 'bone' && (
+            <group position={[0, -0.48, 0.05]} rotation={[0.2, 0, -0.5]}>
+              <mesh><cylinderGeometry args={[0.045, 0.045, 0.34, 10]} /><meshStandardMaterial color="#f2ead8" roughness={0.7} /></mesh>
+              {[-0.19, 0.19].map((y, i) => (
+                <group key={i} position={[0, y, 0]}>
+                  <mesh position={[-0.055, 0, 0]}><sphereGeometry args={[0.072, 10, 8]} /><meshStandardMaterial color="#f2ead8" roughness={0.7} /></mesh>
+                  <mesh position={[0.055, 0, 0]}><sphereGeometry args={[0.072, 10, 8]} /><meshStandardMaterial color="#f2ead8" roughness={0.7} /></mesh>
+                </group>
+              ))}
+            </group>
+          )}
           {prop === 'tambourine' && (
             <group position={[0, -0.46, 0.05]} rotation={[0.32, 0, 0.3]}>
               <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.18, 0.036, 10, 22]} /><meshStandardMaterial color={accent} roughness={0.45} /></mesh>
@@ -421,6 +469,40 @@ function BuddyModel({ cfg, mood }) {
           </group>
         )}
 
+        {outfit === 'overalls' && (
+          <group>
+            {[-0.16, 0.16].map((x, i) => (
+              <mesh key={i} position={[x * B.w, -0.4 * B.h, 0.3 * B.w]} rotation={[0.06, 0, x > 0 ? -0.08 : 0.08]}>
+                <boxGeometry args={[0.1, 0.5, 0.045]} />
+                <meshStandardMaterial color={C.pants} roughness={0.75} />
+              </mesh>
+            ))}
+            <mesh position={[0, -0.52 * B.h, 0.31 * B.w]}>
+              <boxGeometry args={[0.34, 0.26, 0.05]} />
+              <meshStandardMaterial color={C.pants} roughness={0.75} />
+            </mesh>
+            {[-0.16, 0.16].map((x, i) => (
+              <mesh key={'b' + i} position={[x * B.w, -0.2 * B.h, 0.33 * B.w]}>
+                <cylinderGeometry args={[0.036, 0.036, 0.03, 10]} />
+                <meshStandardMaterial color="#f5b91e" metalness={0.85} roughness={0.25} />
+              </mesh>
+            ))}
+          </group>
+        )}
+        {outfit === 'vest' && (
+          <group>
+            {[-1, 1].map((d, i) => (
+              <mesh key={i} position={[d * 0.19 * B.w, -0.4 * B.h, 0.26 * B.w]} rotation={[0, d * 0.28, 0]}>
+                <boxGeometry args={[0.2, 0.46, 0.06]} />
+                <meshStandardMaterial color={C.accent2 || '#7a5236'} roughness={0.8} />
+              </mesh>
+            ))}
+            <mesh position={[0.24 * B.w, -0.33 * B.h, 0.29 * B.w]} rotation={[0, 0, 0.2]}>
+              <cylinderGeometry args={[0.05, 0.05, 0.016, 5]} />
+              <meshStandardMaterial color="#e8c34a" metalness={0.9} roughness={0.2} />
+            </mesh>
+          </group>
+        )}
         {C.extra === 'chain' && (
           <mesh position={[0, -0.22 * B.h, 0.27 * B.w]} rotation={[1.3, 0, 0]}>
             <torusGeometry args={[0.17, 0.032, 10, 22]} />
@@ -520,6 +602,59 @@ function BuddyModel({ cfg, mood }) {
                   <meshStandardMaterial color="#ffffff" roughness={0.28} />
                 </mesh>
               )}
+            </group>
+          )}
+
+          {/* Szajban tartott kellekek */}
+          {mouth === 'cigar' && (
+            <group position={[0.11, -0.17, HR * 0.86]} rotation={[0, -0.24, 0.14]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.11]}>
+                <cylinderGeometry args={[0.031, 0.034, 0.28, 10]} />
+                <meshStandardMaterial color="#5a3a22" roughness={0.85} />
+              </mesh>
+              <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.03]}>
+                <cylinderGeometry args={[0.035, 0.035, 0.05, 10]} />
+                <meshStandardMaterial color="#8a1f2e" roughness={0.6} />
+              </mesh>
+              <mesh position={[0, 0, 0.25]}>
+                <sphereGeometry args={[0.028, 8, 8]} />
+                <meshStandardMaterial color="#ff5a1e" emissive="#ff3d00" emissiveIntensity={1.5} />
+              </mesh>
+              {[0.3, 0.38, 0.46].map((z, i) => (
+                <mesh key={i} position={[i % 2 ? 0.03 : -0.02, 0.05 + i * 0.05, z]}>
+                  <sphereGeometry args={[0.035 + i * 0.014, 8, 6]} />
+                  <meshStandardMaterial color="#cfd6e6" transparent opacity={0.3 - i * 0.07} roughness={1} />
+                </mesh>
+              ))}
+            </group>
+          )}
+          {mouth === 'pipe' && (
+            <group position={[0.1, -0.19, HR * 0.85]} rotation={[0, -0.2, 0]}>
+              <mesh rotation={[Math.PI / 2.4, 0, 0]} position={[0, -0.02, 0.1]}>
+                <cylinderGeometry args={[0.02, 0.024, 0.22, 8]} />
+                <meshStandardMaterial color="#3a2415" roughness={0.7} />
+              </mesh>
+              <mesh position={[0, -0.1, 0.2]}>
+                <cylinderGeometry args={[0.06, 0.05, 0.1, 12]} />
+                <meshStandardMaterial color="#5a3a22" roughness={0.75} />
+              </mesh>
+              <mesh position={[0, -0.02, 0.2]}>
+                <sphereGeometry args={[0.036, 8, 6]} />
+                <meshStandardMaterial color="#cfd6e6" transparent opacity={0.28} roughness={1} />
+              </mesh>
+            </group>
+          )}
+          {mouth === 'pick' && (
+            <mesh position={[0.13, -0.18, HR * 0.9]} rotation={[Math.PI / 2, 0, 0.5]}>
+              <cylinderGeometry args={[0.009, 0.009, 0.16, 6]} />
+              <meshStandardMaterial color="#d9c9a0" roughness={0.8} />
+            </mesh>
+          )}
+          {mouth === 'rose' && (
+            <group position={[0, -0.2, HR * 0.9]} rotation={[0, 0, 0.15]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.012, 0.012, 0.26, 6]} /><meshStandardMaterial color="#2f7a3a" roughness={0.8} /></mesh>
+              <mesh position={[0.14, 0.02, 0]}><sphereGeometry args={[0.055, 10, 8]} /><meshStandardMaterial color="#e01a4f" roughness={0.55} /></mesh>
+              <mesh position={[-0.06, -0.03, 0]} rotation={[0, 0, 0.6]} scale={[1.6, 0.5, 0.4]}><sphereGeometry args={[0.045, 8, 6]} /><meshStandardMaterial color="#2f7a3a" roughness={0.8} /></mesh>
             </group>
           )}
 
@@ -636,6 +771,72 @@ function BuddyModel({ cfg, mood }) {
               <mesh position={[0, 0.19, 0]}><sphereGeometry args={[0.072, 10, 8]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.2} /></mesh>
             </group>
           )}
+          {C.hat === 'cowboy' && (
+            <group position={[0, HR - 0.06, 0]}>
+              <mesh rotation={[0, 0, 0]} scale={[1, 0.24, 1.18]}>
+                <sphereGeometry args={[0.72, 20, 12]} />
+                <meshStandardMaterial color={hair === '#3a2a1a' ? '#8a5a3b' : hair} roughness={0.85} />
+              </mesh>
+              <mesh position={[0, 0.14, 0]} scale={[0.62, 0.72, 0.66]}>
+                <sphereGeometry args={[0.42, 16, 12, 0, Math.PI * 2, 0, Math.PI / 1.9]} />
+                <meshStandardMaterial color={hair === '#3a2a1a' ? '#8a5a3b' : hair} roughness={0.85} />
+              </mesh>
+              <mesh position={[0, 0.06, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                <torusGeometry args={[0.29, 0.028, 8, 20]} />
+                <meshStandardMaterial color="#3a2415" roughness={0.7} />
+              </mesh>
+              <mesh position={[0, 0.06, 0.29]}>
+                <cylinderGeometry args={[0.045, 0.045, 0.018, 5]} />
+                <meshStandardMaterial color="#e8c34a" metalness={0.9} roughness={0.2} />
+              </mesh>
+            </group>
+          )}
+          {C.hat === 'beanie' && (
+            <group>
+              <mesh position={[0, 0.26, 0]} scale={[1.06, 0.82, 1.06]}>
+                <sphereGeometry args={[HR, 18, 14, 0, Math.PI * 2, 0, Math.PI / 1.7]} />
+                <meshStandardMaterial color={accent} roughness={0.95} />
+              </mesh>
+              <mesh position={[0, 0.09, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                <torusGeometry args={[HR * 0.99, 0.062, 10, 22]} />
+                <meshStandardMaterial color={C.shirt} roughness={0.95} />
+              </mesh>
+              <mesh position={[0, 0.62, 0]}>
+                <sphereGeometry args={[0.11, 12, 10]} />
+                <meshStandardMaterial color={C.shirt} roughness={1} />
+              </mesh>
+            </group>
+          )}
+          {C.hat === 'viking' && (
+            <group position={[0, 0.18, 0]}>
+              <mesh scale={[1.05, 0.78, 1.05]}>
+                <sphereGeometry args={[HR, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
+                <meshStandardMaterial color="#9aa4b8" metalness={0.72} roughness={0.34} />
+              </mesh>
+              <mesh position={[0, 0.02, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                <torusGeometry args={[HR * 1.01, 0.045, 8, 20]} />
+                <meshStandardMaterial color="#6b7488" metalness={0.7} roughness={0.4} />
+              </mesh>
+              {[-1, 1].map((d, i) => (
+                <mesh key={i} position={[d * (HR + 0.06), 0.16, 0]} rotation={[0, 0, d * -0.75]}>
+                  <coneGeometry args={[0.085, 0.42, 10]} />
+                  <meshStandardMaterial color="#f2ead8" roughness={0.65} />
+                </mesh>
+              ))}
+            </group>
+          )}
+          {C.hat === 'beret' && (
+            <group position={[0, 0.34, -0.02]} rotation={[0, 0, 0.2]}>
+              <mesh scale={[1, 0.34, 1]}>
+                <sphereGeometry args={[0.46, 16, 12]} />
+                <meshStandardMaterial color={accent} roughness={0.9} />
+              </mesh>
+              <mesh position={[0, 0.11, 0]}>
+                <cylinderGeometry args={[0.026, 0.026, 0.07, 8]} />
+                <meshStandardMaterial color={accent} roughness={0.9} />
+              </mesh>
+            </group>
+          )}
           {C.hat === 'crown' && (
             <group position={[0, HR - 0.04, 0]}>
               <mesh><cylinderGeometry args={[0.28, 0.31, 0.13, 14]} /><meshStandardMaterial color="#f5b91e" metalness={0.85} roughness={0.22} /></mesh>
@@ -697,15 +898,6 @@ class ModelBoundary extends React.Component {
 
 function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   const c = CHARACTERS[charIndex % CHARACTERS.length];
-  if (LITE_ACTIVE) {
-    return (
-      <div className="char-canvas" style={{ width: size, height: size }}>
-        <div className="avatar-fallback" style={{ width: size * 0.55, height: size * 0.55, '--pc': c.color }}>
-          <Play size={Math.round(size * 0.22)} />
-        </div>
-      </div>
-    );
-  }
   const prefer = mood === 'win' ? c.win : c.idle;
   const spinRef = useRef({ v: 0, dragging: false, lastX: 0 });
 
@@ -737,7 +929,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
           </div>
         )}
       >
-      <Canvas dpr={LITE_ACTIVE ? 1 : [1, 1.5]} camera={{ position: [0, 0.15, 4.6], fov: 40 }} gl={{ alpha: true, antialias: true }}>
+      <Canvas frameloop={LITE_ACTIVE ? 'demand' : 'always'} dpr={LITE_ACTIVE ? 1 : [1, 1.5]} camera={{ position: [0, 0.15, 4.6], fov: 40 }} gl={{ alpha: true, antialias: !LITE_ACTIVE }}>
         <ambientLight intensity={0.62} />
         <directionalLight position={[4, 6, 4]} intensity={2.3} castShadow={false} />
         <directionalLight position={[-5, 3, -4]} intensity={0.95} color="#7fdcff" />
@@ -758,7 +950,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v37';
+const APP_VERSION = 'v39';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -1714,7 +1906,7 @@ export default function App() {
     if (p.ach[id]) return;
     p.ach[id] = true;
     const a = ACHIEVEMENTS.find((x) => x.id === id);
-    if (a) { sfx.gold(); showToast(`🏆 Trófea: ${a.name}!`); }
+    if (a) { sfx.gold(); showToast(`Trófea: ${a.name}!`); }
   };
   const [pendingPlace, setPendingPlace] = useState(null); // veto-ablak: fuggo lerakas
   const [pendingLeft, setPendingLeft] = useState(0);
@@ -1902,7 +2094,7 @@ export default function App() {
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
       showToast('Kép letöltve!');
     } catch (e) {
-      if (String(e && e.name) !== 'AbortError') showToast('A megosztás nem sikerült. 😕');
+      if (String(e && e.name) !== 'AbortError') showToast('A megosztás nem sikerült.');
     }
   };
 
@@ -1929,12 +2121,12 @@ export default function App() {
   }, [status]);
 
   // ---------- CHRONO-BOT EDZES ----------
-  const startBot = (sigma, label) => {
+  const startBot = (sigma, label, blunder = 0, slip = 0) => {
     if (netRole) { showToast('Bot-edzéshez előbb lépj ki a szobából!'); return; }
     const human = players[0]
       ? { id: players[0].id, name: players[0].name, char: players[0].char }
       : { id: 'me', name: 'Te', char: 0 };
-    botRef.current = { sigma, label };
+    botRef.current = { sigma, label, blunder, slip };
     try { localStorage.setItem('cb_botdiff', label); } catch (e) {}
     setShowBot(false);
     beginMatch([human, { id: 'bot', name: `Chrono-bot (${label})`, char: 0, isBot: true }]);
@@ -1952,12 +2144,24 @@ export default function App() {
         while (!v) v = Math.random();
         return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
       };
-      const perceived = currentCard.y + gauss() * botRef.current.sigma;
+      const B = botRef.current || { sigma: 3 };
       const tl = ap.timeline;
-      let idx = 0;
-      while (idx < tl.length && tl[idx].y < perceived) idx += 1;
+      let idx;
+      if (Math.random() < (B.blunder || 0)) {
+        // Teljes melleles: a bot is emberi, neha fogalma sincs
+        idx = Math.floor(Math.random() * (tl.length + 1));
+      } else {
+        // Kartyankent valtozo bizonytalansag (nem mindig ugyanaz a pontossag)
+        const sigma = B.sigma * (0.55 + Math.random() * 1.3);
+        const perceived = currentCard.y + gauss() * sigma;
+        idx = 0;
+        while (idx < tl.length && tl[idx].y < perceived) idx += 1;
+        // Ritkan egy rekesszel meller ("majdnem jo" hiba)
+        if (Math.random() < (B.slip || 0)) idx += Math.random() < 0.5 ? -1 : 1;
+        idx = Math.max(0, Math.min(tl.length, idx));
+      }
       handlePlace(idx);
-    }, 1700);
+    }, 1200 + Math.random() * 1600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, turnIndex, currentCard, flipped, feedback, pendingPlace, players]);
@@ -2019,7 +2223,7 @@ export default function App() {
     const store = loadDailyStore();
     const D = store.history && store.history[todayKey()];
     if (!D) return;
-    const emoji = D.row.split('').map((c) => (c === 'G' ? '🟩' : c === 'Y' ? '🟨' : '🟥')).join('');
+    const emoji = D.row.split('').map((c) => (c === 'G' ? '' : c === 'Y' ? '' : '')).join('');
     const dt = new Date();
     const txt = `ChronoBeats Napi — ${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getDate()).padStart(2, '0')}.\n${emoji}\nPont: ${D.score}/10 · Zseton: ${D.tokens} · Sorozat: ${store.streak}🔥\n${window.location.origin}${window.location.pathname}`;
     try {
@@ -2412,7 +2616,7 @@ export default function App() {
           });
         });
         setCharTick((v) => v + 1);
-        showToast(`🎭 ${found.length} saját figura betöltve!`);
+        showToast(`${found.length} saját figura betöltve!`);
       }
     })();
     return () => { cancelled = true; };
@@ -2534,7 +2738,7 @@ export default function App() {
     if (deckRef.current.length === 0 && discardRef.current.length > 0) {
       deckRef.current = shuffleDeck(discardRef.current);
       discardRef.current = [];
-      showToast('♻️ A pakli újrakeverve!');
+      showToast('A pakli újrakeverve!');
     }
     const c = deckRef.current.length > 0 ? deckRef.current.pop() : null;
     setCardsLeft(deckRef.current.length);
@@ -2678,7 +2882,7 @@ export default function App() {
       setIsPlaying(true);
     } catch (e) {
       // Ha a CDN nem engedi a letoltest, visszaesunk normal lejatszasra
-      showToast('🔁 Reverse itt nem megy – normál lejátszás');
+      showToast('Reverse itt nem megy – normál lejátszás');
       audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
@@ -2725,7 +2929,7 @@ export default function App() {
     const isAudioBroken = !audioUrl && !isLoading && !appleActive;
     const cost = isAudioBroken ? 0 : SWAP_COST;
     if (!isAudioBroken && activePlayer.tokens < cost) {
-      showToast(`Nincs elég zsetonod! A csere ára: ${cost} 🪙`);
+      showToast(`Nincs elég zsetonod! A csere ára: ${cost}`);
       return;
     }
     if (cost > 0) {
@@ -2787,7 +2991,7 @@ export default function App() {
       while (players[ni] && skipNextRef.current[players[ni].id] && guard < players.length) {
         delete skipNextRef.current[players[ni].id];
         const nm = players[ni].name;
-        setTimeout(() => showToast(`⏭️ ${nm} kimarad ebből a körből (jogos óvás).`), 60);
+        setTimeout(() => showToast(`⏭ ${nm} kimarad ebből a körből (jogos óvás).`), 60);
         ni = (ni + 1) % players.length;
         guard += 1;
       }
@@ -2863,7 +3067,7 @@ export default function App() {
           setEndReason('win');
           setStatus('win');
         } else {
-          if (goldAgain) showToast('✨ ARANY KÁRTYA ELTALÁLVA — újra te következel!');
+          if (goldAgain) showToast('ARANY KÁRTYA ELTALÁLVA — újra te következel!');
           nextTurn(goldAgain);
         }
       }, 1900);
@@ -2940,10 +3144,10 @@ export default function App() {
         if (P.veto >= 5) award(P, 'veto5');
         saveProfile(P);
       }
-      showToast(`⚖️ JOGOS ÓVÁS! ${placer.name} kimarad a következő körből, ${vetoer.name}: +1 🪙`);
+      showToast(`JOGOS ÓVÁS! ${placer.name} kimarad a következő körből, ${vetoer.name}: +1`);
       setPlayers((prev) => prev.map((p, i) => (i === vetoerIdx ? { ...p, tokens: (p.tokens || 0) + 1 } : p)));
     } else {
-      showToast(`🛡️ A lerakás JÓ volt — az óvás alaptalan. ${vetoer.name}: -1 🪙, ${placer.name}: +1 🪙`);
+      showToast(`A lerakás JÓ volt — az óvás alaptalan. ${vetoer.name}: -1 , ${placer.name}: +1`);
       setPlayers((prev) => prev.map((p, i) => {
         if (i === vetoerIdx) return { ...p, tokens: Math.max(0, (p.tokens || 0) - 1) };
         if (i === turnIndex) return { ...p, tokens: (p.tokens || 0) + 1 };
@@ -2962,7 +3166,7 @@ export default function App() {
       timer: setTimeout(() => {
         const nm = actRef.current.players[shameRef.current.idx] ? actRef.current.players[shameRef.current.idx].name : '';
         actRef.current.setPlayers((prev) => prev.map((q, i) => (i === shameRef.current.idx ? { ...q, tokens: Math.max(0, (q.tokens || 0) - 1) } : q)));
-        actRef.current.showToast(`🙈 ${nm} nem vállalta a szégyent: -1 🪙!`);
+        actRef.current.showToast(`${nm} nem vállalta a szégyent: -1 !`);
         shameRef.current = { idx: -1, timer: null };
       }, 12000),
     };
@@ -2979,7 +3183,7 @@ export default function App() {
     if (shameRef.current.timer) clearTimeout(shameRef.current.timer);
     const nm = players[idx] ? players[idx].name : '';
     shameRef.current = { idx: -1, timer: null };
-    showToast(`😅 ${nm} becsülettel letudta a szégyenkört!`);
+    showToast(`${nm} becsülettel letudta a szégyenkört!`);
   }
 
   // Veto-ablak visszaszamlalo: ha lejar, jon a normal kiertekeles
@@ -3069,7 +3273,7 @@ export default function App() {
       A.setPlayers(A.players.map((p, i) => (i === idx ? { ...p, pranks: (p.pranks || 0) - 1 } : p)));
       const ev = { type: 'prank', kind: msg.kind === 'heartbeat' ? 'heartbeat' : 'scramble', targetIdx, from: sender.name };
       Object.values(connsRef.current).forEach((c) => { try { if (c.open) c.send(ev); } catch (e) {} });
-      A.showToast(`😈 ${sender.name} rászívatta ${target.name}-t!`);
+      A.showToast(`${sender.name} rászívatta ${target.name}-t!`);
       if (!target.peerId) A.firePrank(ev.kind); // a celpont a hazigazda keszuleken jatszik
     } else if (msg.a === 'bet') {
       if (idx !== A.turnIndex || A.status !== 'game' || !A.currentCard) return;
@@ -3110,7 +3314,7 @@ export default function App() {
         try { nm = localStorage.getItem('cb_myname') || nm; } catch (e) {}
         return [{ id: Date.now(), name: nm, char: 0, tokens: 0, pranks: 0, timeline: [] }, ...prev];
       });
-      showToast(`📡 Szoba kész! Kód: ${code}`);
+      showToast(`Szoba kész! Kód: ${code}`);
     });
     peer.on('call', (call) => {
       if (!voiceOnRef.current || !localStreamRef.current) { try { call.close(); } catch (e) {} return; }
@@ -3133,7 +3337,7 @@ export default function App() {
             if (prev.some((p) => p.peerId === conn.peer)) return prev;
             const name = String(msg.name || 'Játékos').slice(0, 14);
             try { conn.send({ type: 'welcome' }); } catch (e) {}
-            A.showToast(`📱 ${name} csatlakozott!`);
+            A.showToast(`${name} csatlakozott!`);
             return [...prev, { id: Date.now() + Math.random(), peerId: conn.peer, name, char: prev.length % CHARACTERS.length }];
           });
         } else if (msg && msg.type === 'action') {
@@ -3149,7 +3353,7 @@ export default function App() {
     peer.on('error', (err) => {
       setNetBusy(false);
       if (String(err.type) === 'unavailable-id') { createRoomRetry(); }
-      else showToast('📡 Hálózati hiba – próbáld újra!');
+      else showToast('Hálózati hiba – próbáld újra!');
     });
   };
   const createRoomRetry = () => { try { peerRef.current && peerRef.current.destroy(); } catch (e) {} setTimeout(createRoom, 200); };
@@ -3183,7 +3387,7 @@ export default function App() {
       myPeerIdRef2.current = pid;
       const conn = peer.connect(`cbeats-${code}`, { reliable: true });
       hostConnRef.current = conn;
-      const failT = setTimeout(() => { setNetBusy(false); showToast('Nincs ilyen szoba, vagy nem elérhető. 😕'); }, 8000);
+      const failT = setTimeout(() => { setNetBusy(false); showToast('Nincs ilyen szoba, vagy nem elérhető.'); }, 8000);
       conn.on('open', () => {
         conn.send({ type: 'join', name });
       });
@@ -3206,7 +3410,7 @@ export default function App() {
         } else if (msg.type === 'prank') {
           const st = msg;
           setSnap((prev) => prev); // allapot valtozatlan
-          showToast(`😈 ${st.from} bevetett egy szívatást!`);
+          showToast(`${st.from} bevetett egy szívatást!`);
           setTimeout(() => {
             setSnap((prev) => {
               if (prev && prev.players && prev.players[st.targetIdx] && prev.players[st.targetIdx].peerId === myPeerIdRef.current) firePrank(st.kind);
@@ -3215,10 +3419,10 @@ export default function App() {
           }, 0);
         }
       });
-      conn.on('close', () => { showToast('📡 A kapcsolat megszakadt.'); setStatus('setup'); setNetRole(null); setSnap(null); });
-      conn.on('error', () => { clearTimeout(failT); setNetBusy(false); showToast('Nem sikerült csatlakozni. 😕'); });
+      conn.on('close', () => { showToast('A kapcsolat megszakadt.'); setStatus('setup'); setNetRole(null); setSnap(null); });
+      conn.on('error', () => { clearTimeout(failT); setNetBusy(false); showToast('Nem sikerült csatlakozni.'); });
     });
-    peer.on('error', () => { setNetBusy(false); showToast('Nem sikerült csatlakozni. 😕'); });
+    peer.on('error', () => { setNetBusy(false); showToast('Nem sikerült csatlakozni.'); });
   };
 
   // A soros jatekos telefonjan automatikusan elokeszul a dal
@@ -3487,9 +3691,9 @@ export default function App() {
       // Csak a "nagyobb" azonositokat hivjuk, a tobbi minket hiv -> nincs dupla kapcsolat
       const me = myPeerIdRef2.current || '';
       voiceRoster().forEach((pid) => { if (me < pid) callPeer(pid); });
-      showToast('🎧 Hangcsatorna bekapcsolva — hallanak a többiek!');
+      showToast('Hangcsatorna bekapcsolva — hallanak a többiek!');
     } catch (e) {
-      showToast('🎙️ Nem sikerült a mikrofon — engedélyezd a böngészőben!');
+      showToast('Nem sikerült a mikrofon — engedélyezd a böngészőben!');
     }
     setVoiceBusy(false);
   };
@@ -3503,7 +3707,7 @@ export default function App() {
     localStreamRef.current = null;
     setVoiceOn(false);
     setVoicePeers([]);
-    showToast('🔇 Hangcsatorna kikapcsolva.');
+    showToast('Hangcsatorna kikapcsolva.');
   };
 
   const setMicEnabled = (on) => {
@@ -3593,14 +3797,14 @@ export default function App() {
 
         if (year !== null) {
           sfx.coin();
-          showToast(`🎙️ Évszám: ${year}`);
+          showToast(`Évszám: ${year}`);
           if (cur === 0) advanceMic(1);
           else advanceMic(cur + 1);
         } else if (cur === 0) {
-          showToast(`🎙️ „${said}" — ezt nem értettem évszámnak. Próbáld újra, vagy írd be!`);
+          showToast(`„${said}" — ezt nem értettem évszámnak. Próbáld újra, vagy írd be!`);
         } else {
           sfx.coin();
-          showToast(`🎙️ ${cur === 1 ? 'Előadó' : 'Cím'}: ${said}`);
+          showToast(`${cur === 1 ? 'Előadó' : 'Cím'}: ${said}`);
           advanceMic(cur + 1);
         }
       };
@@ -3616,9 +3820,9 @@ export default function App() {
         setMicOn(false);
         setMicReady(false);
         setMicWarm(false);
-        if (e && e.error === 'not-allowed') showToast('🎙️ Engedélyezd a mikrofont a böngésző beállításaiban!');
-        else if (e && e.error === 'no-speech') showToast('🎙️ Nem hallottam semmit — tartsd nyomva és beszélj!');
-        else showToast('🎙️ Nem sikerült — próbáld újra!');
+        if (e && e.error === 'not-allowed') showToast('Engedélyezd a mikrofont a böngésző beállításaiban!');
+        else if (e && e.error === 'no-speech') showToast('Nem hallottam semmit — tartsd nyomva és beszélj!');
+        else showToast('Nem sikerült — próbáld újra!');
       };
       recogRef.current = r;
       r.start();
@@ -3631,10 +3835,10 @@ export default function App() {
 
   // ---------- Tanulokor ----------
   const TUT_STEPS = [
-    { icon: '🎧', arrow: '⬆', cls: 'tp-stage',    text: 'Koppints a lemezjátszóra, és hallgasd meg a rejtélydalt!' },
-    { icon: '🪙', arrow: '⬇', cls: 'tp-bet',      text: 'Mersz tippelni? Évszám, előadó vagy cím eltalálásáért zseton jár!' },
-    { icon: '📅', arrow: '⬇', cls: 'tp-timeline', text: 'Ezután helyezd a dalt az idővonalad helyes pontjára a + gombokkal!' },
-    { icon: '🔄', arrow: '⬆', cls: 'tp-swap',     text: 'Nem megy a dal? A CSERE gombbal újat húzhatsz. Sok sikert! 🚀' },
+    { icon: '', arrow: '↑', cls: 'tp-stage',    text: 'Koppints a lemezjátszóra, és hallgasd meg a rejtélydalt!' },
+    { icon: '', arrow: '↓', cls: 'tp-bet',      text: 'Mersz tippelni? Évszám, előadó vagy cím eltalálásáért zseton jár!' },
+    { icon: '', arrow: '↓', cls: 'tp-timeline', text: 'Ezután helyezd a dalt az idővonalad helyes pontjára a + gombokkal!' },
+    { icon: '', arrow: '↑', cls: 'tp-swap',     text: 'Nem megy a dal? A CSERE gombbal újat húzhatsz. Sok sikert!' },
   ];
   const endTutorial = () => {
     setTutStep(-1);
@@ -3649,7 +3853,7 @@ export default function App() {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={`tut-arrow ${TUT_STEPS[tutStep].arrow === '⬆' ? 'up' : 'down'}`}>{TUT_STEPS[tutStep].arrow}</div>
+        <div className={`tut-arrow ${TUT_STEPS[tutStep].arrow === '' ? 'up' : 'down'}`}>{TUT_STEPS[tutStep].arrow}</div>
         <div className="tut-icon">{TUT_STEPS[tutStep].icon}</div>
         <div className="tut-step">{tutStep + 1} / {TUT_STEPS.length}</div>
         <div className="tut-text">{TUT_STEPS[tutStep].text}</div>
@@ -3878,7 +4082,7 @@ export default function App() {
               onClick={() => {
                 setShowSettings(false);
                 if (status === 'game') setTutStep(0);
-                else showToast('📖 A tanulókör a játékban indul el!');
+                else showToast('A tanulókör a játékban indul el!');
               }}
             >
               <BookOpen size={17} /> KÉZIKÖNYV (TANULÓKÖR)
@@ -4011,15 +4215,15 @@ export default function App() {
                 <h3 className="modal-title">CHRONO-BOT EDZÉS</h3>
                 <p className="modal-sub">A bot ugyanazokkal a szabályokkal játszik — csak a füle különbözik. Te kezdesz!</p>
                 <div className="mode-list">
-                  <button type="button" className="mode-row" onClick={() => startBot(6, 'Könnyű')}>
+                  <button type="button" className="mode-row" onClick={() => startBot(7, 'Könnyű', 0.22, 0.3)}>
                     <span className="mr-icon"><Play size={18} /></span>
                     <span className="mr-body"><span className="mr-name">Könnyű</span><span className="mr-desc">A bot átlagosan ±6 évet téved — kezdőknek.</span></span>
                   </button>
-                  <button type="button" className="mode-row" onClick={() => startBot(3, 'Közepes')}>
+                  <button type="button" className="mode-row" onClick={() => startBot(4, 'Közepes', 0.1, 0.2)}>
                     <span className="mr-icon"><Play size={18} /></span>
                     <span className="mr-body"><span className="mr-name">Közepes</span><span className="mr-desc">±3 év szórás — kiegyenlített meccs.</span></span>
                   </button>
-                  <button type="button" className="mode-row" onClick={() => startBot(1.5, 'Nehéz')}>
+                  <button type="button" className="mode-row" onClick={() => startBot(2, 'Nehéz', 0.03, 0.1)}>
                     <span className="mr-icon"><Play size={18} /></span>
                     <span className="mr-body"><span className="mr-name">Nehéz</span><span className="mr-desc">±1.5 év — a Gépverő trófea ellenfele.</span></span>
                   </button>
@@ -4131,7 +4335,7 @@ export default function App() {
                 ) : (
                   <>
                     <button type="button" className="btn-3d gold wide" disabled={netBusy} onClick={createRoom}>
-                      {netBusy ? 'KAPCSOLÓDÁS…' : '📡 SZOBA LÉTREHOZÁSA (házigazda)'}
+                      {netBusy ? 'KAPCSOLÓDÁS…' : <><DoorOpen size={16} /> SZOBA LÉTREHOZÁSA</>}
                     </button>
                     <div className="room-divider">vagy csatlakozz</div>
                     <div className="modal-inputs">
@@ -4152,7 +4356,7 @@ export default function App() {
                       />
                     </div>
                     <button type="button" className="btn-3d start wide" disabled={netBusy} onClick={joinRoom}>
-                      {netBusy ? 'KAPCSOLÓDÁS…' : 'CSATLAKOZÁS 🚀'}
+                      {netBusy ? 'KAPCSOLÓDÁS…' : 'CSATLAKOZÁS'}
                     </button>
                   </>
                 )}
@@ -4446,7 +4650,7 @@ export default function App() {
         </div>
 
         <div className="main-arena">
-          {!st && <div className="client-banner glass">📡 Kapcsolódva! Várakozás a házigazdára…</div>}
+          {!st && <div className="client-banner glass"><Headphones size={15} /> Kapcsolódva — várakozás a házigazdára…</div>}
           {st && st.status === 'setup' && <div className="client-banner glass">🛋️ A házigazda még állítgat… mindjárt indulunk!</div>}
           {st && (st.status === 'handoff' || st.status === 'game') && !myTurn && active && (
             <>
@@ -4908,8 +5112,8 @@ export default function App() {
                   exit={{ opacity: 0, scale: 0.85 }}
                 >
                   {betResult.total > 0
-                    ? `+${betResult.total} 🪙${betResult.exactYear ? ' · PONTOS ÉV!' : ''}`
-                    : 'Nem talált 😅'}
+                    ? `+${betResult.total} ${betResult.exactYear ? ' · PONTOS ÉV!' : ''}`
+                    : 'Nem talált'}
                 </motion.div>
               )}
             </AnimatePresence>
