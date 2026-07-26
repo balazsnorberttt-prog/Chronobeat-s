@@ -950,7 +950,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v42';
+const APP_VERSION = 'v43';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -3345,7 +3345,15 @@ export default function App() {
     if (netBusy) return;
     setNetBusy(true);
     const code = makeCode();
-    const peer = new Peer(`cbeats-${code}`);
+    const peer = new Peer(`cbeats-${code}`, {
+      debug: 1,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' },
+        ],
+      },
+    });
     peerRef.current = peer;
     peer.on('open', (pid) => {
       myPeerIdRef2.current = pid || `cbeats-${code}`;
@@ -3377,10 +3385,20 @@ export default function App() {
           const A = actRef.current;
           if (A.status !== 'setup') { try { conn.send({ type: 'reject', why: 'A játék már elindult!' }); } catch (e) {} return; }
           connsRef.current[conn.peer] = conn;
+          const name = String(msg.name || 'Játékos').slice(0, 14);
           A.setPlayers((prev) => {
+            // Mar bent van ezzel a peer-rel? (dupla join)
+            if (prev.some((p) => p.peerId === conn.peer)) { try { conn.send({ type: 'welcome' }); } catch (e) {} return prev; }
+            // Visszatero jatekos: ugyanaz a nev, uj peer-id -> frissitjuk, megtartva a timeline-t
+            const back = prev.findIndex((p) => p.peerId && p.name === name);
+            if (back !== -1) {
+              try { conn.send({ type: 'welcome' }); } catch (e) {}
+              A.showToast(`${name} visszatért!`);
+              const cp = [...prev];
+              cp[back] = { ...cp[back], peerId: conn.peer };
+              return cp;
+            }
             if (prev.length >= MAX_PLAYERS) { try { conn.send({ type: 'reject', why: 'Megtelt a szoba!' }); } catch (e) {} return prev; }
-            if (prev.some((p) => p.peerId === conn.peer)) return prev;
-            const name = String(msg.name || 'Játékos').slice(0, 14);
             try { conn.send({ type: 'welcome' }); } catch (e) {}
             A.showToast(`${name} csatlakozott!`);
             return [...prev, { id: Date.now() + Math.random(), peerId: conn.peer, name, char: prev.length % CHARACTERS.length }];
@@ -3392,21 +3410,38 @@ export default function App() {
       conn.on('close', () => {
         delete connsRef.current[conn.peer];
         const A = actRef.current;
-        if (A.status === 'setup') A.setPlayers((prev) => prev.filter((p) => p.peerId !== conn.peer));
+        // Setup alatt kivesszuk; JATEK kozben BENT hagyjuk, hogy vissza tudjon jonni
+        if (A.status === 'setup') {
+          A.setPlayers((prev) => prev.filter((p) => p.peerId !== conn.peer));
+        } else {
+          const pl = A.players.find((p) => p.peerId === conn.peer);
+          if (pl) A.showToast(`${pl.name} kilépett — bármikor visszajöhet a kóddal.`);
+        }
       });
+      conn.on('error', () => { delete connsRef.current[conn.peer]; });
+    });
+    peer.on('disconnected', () => {
+      // A jelzoszerver ledobott - a meglevo jatek-kapcsolatok elnek, csak
+      // az uj csatlakozokhoz kell vissza. Ujracsatlakozunk, NEM inditunk ujat.
+      try { if (peerRef.current && !peerRef.current.destroyed) peerRef.current.reconnect(); } catch (e) {}
     });
     peer.on('error', (err) => {
+      const t = String(err && err.type);
       setNetBusy(false);
-      if (String(err.type) === 'unavailable-id') { createRoomRetry(); }
-      else showToast('Hálózati hiba – próbáld újra!');
+      if (t === 'unavailable-id') { createRoomRetry(); return; }
+      // A tobbi hiba (pl. egy elveszett vendeg) NEM allithatja le a jatekot
+      if (t === 'peer-unavailable' || t === 'network') return;
+      showToast('Hálózati hiba – próbáld újra!');
     });
   };
   const createRoomRetry = () => { try { peerRef.current && peerRef.current.destroy(); } catch (e) {} setTimeout(createRoom, 200); };
 
+  const rejoinRef = useRef({ code: '', name: '', tries: 0 });
   const joinRoom = () => {
     const code = joinCode.trim().toUpperCase();
     const name = joinName.trim();
     if (code.length !== 4 || !name) { showToast('Add meg a 4 betűs kódot és a neved!'); return; }
+    rejoinRef.current = { code, name, tries: 0 };
     if (netBusy) return;
     setNetBusy(true);
     // Hang-feloldas: a csatlakozas-koppintas "engedelyt ad" a kesobbi zenere
@@ -3414,7 +3449,15 @@ export default function App() {
       audioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAGZGF0YQQAAAAAAA==';
       audioRef.current.play().then(() => audioRef.current.pause()).catch(() => {});
     }
-    const peer = new Peer();
+    const peer = new Peer({
+      debug: 1,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' },
+        ],
+      },
+    });
     peerRef.current = peer;
     peer.on('call', (call) => {
       if (!voiceOnRef.current || !localStreamRef.current) { try { call.close(); } catch (e) {} return; }
@@ -3426,26 +3469,33 @@ export default function App() {
         call.on('error', () => dropRemote(call.peer));
       } catch (e) {}
     });
+    const wireConn = (conn) => {
+      hostConnRef.current = conn;
+      conn.on('open', () => { try { conn.send({ type: 'join', name }); } catch (e) {} });
+      conn.on('data', onHostData);
+      conn.on('close', onHostClose);
+      conn.on('error', () => {});
+    };
+
     peer.on('open', (pid) => {
       setMyPeerId(pid);
       myPeerIdRef.current = pid;
       myPeerIdRef2.current = pid;
       const conn = peer.connect(`cbeats-${code}`, { reliable: true });
-      hostConnRef.current = conn;
-      const failT = setTimeout(() => { setNetBusy(false); showToast('Nincs ilyen szoba, vagy nem elérhető.'); }, 8000);
-      conn.on('open', () => {
-        conn.send({ type: 'join', name });
-      });
-      conn.on('data', (msg) => {
+      const failT = setTimeout(() => {
+        if (netRole !== 'client') { setNetBusy(false); showToast('Nincs ilyen szoba, vagy nem elérhető.'); }
+      }, 9000);
+      conn.on('open', () => { clearTimeout(failT); });
+      wireConn(conn);
+      function onHostData(msg) {
         if (!msg) return;
         if (msg.type === 'welcome') {
-          clearTimeout(failT);
           setNetBusy(false);
           setNetRole('client');
           setRoomCode(code);
-          setStatus('client');
+          rejoinRef.current.tries = 0;
+          if (status !== 'client') setStatus('client');
         } else if (msg.type === 'reject') {
-          clearTimeout(failT);
           setNetBusy(false);
           showToast(msg.why || 'Nem sikerült csatlakozni.');
         } else if (msg.type === 'state') {
@@ -3463,11 +3513,39 @@ export default function App() {
             });
           }, 0);
         }
-      });
-      conn.on('close', () => { showToast('A kapcsolat megszakadt.'); setStatus('setup'); setNetRole(null); setSnap(null); });
-      conn.on('error', () => { clearTimeout(failT); setNetBusy(false); showToast('Nem sikerült csatlakozni.'); });
+      }
+
+      function onHostClose() {
+        // NEM dobjuk vissza a jatekost a menube - probalunk visszakapcsolodni
+        const R = rejoinRef.current;
+        if (!R.code || R.tries >= 6) {
+          showToast('A kapcsolat végleg megszakadt.');
+          return;
+        }
+        R.tries += 1;
+        showToast('Kapcsolat megszakadt — újracsatlakozás…');
+        setTimeout(() => {
+          try {
+            const p = peerRef.current;
+            if (!p || p.destroyed) return;
+            const nc = p.connect(`cbeats-${R.code}`, { reliable: true });
+            wireConn(nc);
+          } catch (e) {}
+        }, 1200 * R.tries);
+      }
     });
-    peer.on('error', () => { setNetBusy(false); showToast('Nem sikerült csatlakozni.'); });
+
+    peer.on('disconnected', () => {
+      try { if (peerRef.current && !peerRef.current.destroyed) peerRef.current.reconnect(); } catch (e) {}
+    });
+    peer.on('error', (err) => {
+      const t = String(err && err.type);
+      if (t === 'peer-unavailable') {
+        // A gazda pillanatnyilag nem elerheto - ujraprobaljuk a close-agon
+        return;
+      }
+      if (netRole !== 'client') { setNetBusy(false); showToast('Nem sikerült csatlakozni.'); }
+    });
   };
 
   // A soros jatekos telefonjan automatikusan elokeszul a dal

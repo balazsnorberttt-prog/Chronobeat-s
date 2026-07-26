@@ -3071,3 +3071,22 @@ body.nofx-sheen .cb-disc { animation: none; }
   }
   .tut-bubble.tp-timeline { bottom: calc(10px + env(safe-area-inset-bottom)); }
 }
+
+/* ============================================================
+   v43 — HANGMÓD-GOMB végleges tördelés (a képen kilógott a szöveg)
+   ============================================================ */
+.audio-mode-row .am-btn {
+  letter-spacing: 0.3px !important;
+  line-height: 1.25 !important;
+  word-break: break-word;
+  hyphens: auto;
+}
+.audio-mode-row .am-btn small {
+  letter-spacing: 0 !important;
+  word-break: break-word;
+}
+/* A címsort (első szöveg-csomópont) is engedjük tördelni: a KIHANGOSÍTÓ MÓD
+   hosszú szó, ezért adunk neki egy kötőjeles törési lehetőséget nagyon szűk helyen */
+@media (max-width: 380px) {
+  .audio-mode-row .am-btn { font-size: 0.68rem; }
+}
