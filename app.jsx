@@ -950,7 +950,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v43';
+const APP_VERSION = 'v44';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -1933,6 +1933,26 @@ export default function App() {
   const compRef = useRef(null);
   const gainRef = useRef(null);
   const [localFail, setLocalFail] = useState(false);   // a SAJAT keszuleken nem toltott be a dal
+  // ---------- IDOFUTAM (RUSH) - mindenki a sajat telefonjan, kozos oraval ----------
+  const [rushOn, setRushOn] = useState(false);          // fut-e eppen idofutam
+  const [rushEndsAt, setRushEndsAt] = useState(0);      // kozos vegzodesi idobelyeg
+  const [rushLeft, setRushLeft] = useState(0);          // hatralevo masodperc
+  const [rushDur, setRushDur] = useState(90);           // beallitott hossz
+  const [roomMode, setRoomMode] = useState('classic');  // 'classic' | 'rush'
+  const [rushCard, setRushCard] = useState(null);       // aktualis lap (ezen a gepen)
+  const [rushTL, setRushTL] = useState([]);             // sajat idovonal
+  const [rushScore, setRushScore] = useState(0);        // eltalalt lapok
+  const [rushFb, setRushFb] = useState(null);           // 'correct' | 'wrong' | null
+  const [rushPenalty, setRushPenalty] = useState(0);    // buntetes vege (idobelyeg), 0 = nincs
+  const [rushPenLeft, setRushPenLeft] = useState(0);    // buntetesbol hatralevo mp
+  const [rushBoard, setRushBoard] = useState([]);       // elo eredmenytabla (a gazdatol)
+  const [rushDone, setRushDone] = useState(false);      // vege van-e
+  const rushDeckRef = useRef([]);
+  const rushDiscardRef = useRef([]);
+  const rushScoresRef = useRef({});                      // gazda: { kulcs: {name, score} }
+  const rushAudioRef = useRef(null);
+  const myNameRef = useRef('');
+  const RUSH_PENALTY = 5;                                 // masodperc
   const [micOn, setMicOn] = useState(false);
   const turnCountRef = useRef(0);
   const recogRef = useRef(null);
@@ -1941,6 +1961,7 @@ export default function App() {
   const deckRef = useRef([]);
   const discardRef = useRef([]);
   const audioRef = useRef(null);
+  // rushAudioRef fent deklaralva
   const scrollRef = useRef(null);
   const ghostRef = useRef(null);
   const toastTimer = useRef(null);
@@ -3259,6 +3280,163 @@ export default function App() {
     return c;
   };
 
+  // ============================================================
+  //  IDOFUTAM MOTOR (minden keszuleken helyben fut)
+  // ============================================================
+  const rushDraw = () => {
+    if (rushDeckRef.current.length === 0) {
+      // ujratoltjuk a paklit (a mar latott lapokbol), hogy sose fogyjon ki
+      rushDeckRef.current = shuffleDeck(rushDiscardRef.current);
+      rushDiscardRef.current = [];
+    }
+    const c = rushDeckRef.current.shift() || null;
+    setRushCard(c);
+    setRushFb(null);
+    // dal betoltese ehhez a laphoz (sajat fulhallgato)
+    if (c) {
+      fetchDeezerUrl(c.a, c.t).then((url) => {
+        const el = rushAudioRef.current;
+        if (url && el) {
+          try {
+            el.src = url;
+            el.load();
+            el.play().catch(() => {});
+          } catch (e) {}
+        }
+      });
+    }
+    return c;
+  };
+
+  const rushRecomputeBoard = () => {
+    const arr = Object.entries(rushScoresRef.current)
+      .map(([k, v]) => ({ key: k, name: v.name, score: v.score }))
+      .sort((a, b) => b.score - a.score);
+    setRushBoard(arr);
+    // gazda szetkuldi az elo tablat
+    if (netRole === 'host') {
+      Object.values(connsRef.current).forEach((c) => {
+        try { if (c.open) c.send({ type: 'rush-board', board: arr }); } catch (e) {}
+      });
+    }
+  };
+
+  const rushReportScore = (score) => {
+    if (netRole === 'host') {
+      const key = 'host';
+      rushScoresRef.current[key] = { name: (players.find((p) => !p.peerId) || {}).name || 'Házigazda', score };
+      rushRecomputeBoard();
+    } else {
+      try {
+        if (hostConnRef.current && hostConnRef.current.open) {
+          hostConnRef.current.send({ type: 'rush-score', score, name: myNameRef.current });
+        }
+      } catch (e) {}
+    }
+  };
+
+  const rushPlace = (index) => {
+    if (!rushOn || rushDone || rushFb || !rushCard) return;
+    if (Date.now() < rushPenalty) return;   // buntetes alatt tiltva
+    const y = rushCard.y;
+    let valid = true;
+    if (index > 0 && rushTL[index - 1].y > y) valid = false;
+    if (index < rushTL.length && rushTL[index].y < y) valid = false;
+
+    if (valid) {
+      sfx.correct && sfx.correct();
+      haptics.correct && haptics.correct();
+      const nt = [...rushTL];
+      nt.splice(index, 0, rushCard);
+      nt.sort((a, b) => a.y - b.y);
+      setRushTL(nt);
+      const ns = rushScore + 1;
+      setRushScore(ns);
+      setRushFb('correct');
+      rushReportScore(ns);
+      rushDiscardRef.current.push(rushCard);
+      setTimeout(() => { if (!rushDone) rushDraw(); }, 650);
+    } else {
+      sfx.wrong && sfx.wrong();
+      haptics.wrong && haptics.wrong();
+      setRushFb('wrong');
+      const until = Date.now() + RUSH_PENALTY * 1000;
+      setRushPenalty(until);
+      setRushPenLeft(RUSH_PENALTY);
+      rushDiscardRef.current.push(rushCard);
+      // a buntetes vegen jon az uj lap
+      setTimeout(() => { if (!rushDone) { setRushFb(null); rushDraw(); } }, RUSH_PENALTY * 1000);
+    }
+  };
+
+  const startRushLocal = (endsAt) => {
+    // sajat, fuggetlen pakli a valasztott csomagbol
+    const pack = getPack(selectedPack);
+    const pool = (pack && pack.data && pack.data.length ? pack.data : SONG_PACKS.mix.data);
+    const shuffled = shuffleDeck([...pool]);
+    const seed = shuffled.shift();
+    rushDeckRef.current = shuffled;
+    rushDiscardRef.current = [];
+    setRushTL(seed ? [seed] : []);
+    setRushScore(0);
+    setRushFb(null);
+    setRushPenalty(0);
+    setRushDone(false);
+    setRushBoard([]);
+    setRushEndsAt(endsAt);
+    setRushOn(true);
+    setStatus('rush');
+    setTimeout(() => rushDraw(), 300);
+    rushReportScore(0);
+  };
+
+  const rushFinish = () => {
+    if (rushDone) return;
+    setRushDone(true);
+    setRushOn(false);
+    try { if (rushAudioRef.current) rushAudioRef.current.pause(); } catch (e) {}
+    // vegso pont bekuldese
+    rushReportScore(rushScore);
+    if (netRole === 'host') {
+      setTimeout(() => {
+        const arr = Object.entries(rushScoresRef.current)
+          .map(([k, v]) => ({ key: k, name: v.name, score: v.score }))
+          .sort((a, b) => b.score - a.score);
+        Object.values(connsRef.current).forEach((c) => {
+          try { if (c.open) c.send({ type: 'rush-end', board: arr }); } catch (e) {}
+        });
+        setRushBoard(arr);
+      }, 400);
+    }
+  };
+
+  const hostStartRush = () => {
+    const endsAt = Date.now() + rushDur * 1000 + 1500;   // +1.5mp, hogy mindenki felkeszuljon
+    rushScoresRef.current = {};
+    // ertesitjuk a vendegeket
+    Object.values(connsRef.current).forEach((c) => {
+      try { if (c.open) c.send({ type: 'rush-start', endsAt, dur: rushDur }); } catch (e) {}
+    });
+    startRushLocal(endsAt);
+  };
+
+  // Idofutam visszaszamlalo (kozos vegzodesi idobelyeg alapjan)
+  useEffect(() => {
+    if (!rushOn || !rushEndsAt) return undefined;
+    const t = setInterval(() => {
+      const left = Math.max(0, Math.round((rushEndsAt - Date.now()) / 1000));
+      setRushLeft(left);
+      if (rushPenalty) {
+        const pl = Math.max(0, Math.ceil((rushPenalty - Date.now()) / 1000));
+        setRushPenLeft(pl);
+        if (pl === 0) setRushPenalty(0);
+      }
+      if (left <= 0) rushFinish();
+    }, 200);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rushOn, rushEndsAt, rushPenalty, rushDone, rushScore]);
+
   const netSnapshot = () => ({
     type: 'state',
     status,
@@ -3405,6 +3583,9 @@ export default function App() {
           });
         } else if (msg && msg.type === 'action') {
           hostHandleAction(conn.peer, msg);
+        } else if (msg && msg.type === 'rush-score') {
+          rushScoresRef.current[conn.peer] = { name: String(msg.name || 'Játékos'), score: msg.score || 0 };
+          rushRecomputeBoard();
         }
       });
       conn.on('close', () => {
@@ -3442,6 +3623,7 @@ export default function App() {
     const name = joinName.trim();
     if (code.length !== 4 || !name) { showToast('Add meg a 4 betűs kódot és a neved!'); return; }
     rejoinRef.current = { code, name, tries: 0 };
+    myNameRef.current = name;
     if (netBusy) return;
     setNetBusy(true);
     // Hang-feloldas: a csatlakozas-koppintas "engedelyt ad" a kesobbi zenere
@@ -3500,6 +3682,15 @@ export default function App() {
           showToast(msg.why || 'Nem sikerült csatlakozni.');
         } else if (msg.type === 'state') {
           setSnap(msg);
+        } else if (msg.type === 'rush-start') {
+          startRushLocal(msg.endsAt);
+        } else if (msg.type === 'rush-board') {
+          setRushBoard(msg.board || []);
+        } else if (msg.type === 'rush-end') {
+          setRushBoard(msg.board || []);
+          setRushDone(true);
+          setRushOn(false);
+          try { if (rushAudioRef.current) rushAudioRef.current.pause(); } catch (e) {}
         } else if (msg.type === 'shame') {
           setShame(true);
         } else if (msg.type === 'prank') {
@@ -4456,13 +4647,46 @@ export default function App() {
                         ))}
                       </div>
                     </div>
+                    <div className="game-type-pick">
+                      <button type="button" className={`gt-btn ${roomMode === 'classic' ? 'on' : ''}`} onClick={() => setRoomMode('classic')}>
+                        <Layers size={16} /> KLASSZIKUS
+                        <small>Körökre osztva, felváltva</small>
+                      </button>
+                      <button type="button" className={`gt-btn ${roomMode === 'rush' ? 'on' : ''}`} onClick={() => setRoomMode('rush')}>
+                        <Timer size={16} /> IDŐFUTAM
+                        <small>Egyszerre, saját telefonon</small>
+                      </button>
+                    </div>
+
+                    {roomMode === 'rush' && (
+                      <div className="rush-setup">
+                        <span className="rs-lbl">MEDDIG TARTSON?</span>
+                        <div className="rs-times">
+                          {[60, 90, 120, 180].map((sec) => (
+                            <button key={sec} type="button" className={`rs-time ${rushDur === sec ? 'on' : ''}`} onClick={() => setRushDur(sec)}>
+                              {sec < 120 ? `${sec} mp` : `${sec / 60} perc`}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="rs-hint">Mindenki egyszerre versenyez a saját telefonján. Aki több lapot rak a helyére, az nyer! Hibás lerakás: {RUSH_PENALTY} mp büntetés.</p>
+                      </div>
+                    )}
+
                     <button
                       type="button"
                       className="btn-3d start wide room-start"
                       disabled={players.length < 2}
-                      onClick={() => { setShowRoom(false); startGame(); }}
+                      onClick={() => {
+                        setShowRoom(false);
+                        if (roomMode === 'rush') hostStartRush();
+                        else startGame();
+                      }}
                     >
-                      <Play size={17} /> {players.length < 2 ? 'VÁRUNK MÉG JÁTÉKOSRA…' : `JÁTÉK INDÍTÁSA (${players.length} JÁTÉKOS)`}
+                      <Play size={17} /> {players.length < 2
+                        ? 'VÁRUNK MÉG JÁTÉKOSRA…'
+                        : roomMode === 'rush'
+                          ? `IDŐFUTAM INDÍTÁSA (${players.length})`
+                          : `JÁTÉK INDÍTÁSA (${players.length})`}
                     </button>
                     <div className="audio-mode-row">
                       <button
@@ -4766,6 +4990,109 @@ export default function App() {
 
           <button type="button" className="btn-3d ghost" onClick={() => { dailyRef.current = null; setStatus('menu'); }}>VISSZA A FŐOLDALRA</button>
         </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  IDOFUTAM NEZET (minden keszuleken - gazda es vendeg egyarant)
+  // ============================================================
+  if (status === 'rush') {
+    const penaltyActive = Date.now() < rushPenalty && !rushDone;
+    const myName = (netRole === 'host' ? (players.find((p) => !p.peerId) || {}).name : myNameRef.current) || 'Te';
+
+    return (
+      <div className="screen rush-screen">
+        <audio ref={rushAudioRef} playsInline preload="auto" />
+
+        {/* Fejlec: ora + sajat pont */}
+        <div className="rush-top">
+          <div className={`rush-clock ${rushLeft <= 10 ? 'low' : ''}`}>
+            <Timer size={18} /> {Math.floor(rushLeft / 60)}:{String(rushLeft % 60).padStart(2, '0')}
+          </div>
+          <div className="rush-myscore"><Layers size={15} /> {rushScore} lap</div>
+        </div>
+
+        {/* Elo eredmenytabla */}
+        {rushBoard.length > 0 && (
+          <div className="rush-board">
+            {rushBoard.map((r, i) => (
+              <span key={r.key} className={`rb-chip ${r.name === myName ? 'me' : ''}`}>
+                <b>{i + 1}.</b> {r.name} · {r.score}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {rushDone ? (
+          /* ---- Vegeredmeny ---- */
+          <div className="rush-result">
+            <Trophy size={54} className="rr-trophy" />
+            <h2 className="text-chrome">VÉGE!</h2>
+            {rushBoard.length > 0 && (
+              <>
+                <div className="rr-winner">{rushBoard[0].name} nyert {rushBoard[0].score} lappal!</div>
+                <div className="rr-list">
+                  {rushBoard.map((r, i) => (
+                    <div key={r.key} className={`rr-row ${r.name === myName ? 'me' : ''}`}>
+                      <span className="rr-rank">{i + 1}</span>
+                      <span className="rr-name">{r.name}</span>
+                      <span className="rr-score">{r.score} lap</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <button type="button" className="btn-3d gold wide" onClick={() => { setStatus(netRole === 'host' ? 'setup' : 'client'); setRushDone(false); }}>
+              {netRole === 'host' ? 'VISSZA A SZOBÁHOZ' : 'RENDBEN'}
+            </button>
+          </div>
+        ) : (
+          /* ---- Jatek kozben ---- */
+          <>
+            <div className="rush-card-zone">
+              {penaltyActive ? (
+                <div className="rush-penalty">
+                  <XCircle size={40} />
+                  <span className="rp-big">{rushPenLeft}</span>
+                  <span className="rp-txt">Hibás! Várj a következő lapig…</span>
+                </div>
+              ) : rushCard ? (
+                <div className={`rush-card ${rushFb === 'correct' ? 'ok' : ''}`}>
+                  <span className="rc-q">?</span>
+                  <span className="rc-artist">{rushCard.a}</span>
+                  <span className="rc-title">{rushCard.t}</span>
+                  <button type="button" className="rc-play" onClick={() => {
+                    const el = rushAudioRef.current;
+                    if (!el) return;
+                    if (el.paused) el.play().catch(() => {}); else el.pause();
+                  }}>
+                    <Play size={16} /> Zene
+                  </button>
+                </div>
+              ) : (
+                <div className="rush-card loading"><RefreshCw size={22} className="spin" /></div>
+              )}
+            </div>
+
+            {/* Idovonal - ahova rakni kell */}
+            <div className="rush-timeline">
+              <button type="button" className="slot-btn" disabled={penaltyActive || rushFb === 'correct'} onClick={() => rushPlace(0)}>+</button>
+              {rushTL.map((c, i) => (
+                <React.Fragment key={c.a + c.t + i}>
+                  <div className="rush-tl-card">
+                    <span className="rtc-year">{c.y}</span>
+                    <span className="rtc-artist">{c.a}</span>
+                    <span className="rtc-title">{c.t}</span>
+                  </div>
+                  <button type="button" className="slot-btn" disabled={penaltyActive || rushFb === 'correct'} onClick={() => rushPlace(i + 1)}>+</button>
+                </React.Fragment>
+              ))}
+            </div>
+
+            <p className="rush-help">Hová illik ez a dal az évek szerint? Koppints a megfelelő + jelre!</p>
+          </>
+        )}
       </div>
     );
   }

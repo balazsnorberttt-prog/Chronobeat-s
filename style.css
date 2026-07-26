@@ -3090,3 +3090,131 @@ body.nofx-sheen .cb-disc { animation: none; }
 @media (max-width: 380px) {
   .audio-mode-row .am-btn { font-size: 0.68rem; }
 }
+
+/* ============================================================
+   v44 — IDŐFUTAM (RUSH) MÓD
+   ============================================================ */
+/* Játéktípus-választó a szobában */
+.game-type-pick { display: flex; gap: 8px; width: 100%; margin: 6px 0 4px; }
+.gt-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 12px 8px; border-radius: 14px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14);
+  color: #fff; font-family: Montserrat, sans-serif; font-weight: 900;
+  font-size: 0.72rem; letter-spacing: 0.5px;
+}
+.gt-btn small { font-weight: 600; font-size: 0.56rem; letter-spacing: 0; color: #9aa2c4; }
+.gt-btn.on {
+  background: linear-gradient(135deg, rgba(0,234,255,.2), rgba(123,45,255,.2));
+  border-color: rgba(0,234,255,.5); box-shadow: 0 0 16px rgba(0,234,255,.24);
+}
+.gt-btn.on small { color: #cfe9ff; }
+
+.rush-setup { width: 100%; margin: 8px 0 4px; }
+.rs-lbl { font-size: 0.58rem; font-weight: 900; letter-spacing: 1.4px; color: #8f97bb; }
+.rs-times { display: flex; gap: 7px; margin: 7px 0; }
+.rs-time {
+  flex: 1; padding: 10px 4px; border-radius: 11px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14);
+  color: #fff; font-weight: 800; font-size: 0.74rem;
+}
+.rs-time.on { background: linear-gradient(135deg,#00c8ff,#7b2dff); border-color: transparent; }
+.rs-hint { font-size: 0.62rem; color: #9aa2c4; line-height: 1.45; margin: 4px 0 0; text-align: left; }
+
+/* Időfutam-képernyő */
+.rush-screen {
+  display: flex; flex-direction: column;
+  padding: calc(12px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+  gap: 12px; min-height: 100%;
+}
+.rush-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rush-clock {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-display); font-size: 1.5rem; color: #fff;
+  padding: 6px 16px; border-radius: 999px;
+  background: rgba(0,234,255,.12); border: 1px solid rgba(0,234,255,.35);
+}
+.rush-clock.low { background: rgba(255,45,110,.16); border-color: rgba(255,45,110,.5); color: #ffb7cd; animation: clockPulse .8s ease-in-out infinite; }
+@keyframes clockPulse { 50% { transform: scale(1.06); } }
+.rush-myscore {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 900; font-size: 0.92rem; color: #ffd36a;
+  padding: 6px 14px; border-radius: 999px; background: rgba(255,211,106,.12);
+}
+
+.rush-board { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.rb-chip {
+  font-size: 0.64rem; font-weight: 700; color: #cdd4f0;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  padding: 4px 10px; border-radius: 20px;
+}
+.rb-chip.me { background: rgba(0,234,255,.16); border-color: rgba(0,234,255,.4); color: #fff; }
+.rb-chip b { color: #ffd36a; }
+
+.rush-card-zone { display: flex; justify-content: center; align-items: center; min-height: 172px; }
+.rush-card {
+  position: relative;
+  width: 210px; min-height: 158px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 18px 16px; border-radius: 20px;
+  background: linear-gradient(150deg, #1a1140, #0e0826);
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 14px 34px rgba(0,0,0,.5);
+  text-align: center;
+}
+.rush-card.ok { border-color: #00ff87; box-shadow: 0 0 30px rgba(0,255,135,.4); }
+.rc-q { font-family: var(--font-display); font-size: 2.4rem; color: var(--gold); line-height: 1; }
+.rc-artist { font-weight: 900; font-size: 0.92rem; color: #fff; }
+.rc-title { font-size: 0.76rem; color: #aab2d6; }
+.rc-play {
+  margin-top: 8px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 999px; border: none;
+  background: linear-gradient(90deg,#00c8ff,#7b2dff); color: #fff;
+  font-weight: 800; font-size: 0.72rem;
+}
+.rush-card.loading { align-items: center; }
+
+.rush-penalty {
+  width: 210px; min-height: 158px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 18px; border-radius: 20px;
+  background: rgba(255,45,110,.14); border: 1px solid rgba(255,45,110,.5);
+  color: #ffb7cd; text-align: center;
+}
+.rp-big { font-family: var(--font-display); font-size: 3rem; line-height: 1; color: #ff5d8a; }
+.rp-txt { font-size: 0.72rem; }
+
+.rush-timeline {
+  display: flex; align-items: stretch; gap: 6px;
+  overflow-x: auto; padding: 6px 2px 10px;
+  -webkit-overflow-scrolling: touch;
+}
+.rush-tl-card {
+  flex: 0 0 auto; width: 92px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 10px 8px; border-radius: 13px;
+  background: linear-gradient(150deg, rgba(0,234,255,.14), rgba(123,45,255,.14));
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.rtc-year { font-family: var(--font-display); font-size: 1.15rem; color: #fff; }
+.rtc-artist { font-weight: 800; font-size: 0.56rem; color: #cdd4f0; text-align: center; line-height: 1.2; }
+.rtc-title { font-size: 0.52rem; color: #9aa2c4; text-align: center; line-height: 1.2; }
+.rush-timeline .slot-btn { flex: 0 0 auto; align-self: center; }
+.rush-help { font-size: 0.66rem; color: #8f97bb; text-align: center; margin: 0; }
+
+/* Időfutam-végeredmény */
+.rush-result { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 10px; text-align: center; }
+.rr-trophy { color: var(--gold); filter: drop-shadow(0 0 16px rgba(255,211,106,.5)); }
+.rr-winner { font-weight: 900; font-size: 1rem; color: #ffd36a; }
+.rr-list { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 7px; margin: 6px 0; }
+.rr-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: 13px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+}
+.rr-row.me { background: rgba(0,234,255,.14); border-color: rgba(0,234,255,.4); }
+.rr-rank { font-family: var(--font-display); font-size: 1.1rem; color: var(--gold); min-width: 22px; }
+.rr-name { flex: 1; text-align: left; font-weight: 800; color: #fff; }
+.rr-score { font-weight: 900; color: #cdd4f0; }
+.spin { animation: spin360 1s linear infinite; }
+@keyframes spin360 { to { transform: rotate(360deg); } }
