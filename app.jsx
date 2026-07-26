@@ -950,7 +950,7 @@ function CharacterStage({ charIndex, size = 200, mood = 'idle' }) {
   );
 }
 
-const APP_VERSION = 'v44';
+const APP_VERSION = 'v45';
 
 // ============================================================
 //  HELYI PROFIL + TROFEAK (minden localStorage-ban, szerver nelkul)
@@ -1927,11 +1927,6 @@ export default function App() {
   const [tutStep, setTutStep] = useState(-1);      // -1 = nincs tanulokor
   const [timeLeft, setTimeLeft] = useState(null);   // Speed Run visszaszamlalo (mp)
   const [goldCard, setGoldCard] = useState(false);  // Arany Kartya kor?
-  const [levelOn, setLevelOn] = useState(() => { try { return localStorage.getItem('cb_level') !== '0'; } catch (e) { return true; } });
-  const audioCtxRef = useRef(null);
-  const audioSrcRef = useRef(null);
-  const compRef = useRef(null);
-  const gainRef = useRef(null);
   const [localFail, setLocalFail] = useState(false);   // a SAJAT keszuleken nem toltott be a dal
   // ---------- IDOFUTAM (RUSH) - mindenki a sajat telefonjan, kozos oraval ----------
   const [rushOn, setRushOn] = useState(false);          // fut-e eppen idofutam
@@ -2754,38 +2749,6 @@ export default function App() {
     }
   };
 
-  // Egyenletes hangero: a dalreszletek nagyon kulonbozo hangosak, ezt simitja el.
-  // Vedett felepites: ha barmi hibazik, a lejatszas valtozatlanul megy tovabb.
-  const ensureLeveler = () => {
-    if (!levelOn) return;
-    if (audioSrcRef.current) return;                 // mar felepult
-    const el = audioRef.current;
-    if (!el) return;
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      const ctx = audioCtxRef.current || new AC();
-      audioCtxRef.current = ctx;
-      const src = ctx.createMediaElementSource(el);
-      const comp = ctx.createDynamicsCompressor();
-      comp.threshold.value = -26;   // innentol fog vissza
-      comp.knee.value = 26;
-      comp.ratio.value = 5;
-      comp.attack.value = 0.006;
-      comp.release.value = 0.25;
-      const gain = ctx.createGain();
-      gain.gain.value = 1.45;       // a visszafogas utan visszaemeljuk
-      src.connect(comp);
-      comp.connect(gain);
-      gain.connect(ctx.destination);
-      audioSrcRef.current = src;
-      compRef.current = comp;
-      gainRef.current = gain;
-    } catch (e) {
-      // Ha nem sikerul (pl. CORS vagy mar csatolt elem), marad a sima lejatszas
-      audioSrcRef.current = null;
-    }
-  };
 
   const pauseMusic = () => {
     if (audioRef.current) audioRef.current.pause();
@@ -2972,11 +2935,6 @@ export default function App() {
   const toggleMusic = () => {
     if (appleActive) { toggleApple(); return; }
     if (!audioRef.current || isLoading || !audioUrl) return;
-    ensureLeveler();
-    try {
-      const ctx = audioCtxRef.current;
-      if (ctx && ctx.state === 'suspended') ctx.resume();
-    } catch (e) {}
     if (isPlaying) {
       pauseMusic();
     } else if (activeModes.reverse) {
@@ -4357,23 +4315,6 @@ export default function App() {
             </div>
 
             <h3 className="modal-title small">HANG ÉS REZGÉS</h3>
-            <button
-              type="button"
-              className={`mode-row slim ${levelOn ? 'on' : ''}`}
-              onClick={() => {
-                const v = !levelOn;
-                setLevelOn(v);
-                try { localStorage.setItem('cb_level', v ? '1' : '0'); } catch (e) {}
-                showToast(v ? 'Egyenletes hangerő bekapcsolva — a következő daltól él.' : 'Egyenletes hangerő ki — újratöltés után áll vissza teljesen.');
-              }}
-            >
-              <span className="mr-icon"><Volume2 size={16} /></span>
-              <span className="mr-body">
-                <span className="mr-name">Egyenletes hangerő</span>
-                <span className="mr-desc">A halk és a hangos dalokat egy szintre hozza, hogy ne kelljen állandóan a hangerőt tekergetni.</span>
-              </span>
-              <span className={`mr-toggle ${levelOn ? 'on' : ''}`} />
-            </button>
             <div className="sfx-row">
               <button
                 type="button"
